@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<overlay id="soundcloud-overlay" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+  <script src="radioProperties.js"/>
+  <script src="main.js"/>
+
+  <stringbundleset id="stringbundleset"> 
+     <stringbundle id="soundcloud-strings" src="chrome://soundcloud/locale/overlay.properties"/>
+  </stringbundleset>  
+
+  <statusbar id="status-bar">
+    <statusbarpanel id="soundcloudStatusIcon"
+      class="statusbarpanel-iconic"
+      src="chrome://soundcloud/skin/soundcloud_favicon.png"
+      tooltip=""
+    />
+  </statusbar>
+</overlay>

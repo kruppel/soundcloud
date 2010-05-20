@@ -1,0 +1,14 @@
+treecol[bind="http://songbirdnest.com/data/1.0#user"],
+treecol[bind="http://songbirdnest.com/data/1.0#streamURL"]
+{
+      text-align:left;
+}
+
+treecol[bind="http://songbirdnest.com/data/1.0#user"] > label,
+treecol[bind="http://songbirdnest.com/data/1.0#streamURL"] > label,
+.sb-playlist-tree > treechildren::-moz-tree-cell-text( http-songbirdnest-com-data-1-0-user ),
+.sb-playlist-tree > treechildren::-moz-tree-cell-text( http-songbirdnest-com-data-1-0-streamURL )
+{
+       padding-right:15px;
+}
+

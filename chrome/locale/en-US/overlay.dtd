@@ -1,0 +1,8 @@
+<!ENTITY soundcloud.filter "Filter">
+<!ENTITY soundcloud.genre "Genre">
+<!ENTITY soundcloud.clear "Clear">
+<!ENTITY soundcloud.add-station "Add Station">
+<!ENTITY soundcloud.enter-name "Enter the name you wish to give the station">
+<!ENTITY soundcloud.station-name "Station Name">
+<!ENTITY soundcloud.enter-url "Enter the URL to the SHOUTcast station">
+<!ENTITY soundcloud.enter-genre "Select a genre for the station">
