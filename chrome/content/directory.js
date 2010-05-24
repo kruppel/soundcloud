@@ -29,6 +29,7 @@ if (typeof(gMetrics) == "undefined")
 const soundcloudTempLibGuid = "extensions.soundcloud.templib.guid";
 const soundcloudLibraryGuid = "extensions.soundcloud.library.guid";
 const soundcloudPlaylistInit = "extensions.soundcloud.library.plsinit";
+const defaultSearchType = "track";
 
 if (typeof(kPlaylistCommands) == "undefined") {
         Cu.import("resource://app/components/kPlaylistCommands.jsm");
@@ -64,6 +65,26 @@ var CloudDirectory = {
 
                 this._strings = document.getElementById("soundcloud-strings");
 
+		var menulist = document.getElementById("soundcloud-search-menulist");
+		var mlStrings = Cc["@mozilla.org/intl/stringbundle;1"]
+		        .getService(Ci.nsIStringBundleService)
+			.createBundle("chrome://soundcloud/locale/menu.properties");
+		var menuitems = this.getMenuItems(mlStrings);
+
+		//Build the menulist
+		var found = false;
+		for (i in menuitems) {
+		        var thisitem = menuitems[i];
+			var el = menulist.appendItem(thisitem.label, thisitem.value);
+			if (defaultSearchType == thisitem.value) {
+			        menulist.selectedItem = el;
+				found = true;
+			}
+		}
+
+		if (!found)
+		        menulist.selectedIndex = 0;
+
                 var strings = Cc["@mozilla.org/intl/stringbundle;1"]
                         .getService(Ci.nsIStringBundleService)
                         .createBundle("chrome://soundcloud/locale/genres.properties");
@@ -82,12 +103,15 @@ var CloudDirectory = {
                 if (!Application.prefs.getValue(soundcloudPlaylistInit, false)) {
                         Application.prefs.setValue(soundcloudPlaylistInit, true);
                         var colSpec = SOCL_title + " 358 " + SOCL_time + " 71 " +
-                                        SOCL_user + " 150 " + SOCL_url + " 290 ";
+                                        SOCL_user + " 150 " + SOCL_plays + " 40 " +
+					SOCL_favs + " 40 " + SOCL_url + " 290 ";
                         this.radioLib.setProperty(SBProperties.columnSpec, colSpec);
                         this.playlist.clearColumns();
                         this.playlist.appendColumn(SOCL_title, "358");
                         this.playlist.appendColumn(SOCL_time, "71");
                         this.playlist.appendColumn(SOCL_user, "150");
+                        this.playlist.appendColumn(SOCL_plays, "40");
+                        this.playlist.appendColumn(SOCL_favs, "40");
                         this.playlist.appendColumn(SOCL_url, "290");
                 }
 
@@ -196,6 +220,24 @@ var CloudDirectory = {
                 }
         },
 
+	getMenuItems : function(strings) {
+	        var iter = strings.getSimpleEnumeration();
+		var items = new Array();
+		while (iter.hasMoreElements()) {
+		        var itemProp = iter.getNext()
+			        .QueryInterface(Ci.nsIPropertyElement);
+		        var itemValue = itemProp.key;
+			var itemLabel = itemProp.value;
+			items.push({value:itemValue, label:itemLabel});
+		}
+
+		items.sort(function(a,b) {
+		        return(a.label.toUpperCase() > b.label.toUpperCase());
+		});
+
+		return items;
+	},
+
         loadTable : function(query) {
                 // reset the library
                 this.radioLib.clear();
@@ -218,8 +260,8 @@ var CloudDirectory = {
 			        var title = trackList[i].title;
 				var duration = trackList[i].duration * 1000;
                                 var username = trackList[i].user.username;
-				//var pcount = trackList[i].playback-count;
-				//var fcount = trackList[i].favoritings-count;
+				var pcount = trackList[i].playback_count;
+				var fcount = trackList[i].favoritings_count;
 				var uri = trackList[i].uri;
 				var streamURL = trackList[i].stream_url;
 				var streamable = trackList[i].streamable;
@@ -234,6 +276,8 @@ var CloudDirectory = {
 				props.appendProperty(SOCL_title, title);
 				props.appendProperty(SOCL_time, duration);
 				props.appendProperty(SOCL_user, username);
+				props.appendProperty(SOCL_plays, pcount);
+				props.appendProperty(SOCL_favs, fcount);
 				props.appendProperty(SOCL_url, streamURL);
 
                                 propertiesArray.appendElement(props, false);

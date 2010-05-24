@@ -33,6 +33,30 @@
     <script type="application/javascript" src="soundcloud.js"/>
     <script type="application/javascript" src="directory.js"/>
 
+    <hbox align="center" id="soundcloud-box">
+        <vbox flex="1" id="search-box" class="generic-bar">
+	    <hbox>
+	        <label class="soundcloud-logo"
+		       onclick="Components.classes['@mozilla.org/appshell/window-mediator;1']
+		       .getService(Components.interfaces.nsIWindowMediator)
+		       .getMostRecentWindow('Songbird:Main').gBrowser
+		       .loadOneTab('http://soundcloud.com');">
+		    <image src="chrome://soundcloud/skin/soundcloud_wordmark.png" />
+	        </label>
+	    </hbox>
+	    <hbox class="header-actions">
+	        <menulist oncommand=""
+		          id="soundcloud-search-menulist">
+	        </menulist>
+<!--		<spacer flex="0" style="width:1em;" /> -->
+		<textbox id="soundcloud-search-textbox"
+		         oninput="" />
+	        <button id="soundcloud-search-btn" label="Search"
+		        oncommand=""
+			disabled="true" />
+	    </hbox>
+	</vbox>
+    </hbox>
     <deck id="loading-deck" flex="1" selectedIndex="0">
         <vbox pack="center" flex="1">
             <hbox pack="center">

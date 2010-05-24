@@ -116,12 +116,11 @@ var mmListener = {
                 }
         },
 
-        disableTags : ['sb-player-back-button', 'sb-player-shuffle-button',
-      'sb-player-repeat-button', 'sb-player-forward-button'],
+        disableTags : [ ],
 
         setPlayerState: function(scStream) {
                 //var stationIcon = document.getElementById("shoutcast-station-icon");
-                var stopButton = document.getElementById("play_stop_button");
+                //var stopButton = document.getElementById("play_stop_button");
                 var playButton = document.getElementById("play_pause_button");
 
                 if (scStream) {
@@ -133,12 +132,12 @@ var mmListener = {
                                         elements[j].setAttribute('disabled', 'true');
                                 }
                         }
-                        playButton.setAttribute("hidden", "true");
-                        stopButton.removeAttribute("hidden");
+                        //playButton.setAttribute("hidden", "true");
+                        //stopButton.removeAttribute("hidden");
                 } else {
                         //stationIcon.style.visibility = "collapse";
-                        stopButton.setAttribute("hidden", "true");
-                        playButton.removeAttribute("hidden");
+                        //stopButton.setAttribute("hidden", "true");
+                        //playButton.removeAttribute("hidden");
 
                         // if we're not playign something then reset the button state
                         // OR if we're not playing Last.fm
@@ -246,12 +245,30 @@ SoundCloud.Controller = {
                         pI.userViewable = false;
                         pMgr.addPropertyInfo(pI);
                 }
+                if (!pMgr.hasProperty(SOCL_plays)) {
+                        var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"]
+                                        .createInstance(Ci.sbITextPropertyInfo);
+                        pI.id = SOCL_plays;
+                        pI.displayName = " ";
+                        pI.userEditable = false;
+                        pI.userViewable = false;
+                        pMgr.addPropertyInfo(pI);
+                }
+                if (!pMgr.hasProperty(SOCL_favs)) {
+                        var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"]
+                                        .createInstance(Ci.sbITextPropertyInfo);
+                        pI.id = SOCL_favs;
+                        pI.displayName = " ";
+                        pI.userEditable = false;
+                        pI.userViewable = false;
+                        pMgr.addPropertyInfo(pI);
+                }
                 if (!pMgr.hasProperty(SOCL_url)) {
                         var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"]
                                         .createInstance(Ci.sbITextPropertyInfo);
                         pI.id = SOCL_url;
                         pI.displayName = this._strings.getString("streamURL");
-                        pI.userEditable = false;
+                        pI.userEditable = true;
                         pI.userViewable = false;
                         pMgr.addPropertyInfo(pI);
                 }
