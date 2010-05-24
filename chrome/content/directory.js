@@ -298,7 +298,12 @@ var CloudDirectory = {
                         var deck = document.getElementById("loading-deck");
                         deck.selectedIndex = 1;
                 }
-        }
+        },
+
+	inputSearch : function(event) {
+	        var value = event.target.value;
+	        document.getElementById("soundcloud-search-btn").disabled = value.length == 0;
+	}
 }
 
 function createLibrary(databaseGuid, databaseLocation, init) {

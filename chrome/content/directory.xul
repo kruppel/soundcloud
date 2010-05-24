@@ -50,7 +50,7 @@
 	        </menulist>
 <!--		<spacer flex="0" style="width:1em;" /> -->
 		<textbox id="soundcloud-search-textbox"
-		         oninput="" />
+		         oninput="CloudDirectory.inputSearch(event)" />
 	        <button id="soundcloud-search-btn" label="Search"
 		        oncommand=""
 			disabled="true" />
