@@ -50,9 +50,10 @@
 	        </menulist>
 <!--		<spacer flex="0" style="width:1em;" /> -->
 		<textbox id="soundcloud-search-textbox"
-		         oninput="CloudDirectory.inputSearch(event)" />
+		         oninput="CloudDirectory.inputSearch(event)"
+			 onkeydown="CloudDirectory.triggerSearch(event)" />
 	        <button id="soundcloud-search-btn" label="Search"
-		        oncommand=""
+		        oncommand="SoundCloud.getSearchURL()"
 			disabled="true" />
 	    </hbox>
 	</vbox>

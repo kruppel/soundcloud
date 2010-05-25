@@ -119,8 +119,7 @@ var CloudDirectory = {
                                 .QueryInterface(Ci.sbILocalDatabaseTreeView);
                 //ldtv.setSort(SOCL_, 0);
 
-                this.loadTable("http://api.soundcloud.com/tracks.json?q=Lee+Curtiss&order=hotness");
-                //this.loadTable("http://api.soundcloud.com/tracks?q=Lee+Curtiss");
+                //this.loadTable("http://api.soundcloud.com/tracks.json?q=Lee+Curtiss&order=hotness");
 
 /*
                 this.playlist.addEventListener("PlaylistCellClick",
@@ -303,6 +302,11 @@ var CloudDirectory = {
 	inputSearch : function(event) {
 	        var value = event.target.value;
 	        document.getElementById("soundcloud-search-btn").disabled = value.length == 0;
+	},
+
+	triggerSearch : function(event) {
+	        if (event.keyCode == 13)
+		        document.getElementById('soundcloud-search-btn').click();
 	}
 }
 

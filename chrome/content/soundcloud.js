@@ -14,13 +14,20 @@ const CONTRACTID = "@songbirdnest.com/soundcloud;1";
 const soundcloudURL = "http://api.soundcloud.com/tracks?q=";
 */
 
+const soundcloudURL = "http://api.soundcloud.com/tracks.json?order=hotness";
+
 var SoundCloud = {
         /* 
         getSearchURL : function(query) {
                 return (soundcloudURL + query);
         },
         */
-
+        
+	getSearchURL : function(event) {
+	        let value = document.getElementById("soundcloud-search-textbox").value;
+	        let query = encodeURIComponent(value);
+	        CloudDirectory.loadTable(soundcloudURL + "&q=" + query);
+	},
         /*
         getTracksList : function(genre) {
                 var req = new XMLHttpRequest();
