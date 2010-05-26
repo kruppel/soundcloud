@@ -237,10 +237,7 @@ var CloudDirectory = {
 		return items;
 	},
 
-        loadTable : function(query) {
-                // reset the library
-                this.radioLib.clear();
-
+        loadTable : function(trackList) {
                 // Make the progress meter spin
                 var el = songbirdMainWindow.document
                         .getElementById("sb-status-bar-status-progressmeter");
@@ -248,9 +245,7 @@ var CloudDirectory = {
  
                 // if genre is null, then we're just being asked to filter our existing
                 // data and we don't need to reload data
-                if (query != null) {
-		        var trackList = SoundCloud.getTracks(query, 0);
-
+                if (trackList != null) {
                         var trackArray = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
                                         .createInstance(Ci.nsIMutableArray);
                         var propertiesArray = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
