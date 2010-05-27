@@ -12,7 +12,7 @@ var SoundCloud = {
 	},
 
         getTracks : function(url, offset) {
-	         alert(url + "&offset="+ offset);
+	         //alert(url + "&offset="+ offset);
                  var req;
                  try{
                    // create the XMLHttpRequest object
@@ -20,11 +20,11 @@ var SoundCloud = {
                    req.onreadystatechange = function() {
 		     if (req.readyState == 4) {
 		       if (req.status == 200) {
-		         let next = offset + 50;
 		         let rs = eval('(' + req.responseText + ')');
 			 let results = rs.length;
+		         let next = offset + results;
 			 CloudDirectory.loadTable(rs);
-			 if (results > 49)
+			 if (results > 45)
 			   SoundCloud.getTracks(url, next);
 		       }
 		     }

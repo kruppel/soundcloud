@@ -100,19 +100,20 @@ var CloudDirectory = {
 
                 // If this is the first time we've loaded the playlist, clear the 
                 // normal columns and use the soundcloud ones
-                if (!Application.prefs.getValue(soundcloudPlaylistInit, false)) {
+                if (Application.prefs.getValue(soundcloudPlaylistInit, false)) {
                         Application.prefs.setValue(soundcloudPlaylistInit, true);
                         var colSpec = SOCL_title + " 358 " + SOCL_time + " 71 " +
-                                        SOCL_user + " 150 " + SOCL_plays + " 40 " +
-					SOCL_favs + " 40 " + SOCL_url + " 290 ";
+                                        SOCL_user + " 150 " + SOCL_plays + " 45 " +
+					SOCL_favs + " 45 ";// + SOCL_url + " 290 ";
                         this.radioLib.setProperty(SBProperties.columnSpec, colSpec);
                         this.playlist.clearColumns();
                         this.playlist.appendColumn(SOCL_title, "358");
                         this.playlist.appendColumn(SOCL_time, "71");
                         this.playlist.appendColumn(SOCL_user, "150");
-                        this.playlist.appendColumn(SOCL_plays, "40");
-                        this.playlist.appendColumn(SOCL_favs, "40");
-                        this.playlist.appendColumn(SOCL_url, "290");
+                        this.playlist.appendColumn(SOCL_plays, "45");
+                        this.playlist.appendColumn(SOCL_favs, "45");
+                        this.playlist.appendColumn("http://songbirdnest.com/data/1.0#downloadButton", "60");
+                        //this.playlist.appendColumn(SOCL_url, "290");
                 }
 
                 var ldtv = this.playlist.tree.view
@@ -272,7 +273,9 @@ var CloudDirectory = {
 				props.appendProperty(SOCL_user, username);
 				props.appendProperty(SOCL_plays, pcount);
 				props.appendProperty(SOCL_favs, fcount);
-				props.appendProperty(SOCL_url, streamURL);
+				props.appendProperty("http://songbirdnest.com/data/1.0#downloadButton", "1|0|0");
+
+				//props.appendProperty(SOCL_url, streamURL);
 
                                 propertiesArray.appendElement(props, false);
 
