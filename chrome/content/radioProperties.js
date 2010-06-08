@@ -5,3 +5,4 @@ const SOCL_user = SOCL_NS + "user";
 const SOCL_plays = SOCL_NS + "playcount";
 const SOCL_favs = SOCL_NS + "favcount";
 const SOCL_url = SOCL_NS + "streamURL";
+const SOCL_dl = SOCL_NS + "downloadButton";

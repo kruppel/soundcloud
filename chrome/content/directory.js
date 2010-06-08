@@ -50,6 +50,8 @@ if (typeof(LibraryUtils) == "undefined") {
 }
 
 var CloudDirectory = {
+        radioLib : null,
+	tracksFound : 0,
 
         init : function() {
                 var servicePaneStrings = Cc["@mozilla.org/intl/stringbundle;1"]
@@ -100,7 +102,7 @@ var CloudDirectory = {
 
                 // If this is the first time we've loaded the playlist, clear the 
                 // normal columns and use the soundcloud ones
-                if (Application.prefs.getValue(soundcloudPlaylistInit, false)) {
+                if (!Application.prefs.getValue(soundcloudPlaylistInit, false)) {
                         Application.prefs.setValue(soundcloudPlaylistInit, true);
                         var colSpec = SOCL_title + " 358 " + SOCL_time + " 71 " +
                                         SOCL_user + " 150 " + SOCL_plays + " 45 " +
@@ -112,28 +114,31 @@ var CloudDirectory = {
                         this.playlist.appendColumn(SOCL_user, "150");
                         this.playlist.appendColumn(SOCL_plays, "45");
                         this.playlist.appendColumn(SOCL_favs, "45");
-                        this.playlist.appendColumn("http://songbirdnest.com/data/1.0#downloadButton", "60");
+                        //this.playlist.appendColumn(SOCL_dl, "60");
                         //this.playlist.appendColumn(SOCL_url, "290");
                 }
 
                 var ldtv = this.playlist.tree.view
                                 .QueryInterface(Ci.sbILocalDatabaseTreeView);
-                //ldtv.setSort(SOCL_, 0);
+                
+		//ldtv.setSort(SOCL_, 0);
 
                 //this.loadTable("http://api.soundcloud.com/tracks.json?q=Lee+Curtiss&order=hotness");
 
 /*
                 this.playlist.addEventListener("PlaylistCellClick",
                                 onPlaylistCellClick, false);
+				/*
                 this.playlist.addEventListener("Play", onPlay, false);
 */
 
         },
 
         unload: function() {
-/*
+	/*
                 CloudDirectory.playlist.removeEventListener("PlaylistCellClick",
                                 onPlaylistCellClick, false);
+				/*
                 CloudDirectory.playlist.removeEventListener("Play", onPlay, false);
 */
         },
@@ -250,7 +255,7 @@ var CloudDirectory = {
                         var trackArray = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
                                         .createInstance(Ci.nsIMutableArray);
                         var propertiesArray = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
-                                        .createInstance(Ci.nsIMutableArray);i
+                                        .createInstance(Ci.nsIMutableArray);
                         for (var i=0; i<trackList.length; i++) {
 			        var title = trackList[i].title;
 				var duration = trackList[i].duration * 1000;
@@ -260,6 +265,7 @@ var CloudDirectory = {
 				var uri = trackList[i].uri;
 				var streamURL = trackList[i].stream_url;
 				var streamable = trackList[i].streamable;
+				var downloadable = trackList[i].downloadable;
 
 				if (!streamable)
 				  continue;
@@ -273,15 +279,23 @@ var CloudDirectory = {
 				props.appendProperty(SOCL_user, username);
 				props.appendProperty(SOCL_plays, pcount);
 				props.appendProperty(SOCL_favs, fcount);
-				props.appendProperty("http://songbirdnest.com/data/1.0#downloadButton", "1|0|0");
 
-				//props.appendProperty(SOCL_url, streamURL);
+/*
+				if (downloadable) {
+				  var downloadURL = trackList[i].download_url;
+				  props.appendProperty("http://songbirdnest.com/data/1.0#downloadURL", downloadURL);
+				  props.appendProperty(SOCL_dl, "1|0|0");
+				  trackArray.appendElement(
+				                  ioService.newURI(downloadURL, null, null),
+						  false);
+				} else {
+				*/
+				  trackArray.appendElement(
+				                  ioService.newURI(streamURL, null, null),
+						  false);
+//				}
 
                                 propertiesArray.appendElement(props, false);
-
-				trackArray.appendElement(
-				                ioService.newURI(streamURL, null, null),
-						false);
 /*
                                 trackArray.appendElement(
                                                 ioService.newURI(soundcloudTrackURL, null, null),
@@ -292,14 +306,28 @@ var CloudDirectory = {
                         CloudDirectory.radioLib.batchCreateMediaItemsAsync(libListener,
                                 trackArray, propertiesArray, false);
 
+/*
                         var deck = document.getElementById("loading-deck");
                         deck.selectedIndex = 1;
+			*/
                 }
         },
 
 	inputSearch : function(event) {
 	        var value = event.target.value;
 	        document.getElementById("soundcloud-search-btn").disabled = value.length == 0;
+	},
+
+	getTracksFound : function() {
+	        return this.tracksFound;
+	},
+
+	setTracksFound : function(tracks) {
+	        this.tracksFound += tracks;
+	},
+
+	resetTracksFound : function() {
+	        this.tracksFound = 0;
 	},
 
 	triggerSearch : function(event) {
@@ -353,9 +381,12 @@ var libListener = {
                 var el = songbirdMainWindow.document
                         .getElementById("sb-status-bar-status-progressmeter");
                 el.mode = "";
+		CloudDirectory.setTracksFound(array.length);
+		
                 SBDataSetStringValue("faceplate.status.text",
-                                array.length + " " +
+                                CloudDirectory.getTracksFound() + " " +
                                 CloudDirectory._strings.getString("tracksFound"));
+				
         }
 }
 
@@ -414,5 +445,4 @@ function onPlay(e) {
     e.stopPropagation();
     e.preventDefault();
 }
-
 

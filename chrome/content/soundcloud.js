@@ -5,6 +5,7 @@ var SoundCloud = {
 	getSearchURL : function(event) {
 	        // Reset the library
 	        CloudDirectory.radioLib.clear();
+		CloudDirectory.resetTracksFound();
 		// Get value from search textbox
 	        var value = document.getElementById("soundcloud-search-textbox").value;
 	        var query = encodeURIComponent(value);
@@ -24,8 +25,16 @@ var SoundCloud = {
 			 let results = rs.length;
 		         let next = offset + results;
 			 CloudDirectory.loadTable(rs);
-			 if (results > 45)
+			 if (results > 45) {
 			   SoundCloud.getTracks(url, next);
+			 } else {
+			   /*
+			   var tracksFound = CloudDirectory.getTracksFound(results);
+			   SBDataSetStringValue("faceplate.status.text",
+			                  tracksFound + " " +
+					  CloudDirectory._strings.getString("tracksFound"));
+					  */
+			 }
 		       }
 		     }
 		   }

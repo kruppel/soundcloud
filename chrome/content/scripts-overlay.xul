@@ -6,7 +6,49 @@
 
   <stringbundleset id="stringbundleset"> 
      <stringbundle id="soundcloud-strings" src="chrome://soundcloud/locale/overlay.properties"/>
-  </stringbundleset>  
+  </stringbundleset>
+
+  <popupset id="mainPopupSet">
+    <panel id="soundcloudPanel" position="before_end">
+      <deck id="soundcloudDeck">
+        <vbox id="soundcloudLogin">
+	  <groupbox>
+	    <caption label="Login" />
+	    <grid>
+	      <columns>
+	        <column />
+	        <column flex="1" />
+	      </columns>
+	      <rows>
+	        <row align="center">
+    		  <label value="Username:"/>
+	          <textbox id="soundcloudUsername" maxlength="20" />
+	        </row>
+	        <row align="center">
+	  	  <label value="Password:"/>
+	          <textbox id="soundcloudPassword" type="password"/>
+	        </row>
+	      </rows>
+	    </grid>
+	    <description id="soundcloudLoginError"/>
+	  </groupbox>
+	</vbox>
+  	<spacer flex="1"/>
+        <vbox id="soundcloudLoggingIn">
+          <spacer flex="1"/>
+          <groupbox>
+            <label value="Logging in..."/>
+            <progressmeter mode="undetermined"/>
+          </groupbox>
+          <spacer flex="1"/>
+          <hbox>	   
+	    <spacer flex="1"/>
+	    <button id="soundcloudCancelButton" label="Cancel" />
+  	  </hbox>
+        </vbox>
+      </deck>
+    </panel>
+  </popupset>
 
   <statusbar id="status-bar">
     <statusbarpanel id="soundcloudStatusIcon"

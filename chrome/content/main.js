@@ -193,14 +193,43 @@ SoundCloud.Controller = {
 		radioFolder.hidden = false;
 
 		// Add SoundCloud chrome to service pane
-  var scNode = SPS.createNode();
-  scNode.url = "chrome://soundcloud/content/directory.xul";
-  scNode.id = "SB:RadioStations:SoundCloud";
-  scNode.name = "SoundCloud";
-  scNode.image = SOCL_FAVICON_PATH;
-  radioFolder.appendChild(scNode);
-  scNode.editable = false;
-  scNode.hidden = false;
+               var scNode = SPS.createNode();
+               scNode.url = "chrome://soundcloud/content/directory.xul";
+               scNode.id = "SB:RadioStations:SoundCloud";
+               scNode.name = "SoundCloud";
+               scNode.image = SOCL_FAVICON_PATH;
+               radioFolder.appendChild(scNode);
+               scNode.editable = false;
+               scNode.hidden = false;
+
+	       // Status bar icon
+	       this._statusIcon = document.getElementById('soundcloudStatusIcon');
+	       // Panel
+	       this._panel = document.getElementById('soundcloudPanel');
+	       // Deck
+	       this._deck = document.getElementById('soundcloudDeck');
+	       // Login page of the deck
+	       this._login = document.getElementById('soundcloudLogin');
+	       // Login username field
+	       this._username = document.getElementById('soundcloudUsername');
+	       // Login password field
+	       this._password = document.getElementById('soundcloudPassword');
+	       // Login error
+	       this._loginError = document.getElementById('soundcloudLoginError');
+	       // Login button
+	       this._loginButton = document.getElementById('soundcloudLoginButton');
+
+	       this._loggingIn = document.getElementById('soundcloudLoggingIn');
+	       this._cancelButton = document.getElementById('soundcloudCancelButton');
+
+	       // Wire up click event for the status icon
+	       this._statusIcon.addEventListener('click',
+	           function(event) {
+		     // Only the left button
+		     if (event.button != 0) return;
+
+		     SoundCloud.Controller.showPanel();
+		   }, false);
 
                 // Attach our listener for media core events
 		gMM.addListener(mmListener);
@@ -285,6 +314,10 @@ SoundCloud.Controller = {
 		// Reset the filter at startup
 		Application.prefs.setValue("extensions.soundcloud.filter", "");
 		
+	},
+
+	showPanel: function() {
+	  this._panel.openPopup(this._statusIcon);
 	},
 
 	onUnLoad: function() {
@@ -429,7 +462,7 @@ var soundcloudUninstallObserver = {
 					scPrefs.clearUserPref("templib.guid");
 				}
 				*/
-				scPrefs.deleteBranch("");
+			scPrefs.deleteBranch("");
 			}
 			this.unregister();
 		}
