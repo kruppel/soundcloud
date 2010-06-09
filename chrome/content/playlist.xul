@@ -8,7 +8,7 @@
 <window id="soundcloud-page"
 	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 
-        <script type="application/x-javascript" src="radioProperties.js" />
-        <script type="application/x-javascript" src="soundcloud.js" />
+  <script type="application/x-javascript" src="radioProperties.js" />
+  <script type="application/x-javascript" src="soundcloud.js" />
 
 </window>

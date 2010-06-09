@@ -52,9 +52,8 @@
 
   <statusbar id="status-bar">
     <statusbarpanel id="soundcloudStatusIcon"
-      class="statusbarpanel-iconic"
-      src="chrome://soundcloud/skin/soundcloud_favicon.png"
-      tooltip=""
-    />
+                    class="statusbarpanel-iconic"
+                    src="chrome://soundcloud/skin/soundcloud_favicon.png"
+                    tooltip="" />
   </statusbar>
 </overlay>
