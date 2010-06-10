@@ -213,6 +213,18 @@ SoundCloud.Controller = {
     scNode.editable = false;
     scNode.hidden = false;
 
+    var favNode = SPS.createNode();
+    favNode.url="chrome://soundcloud/content/directory.xul";
+    favNode.id = "urn:scfavorites"
+    favNode.name = "Favorites";
+    favNode.tooltip = "SoundCloud favorites";
+    favNode.editable = false;
+    scNode.appendChild(favNode);
+    favNode.hidden = false;
+
+    var domNode = window.gServicePane.getDOMNode(favNode.id);
+    domNode.appendBadge(25, null);
+
     // Status bar icon
     this._statusIcon = document.getElementById('soundcloudStatusIcon');
     // Panel
