@@ -32,8 +32,14 @@
 	    </grid>
 	    <description id="soundcloudLoginError"/>
 	  </groupbox>
-	</vbox>
-  	<spacer flex="1"/>
+  	  <spacer flex="1"/>
+
+	  <hbox align="center">
+            <button id="soundcloudLoginButton" label="Login" />
+          </hbox>
+        </vbox>
+
+
         <vbox id="soundcloudLoggingIn">
           <spacer flex="1"/>
           <groupbox>
@@ -42,9 +48,9 @@
           </groupbox>
           <spacer flex="1"/>
           <hbox>	   
-	    <spacer flex="1"/>
+            <spacer flex="1"/>
 	    <button id="soundcloudCancelButton" label="Cancel" />
-  	  </hbox>
+          </hbox>
         </vbox>
       </deck>
     </panel>

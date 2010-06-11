@@ -26,6 +26,7 @@ const soundcloudTempLibGuid = "extensions.soundcloud.templib.guid";
 var mmListener = {
   time : null,
   playingTrack : null,
+  
   onMediacoreEvent : function(ev) {
     var item = ev.data;
     
@@ -253,6 +254,9 @@ SoundCloud.Controller = {
 
         SoundCloud.Controller.showPanel();
       }, false);
+    
+    this._loginButton.addEventListener('command',
+      function(event) { SoundCloud.Controller.onLoginClick(event); }, false);
 
     // Attach our listener for media core events
     gMM.addListener(mmListener);
@@ -345,6 +349,10 @@ SoundCloud.Controller = {
 
   showPanel: function() {
     this._panel.openPopup(this._statusIcon);
+  },
+
+  onLoginClick: function(event) {
+    this._deck.selectedPanel = this._loggingIn;
   },
 
   onUnLoad: function() {
