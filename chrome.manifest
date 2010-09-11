@@ -1,5 +1,0 @@
-content soundcloud chrome/content/
-locale soundcloud en-US chrome/locale/en-US/
-resource soundcloud modules/
-skin soundcloud classic/1.0 chrome/skin/
-overlay chrome://songbird/content/xul/layoutBaseOverlay.xul chrome://soundcloud/content/scripts-overlay.xul
