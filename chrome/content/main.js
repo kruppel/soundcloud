@@ -128,8 +128,6 @@ var mmListener = {
   disableTags : [ ],
 
   setPlayerState: function(scStream) {
-    //var stationIcon = document.getElementById("shoutcast-station-icon");
-    //var stopButton = document.getElementById("play_stop_button");
     var playButton = document.getElementById("play_pause_button");
 
     if (scStream) {
@@ -175,6 +173,8 @@ SoundCloud.Controller = {
   SB_NS: "http://songbirdnest.com/data/1.0#",
   SP_NS: "http://songbirdnest.com/rdf/servicepane#",
 
+  URL_SIGNUP: 'http://soundcloud.com/signup',
+
   onLoad: function() {
     // initialization code
     this._initialized = true;
@@ -214,6 +214,7 @@ SoundCloud.Controller = {
     scNode.editable = false;
     scNode.hidden = false;
 
+/*
     var favNode = SPS.createNode();
     favNode.url="chrome://soundcloud/content/directory.xul";
     favNode.id = "urn:scfavorites"
@@ -224,7 +225,8 @@ SoundCloud.Controller = {
     favNode.hidden = false;
 
     var domNode = window.gServicePane.getDOMNode(favNode.id);
-    domNode.appendBadge(25, null);
+    if (domNode) domNode.appendBadge(25, null);
+*/
 
     // Status bar icon
     this._statusIcon = document.getElementById('soundcloudStatusIcon');
@@ -235,28 +237,68 @@ SoundCloud.Controller = {
     // Login page of the deck
     this._login = document.getElementById('soundcloudLogin');
     // Login username field
-    this._username = document.getElementById('soundcloudUsername');
+    this._email = document.getElementById('soundcloudEmail');
     // Login password field
     this._password = document.getElementById('soundcloudPassword');
     // Login error
     this._loginError = document.getElementById('soundcloudLoginError');
     // Login button
     this._loginButton = document.getElementById('soundcloudLoginButton');
-
+    // Logging-in page of the deck
     this._loggingIn = document.getElementById('soundcloudLoggingIn');
+    // Cancel button
     this._cancelButton = document.getElementById('soundcloudCancelButton');
+    // Sign up link
+    this._signup = document.getElementById('soundcloudSignup');
+
+    // Profile page of the deck
+    this._profile = document.getElementById('soundcloudProfile');
+    // Logout button
+    this._logoutButton = document.getElementById('soundcloudLogoutButton');
+    // Profile image
+    this._image = document.getElementById('soundcloudImage');
 
     // Wire up click event for the status icon
     this._statusIcon.addEventListener('click',
       function(event) {
       // Only the left button
         if (event.button != 0) return;
-
         SoundCloud.Controller.showPanel();
       }, false);
-    
+   
+    // Wire up UI events for popup buttons
     this._loginButton.addEventListener('command',
       function(event) { SoundCloud.Controller.onLoginClick(event); }, false);
+    this._cancelButton.addEventListener('command',
+      function(event) { SoundCloud.Controller.onCancelClick(event); }, false);
+    this._logoutButton.addEventListener('command',
+      function(event) { SoundCloud.Controller.onLogoutClick(event); }, false);
+
+    // Wire up the signup link
+    this._signup.addEventListener('click',
+      function(event) { SoundCloud.Controller.loadURI(SoundCloud.Controller.URL_SIGNUP, event); }, false);
+
+    // Focus & select email field on popupshown event
+    this._panel.addEventListener('popupshown',
+      function(event) {
+        if (SoundCloud.Controller._deck.selectedPanel == SoundCloud.Controller._login) {
+          SoundCloud.Controller._email.focus();
+          SoundCloud.Controller._email.select();
+        }
+      }, false);
+
+    // React to changes in the login form
+    this._email.addEventListener('input', 
+      function(event) { SoundCloud.Controller.loginFormChanged(event); }, false);
+    this._password.addEventListener('input',
+      function(event) { SoundCloud.Controller.loginFormChanged(event); }, false);
+    SoundCloud.Controller.loginFormChanged();
+
+    // React to keypresses
+    this._email.addEventListener('keypress', 
+      function(event) { SoundCloud.Controller.loginFormKeypress(event); }, false);
+    this._password.addEventListener('keypress',
+      function(event) { SoundCloud.Controller.loginFormKeypress(event); }, false);
 
     // Attach our listener for media core events
     gMM.addListener(mmListener);
@@ -351,8 +393,77 @@ SoundCloud.Controller = {
     this._panel.openPopup(this._statusIcon);
   },
 
+  loginFormChanged: function(event) {
+    if (this._email.value.length && this._password.value.length) {
+      this._loginButton.disabled = false;
+    } else {
+      this._loginButton.disabled = true;
+    }
+  },
+
+  loginFormKeypress: function(event) {
+    if (event.keyCode == KeyEvent.DOM_VK_RETURN ||
+        event.keyCode == KeyEvent.DOM_VK_ENTER) {
+      if (!this._loginButton.disabled) {
+        this.onLoginClick(event);
+      }
+    }
+  },
+
   onLoginClick: function(event) {
     this._deck.selectedPanel = this._loggingIn;
+    var url = "http://api.soundcloud.com/oauth/request_token";
+    var accessor = { consumerSecret: "YqGENlIGpWPnjQDJ2XCLAur2La9cTLdMYcFfWVIsnvw"};
+    var message = { action: url,
+                    method: "POST",
+                    parameters: []
+                  };
+
+    message.parameters.push(['oauth_consumer_key', 'eJ2Mqrpr2P4TdO62XXJ3A']);
+    message.parameters.push(['oauth_signature_method', 'HMAC-SHA1']);
+
+    OAuth.setTimestampAndNonce(message);
+    OAuth.SignatureMethod.sign(message, accessor);
+
+    var params = "";
+
+    for (var p in message.parameters) {
+      if (p == 0) {
+        params += message.parameters[p][0] + "=" + message.parameters[p][1];
+      } else {
+        params += "&" + message.parameters[p][0] + "=" + message.parameters[p][1];
+      }
+    }
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+
+    xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+    xhr.setRequestHeader("Content-length", params.length);
+    xhr.setRequestHeader("Connection", "close");
+
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState == 4) {
+        if (xhr.status == 200) {
+          alert(xhr.responseText);
+        }
+      }
+    }
+  
+    xhr.send(params);
+  },
+
+  onCancelClick: function(event) {
+    this._deck.selectedPanel = this._login;
+  },
+
+  onLogoutClick: function(event) {
+    this._deck.selectedPanel = this._login;
+  },
+
+  loadURI: function(uri, event) {
+    gBrowser.loadURI(uri, null, null, event, '_blank');
+    this._panel.hidePopup();
   },
 
   onUnLoad: function() {

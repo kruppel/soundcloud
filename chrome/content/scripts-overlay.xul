@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<overlay id="soundcloud-overlay" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
-
-  <script src="radioProperties.js"/>
-  <script src="main.js"/>
+<overlay id="soundcloud-overlay" 
+         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+         xmlns:html="http://www.w3.org/1999/xhtml"
+         xmlns:svg="http://www.w3.org/1999/svg"
+         xmlns:xlink="http://www.w3.org/1999/xlink">
 
   <stringbundleset id="stringbundleset"> 
      <stringbundle id="soundcloud-strings" src="chrome://soundcloud/locale/overlay.properties"/>
@@ -21,8 +22,8 @@
 	      </columns>
 	      <rows>
 	        <row align="center">
-    		  <label value="Username:"/>
-	          <textbox id="soundcloudUsername" maxlength="20" />
+    		  <label value="Email:"/>
+	          <textbox id="soundcloudEmail" maxlength="30" />
 	        </row>
 	        <row align="center">
 	  	  <label value="Password:"/>
@@ -35,7 +36,11 @@
   	  <spacer flex="1"/>
 
 	  <hbox align="center">
-            <button id="soundcloudLoginButton" label="Login" />
+            <description class="text-link">
+              <html:span class="text-link" id="soundcloudSignup">Sign up for SoundCloud</html:span>
+            </description>
+            <spacer flex="1"/>
+            <button id="soundcloudLoginButton" label="Log in" />
           </hbox>
         </vbox>
 
@@ -49,9 +54,32 @@
           <spacer flex="1"/>
           <hbox>	   
             <spacer flex="1"/>
-	    <button id="soundcloudCancelButton" label="Cancel" />
+	    <button id="soundcloudCancelButton" 
+                    label="Cancel"
+                    onclick="SoundCloud.Controller.onCancelClick()" />
           </hbox>
         </vbox>
+
+        <vbox id="soundcloudProfile">
+          <groupbox orient="horizontal" pack="top" align="top">
+            <caption label="CAPTION LABEL" />
+            <svg:svg id="soundcloudImageContainer" class="empty" height="64px" width="64px">
+              <svg:image id="soundcloudImage" xlink:href="chrome://soundcloud/skin/default_avatar.png" />
+            </svg:svg>
+            <vbox>
+              <description class="text-link">
+                <html:span id="soundcloudRealname" class="soundcloudClickable text-link" style="font-weight:bold; font-size:120%;" />
+              </description>
+              <description>
+                <html:span id="soundcloudTracks" class="soundcloudClickable" />
+              </description>
+            </vbox>
+          </groupbox>
+        </vbox>
+        <hbox>
+          <spacer flex="1" />
+          <button id="soundcloudLogoutButton" label="Logout" />
+        </hbox>
       </deck>
     </panel>
   </popupset>
@@ -59,7 +87,15 @@
   <statusbar id="status-bar">
     <statusbarpanel id="soundcloudStatusIcon"
                     class="statusbarpanel-iconic"
-                    src="chrome://soundcloud/skin/soundcloud_favicon.png"
-                    tooltip="" />
+                    src="chrome://soundcloud/skin/disabled.png"
+                    insertbefore="lastfmStatusIcon"
+                    width="25"
+                    tooltiptext="" />
   </statusbar>
+
+  <script src="radioProperties.js"/>
+  <script src="oauth.js"/>
+  <script src="sha1.js"/>
+  <script src="main.js"/>
+
 </overlay>

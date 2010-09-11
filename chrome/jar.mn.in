@@ -1,0 +1,6 @@
+soundcloud.jar:
+% content soundcloud %content/
+% locale soundcloud en-US %locale/en-US/
+% skin soundcloud classic/1.0 %skin/
+% overlay chrome://songbird/content/xul/layoutBaseOverlay.xul chrome://soundcloud/content/scripts-overlay.xul
+@include_all_to

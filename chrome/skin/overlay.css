@@ -34,11 +34,49 @@ treecol[bind="http://songbirdnest.com/data/1.0#streamURL"] > label,
 
 .header-actions {
        -moz-box-align: center;
-       margin-left: 250px;
-       margin-top: -25px;
+       margin-right: 50px;
+/*       margin-top: -25px;
+*/
 }
 
 .soundcloud-logo {
-       margin-left: 10px;
-       margin-top: 5px;
+       margin-left: 20px;
+       margin-top: 0px;
+}
+
+#soundcloudStatusIcon {
+       margin-left: 25px;
+}
+
+textbox.textbox-input {
+       font-family: "Lucida Grande", Arial !important;
+       font-size: 12px !important;
+}
+
+#soundcloud-search-textbox {
+       height: 25px;
+       border: 1px solid #EEEEEE;
+       -moz-border-radius-topleft: 5px;
+       -moz-border-radius-topright: 0px;
+       -moz-border-radius-bottomleft: 5px;
+       -moz-border-radius-bottomright: 0px;
+}
+
+label.button-text {
+       color: #000000 !important;
+       font-family: "Lucida Grande", Arial;
+       font-size: 11px;
+       text-shadow: white 0px 1px 0px;
+}
+
+#soundcloud-search-btn {
+       background-image:url(chrome://soundcloud/skin/bg-btn-search.png);
+       background-position: 0px -5px;
+       height: 25px;
+       margin: 0px -5px;
+       border: 1px solid #EEEEEE;
+       -moz-border-radius-topleft: 0px;
+       -moz-border-radius-topright: 5px;
+       -moz-border-radius-bottomleft: 0px;
+       -moz-border-radius-bottomright: 5px;
 }

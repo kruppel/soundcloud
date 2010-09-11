@@ -1,3 +1,31 @@
+/*
+Copyright (c) 2008, Pioneers of the Inevitable, Inc.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+  * Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimer.
+  * Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
+  * Neither the name of Pioneers of the Inevitable, Songbird, nor the names
+    of its contributors may be used to endorse or promote products derived
+    from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
 if (typeof(Cc) == "undefined")
   var Cc = Components.classes;
 if (typeof(Ci) == "undefined")
@@ -6,7 +34,7 @@ if (typeof(Cu) == "undefined")
   var Cu = Components.utils;
 
 //XXX Make a dummy Utils.jsm for the timebeing
-Cu.import("resource://soundcloud/SCUtils.jsm");
+//Cu.import("resource://soundcloud/SCUtils.jsm");
 
 if (typeof(songbirdMainWindow) == "undefined")
   var songbirdMainWindow = Cc["@mozilla.org/appshell/window-mediator;1"].
@@ -49,9 +77,13 @@ const soundcloudLibraryGuid = "extensions.soundcloud.library.guid";
 const soundcloudPlaylistInit = "extensions.soundcloud.library.plsinit";
 const defaultSearchType = "track";
 
+const PlaylistCommandsBuilder = new Components.Constructor(
+                                       "@songbirdnest.com/Songbird/PlaylistCommandsBuilder;1",
+                                       "sbIPlaylistCommandsBuilder");
+
 var CloudDirectory = {
-  radioLib : null,
-  tracksFound : 0,
+  radioLib: null,
+  tracksFound: 0,
 
   init : function() {
     var servicePaneStrings = Cc["@mozilla.org/intl/stringbundle;1"].
@@ -61,39 +93,10 @@ var CloudDirectory = {
     // Set the tab title
     document.title = servicePaneStrings.GetStringFromName("radioTabTitle");
 
-    // the # of times the directory is loaded (corresponds to the # of
-    // times the servicepane is clicked, though also works if the user
-    // for some reason or another bookmarks it separately)
-    gMetrics.metricsInc("soundcloud", "directory", "loaded");
-
     this._strings = document.getElementById("soundcloud-strings");
 
-    var menulist = document.getElementById("soundcloud-search-menulist");
-    var mlStrings = Cc["@mozilla.org/intl/stringbundle;1"].
-      getService(Ci.nsIStringBundleService).
-      createBundle("chrome://soundcloud/locale/menu.properties");
-    var menuitems = this.getMenuItems(mlStrings);
-
-    //Build the menulist
-    var found = false;
-    for (i in menuitems) {
-      var thisitem = menuitems[i];
-      var el = menulist.appendItem(thisitem.label, thisitem.value);
-      if (defaultSearchType == thisitem.value) {
-        menulist.selectedItem = el;
-        found = true;
-      }
-    }
-
-    if (!found)
-      menulist.selectedIndex = 0;
-
-    var strings = Cc["@mozilla.org/intl/stringbundle;1"].
-      getService(Ci.nsIStringBundleService).
-      createBundle("chrome://soundcloud/locale/genres.properties");
-
     // Setup SoundCloud references
-    this.getLibraries();
+    this._getLibraries();
 
     // Bind the playlist widget to our library
     this.playlist = document.getElementById("soundcloud-directory");
@@ -116,8 +119,25 @@ var CloudDirectory = {
       this.playlist.appendColumn(SOCL_plays, "45");
       this.playlist.appendColumn(SOCL_favs, "45");
       //this.playlist.appendColumn(SOCL_dl, "60");
-      //this.playlist.appendColumn(SOCL_url, "290");
+      //this.playlist.appendColumn(SOCL_url, "290");  
     }
+
+    /*
+    this.m_cmd_Test = new PlaylistCommandsBuilder();
+    this.m_cmd_Test.appendAction(null, 
+                                 "soundcloud_cmd_test",
+                                 "Test",
+                                 "To test",
+                                 plCmd_Test_TriggerCallback);
+
+    this.m_playlistCommands = new PlaylistCommandsBuilder();
+    this.m_playlistCommands.appendPlaylistCommands(null, "soundcloud_Test", this.m_cmd_Test);
+
+    var mgr = Cc["@songbirdnest.com/Songbird/PlaylistCommandsManager;1"]
+              .createInstance(Ci.sbIPlaylistCommandsManager);
+
+    mgr.publish(kPlaylistCommands.MEDIAITEM_DEFAULT, this.m_playlistCommands);
+    */
 
     var ldtv = this.playlist.tree.view.
       QueryInterface(Ci.sbILocalDatabaseTreeView);
@@ -140,7 +160,7 @@ var CloudDirectory = {
     */
   },
 
-  getLibraries : function() {
+  _getLibraries : function CloudDirectory__getLibraries() {
     var libraryManager = Cc["@songbirdnest.com/Songbird/library/Manager;1"].
       getService(Ci.sbILibraryManager);
     var libGuid = Application.prefs.getValue(soundcloudLibraryGuid, "");
@@ -174,69 +194,7 @@ var CloudDirectory = {
       Application.prefs.setValue(soundcloudTempLibGuid,
                                  this.tempLib.guid);
 
-      // Set the Media View to be list only (not filter)
-      var mpManager = Cc["@songbirdnest.com/Songbird/MediaPageManager;1"].
-        getService(Ci.sbIMediaPageManager);
-      var pages = mpManager.getAvailablePages(this.favesList);
-      var listView = null;
-      
-      while (pages.hasMoreElements()) {
-        var pageInfo = pages.getNext();
-        pageInfo.QueryInterface(Ci.sbIMediaPageInfo);
-        if (pageInfo.contentUrl ==
-            "chrome://songbird/content/mediapages/playlistPage.xul")
-          listView = pageInfo;
-      }
-      /*
-      if (listView)
-        mpManager.setPage(this.favesList, listView)
-      */
-      // temporary playlist to hold the current stream to work around
-      // GStreamer inability to play .pls mediaItems
-      propExists = true;
-      
-      try {
-        a = this.tempLib.getItemsByProperty(SBProperties.customType, 
-                                            "radio_tempStreamList");
-      } catch (e) {
-        propExists = false;
-      }
-
-      if (propExists && a.length > 0) {
-        this.streamList = a.queryElementAt(0, Ci.sbIMediaList);
-      } else {
-        this.streamList = this.tempLib.createMediaList("simple");
-        this.streamList.setProperty(SBProperties.hidden, "1");
-        this.streamList.setProperty(SBProperties.isReadOnly, "1");
-      }
-
-      // set custom types so we can easily find them later
-      /*
-      this.favesList.setProperty(SBProperties.customType,
-                                 "radio_favouritesList");
-      this.streamList.setProperty(SBProperties.customType,
-                                  "radio_tempStreamList");
-      */
     }
-  },
-
-  getMenuItems : function(strings) {
-    var iter = strings.getSimpleEnumeration();
-    var items = new Array();
-
-    while (iter.hasMoreElements()) {
-      var itemProp = iter.getNext()
-                         .QueryInterface(Ci.nsIPropertyElement);
-      var itemValue = itemProp.key;
-      var itemLabel = itemProp.value;
-      items.push({value:itemValue, label:itemLabel});
-    }
-
-    items.sort(function(a,b) {
-      return(a.label.toUpperCase() > b.label.toUpperCase());
-    });
-
-    return items;
   },
 
   loadTable : function(trackList) {
@@ -390,16 +348,13 @@ var libListener = {
 function onPlay(e) {
     var item = CloudDirectory.playlist.mediaListView.selection.currentMediaItem;
     var id = item.getProperty(SOCL_url);
-    //var plsURL = SoundCloud.getListenURL(id);
+    
     var plsMgr = Cc["@songbirdnest.com/Songbird/PlaylistReaderManager;1"].
       getService(Ci.sbIPlaylistReaderManager);
     var listener = Cc["@songbirdnest.com/Songbird/PlaylistReaderListener;1"].
       createInstance(Ci.sbIPlaylistReaderListener);
     var ioService = Cc["@mozilla.org/network/io-service;1"].
       getService(Ci.nsIIOService);
-
-    // clear the current list of any existing streams, etc.
-    CloudDirectory.streamList.clear();
 
     listener.playWhenLoaded = true;
     listener.observer = {
@@ -415,31 +370,16 @@ function onPlay(e) {
             listItem.setProperty(SBProperties.outerGUID, item.guid);
           }
         } else {
-          alert("Failed to load " + item.getProperty(SC_streamName) +
+          alert("Failed to load " + item.getProperty(SOCL_url) +
                 "\n");
         }
       }
     }
 
-    // # of times a station is played
-    //gMetrics.metricsInc("shoutcast", "station", "total.played");
-
-    // # of times this station (ID) is played
-    //gMetrics.metricsInc("shoutcast", "station", "played." + id.toString());
-
-    // # of times this genre is played
-    //var genre = item.getProperty(SBProperties.genre);
-    //gMetrics.metricsInc("shoutcast", "genre", "played." + genre);
-
-    /*
-    if (id == -1) {
-      plsURL = item.getProperty(SBProperties.contentURL);
-    }
-
-    var uri = ioService.newURI(plsURL, null, null);
-    plsMgr.loadPlaylist(uri, RadioDirectory.streamList, null, false, listener);
-    */
-
     e.stopPropagation();
     e.preventDefault();
+}
+
+function plCmd_Test_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
+  alert("hello. this is a test");
 }

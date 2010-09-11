@@ -12,9 +12,12 @@
 
 <page id="soundcloud-window"
       xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+      xmlns:html="http://www.w3.org/1999/xhtml"
       onload="setTimeout(function() { CloudDirectory.init();
                                     }, 100);"
       onunload="CloudDirectory.unload()">
+
+  <!--<html:link rel="icon" href="chrome://soundcloud/skin/soundcloud_favicon_old.png" />-->
 
   <stringbundleset id="stringbundleset">
     <stringbundle id="soundcloud-strings"
@@ -32,30 +35,33 @@
   <script type="application/javascript" src="soundcloud.js"/>
   <script type="application/javascript" src="directory.js"/>
 
-  <hbox align="center" id="soundcloud-box">
-    <vbox flex="1" id="search-box" class="generic-bar">
-      <hbox>
+  <vbox id="soundcloud-box">
+    <hbox flex="1" id="search-box" style="height:60px;background-image:url(chrome://soundcloud/skin/bg-header-soundcloud.png);">
+      <hbox align="center">
         <label class="soundcloud-logo"
                onclick="Components.classes['@mozilla.org/appshell/window-mediator;1']
 	                          .getService(Components.interfaces.nsIWindowMediator)
                                   .getMostRecentWindow('Songbird:Main').gBrowser
-                                  .loadOneTab('http://soundcloud.com');">
-          <image src="chrome://soundcloud/skin/soundcloud_wordmark.png" />
+                                  .loadOneTab('http://soundcloud.com');"
+               style="cursor:pointer;">
+          <image src="chrome://soundcloud/skin/soundcloud_new_logo.png" />
         </label>
       </hbox>
-      <hbox class="header-actions">
-        <menulist oncommand="" id="soundcloud-search-menulist">
+      <spacer flex="1" />
+      <hbox class="header-actions" pack="end">
+<!--        <menulist oncommand="" id="soundcloud-search-menulist">
         </menulist>
-<!--        <spacer flex="0" style="width:1em;" /> -->
+        <spacer flex="0" style="width:1em;" /> -->
         <textbox id="soundcloud-search-textbox"
                  oninput="CloudDirectory.inputSearch(event)"
-                 onkeydown="CloudDirectory.triggerSearch(event)" />
+                 onkeydown="CloudDirectory.triggerSearch(event)"
+                 class="search-textbox" />
         <button id="soundcloud-search-btn" label="Search"
                 oncommand="SoundCloud.getSearchURL()"
                 disabled="true" />
       </hbox>
-    </vbox>
-  </hbox>
+    </hbox>
+  </vbox>
   <deck id="loading-deck" flex="1"><!-- selectedIndex="0">
     <vbox pack="center" flex="1">
       <hbox pack="center">
