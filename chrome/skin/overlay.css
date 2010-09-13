@@ -75,6 +75,18 @@ textbox.textbox-input {
        -moz-border-radius-bottomright: 5px;
 }
 
+#soundcloud-search-btn:hover, #soundcloud-search-btn:focus {
+      background-position:0 -5px;
+      cursor:pointer;
+      color:#111;
+      outline: none;
+}
+
+#soundcloud-search-btn:active {
+      background-color: #bbb;
+      background-image:none;
+}
+
 #soundcloud-search-btn > .button-box > label.button-text {
        color: #000000 !important;
        font-family: "Lucida Grande", Arial;
