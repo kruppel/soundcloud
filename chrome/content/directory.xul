@@ -17,8 +17,6 @@
                                     }, 100);"
       onunload="CloudDirectory.unload()">
 
-  <!--<html:link rel="icon" href="chrome://soundcloud/skin/soundcloud_favicon_old.png" />-->
-
   <stringbundleset id="stringbundleset">
     <stringbundle id="soundcloud-strings"
                   src="chrome://soundcloud/locale/overlay.properties"/>
