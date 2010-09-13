@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet href="chrome://songbird/content/bindings/bindings.css" ?>
+<?xml-stylesheet href="chrome://soundcloud/skin/overlay.css" ?>
+
+<!DOCTYPE window [
+<!ENTITY % soundcloudDTD SYSTEM "chrome://soundcloud/locale/overlay.dtd">
+%soundcloudDTD;
+]>
 <overlay id="soundcloud-overlay" 
          xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
          xmlns:html="http://www.w3.org/1999/xhtml"
@@ -10,86 +17,25 @@
   </stringbundleset>
 
   <popupset id="mainPopupSet">
-    <panel id="soundcloudPanel" position="before_end">
-      <deck id="soundcloudDeck">
-        <vbox id="soundcloudLogin">
-	  <groupbox>
-	    <caption label="Login" />
-	    <grid>
-	      <columns>
-	        <column />
-	        <column flex="1" />
-	      </columns>
-	      <rows>
-	        <row align="center">
-    		  <label value="Email:"/>
-	          <textbox id="soundcloudEmail" maxlength="30" />
-	        </row>
-	        <row align="center">
-	  	  <label value="Password:"/>
-	          <textbox id="soundcloudPassword" type="password"/>
-	        </row>
-	      </rows>
-	    </grid>
-	    <description id="soundcloudLoginError"/>
-	  </groupbox>
-  	  <spacer flex="1"/>
+    <sb-login-panel id="soundcloudLoginPanel"
+                    position="before_end"
+                    loginCaptionLabel="&soundcloud.login.caption.label;"
+                    usernameLabel="&soundcloud.username.label;"
+                    passwordLabel="&soundcloud.password.label;"
+                    autoLoginLabel="&soundcloud.auto.login.label;"
+                    loginButtonLabel="&soundcloud.login.button;"
+                    loggingLabel="&soundcloud.loggingin.label;"
+                    cancelButtonLabel="&soundcloud.cancel.button;"
+                    profileCaption="&soundcloud.profile.caption;"
+                    profileCheckboxLabel = "Holla"
+                    logoutButtonLabel="&soundcloud.profile.logout;" />
 
-	  <hbox align="center">
-            <description class="text-link">
-              <html:span class="text-link" id="soundcloudSignup">Sign up for SoundCloud</html:span>
-            </description>
-            <spacer flex="1"/>
-            <button id="soundcloudLoginButton" label="Log in" />
-          </hbox>
-        </vbox>
-
-
-        <vbox id="soundcloudLoggingIn">
-          <spacer flex="1"/>
-          <groupbox>
-            <label value="Logging in..."/>
-            <progressmeter mode="undetermined"/>
-          </groupbox>
-          <spacer flex="1"/>
-          <hbox>	   
-            <spacer flex="1"/>
-	    <button id="soundcloudCancelButton" 
-                    label="Cancel"
-                    onclick="SoundCloud.Controller.onCancelClick()" />
-          </hbox>
-        </vbox>
-
-        <vbox id="soundcloudProfile">
-          <groupbox orient="horizontal" pack="top" align="top">
-            <caption label="CAPTION LABEL" />
-            <svg:svg id="soundcloudImageContainer" class="empty" height="64px" width="64px">
-              <svg:image id="soundcloudImage" xlink:href="chrome://soundcloud/skin/default_avatar.png" />
-            </svg:svg>
-            <vbox>
-              <description class="text-link">
-                <html:span id="soundcloudRealname" class="soundcloudClickable text-link" style="font-weight:bold; font-size:120%;" />
-              </description>
-              <description>
-                <html:span id="soundcloudTracks" class="soundcloudClickable" />
-              </description>
-            </vbox>
-          </groupbox>
-        </vbox>
-        <hbox>
-          <spacer flex="1" />
-          <button id="soundcloudLogoutButton" label="Logout" />
-        </hbox>
-      </deck>
-    </panel>
   </popupset>
 
   <statusbar id="status-bar">
     <statusbarpanel id="soundcloudStatusIcon"
                     class="statusbarpanel-iconic"
                     src="chrome://soundcloud/skin/disabled.png"
-                    insertbefore="lastfmStatusIcon"
-                    width="25"
                     tooltiptext="" />
   </statusbar>
 

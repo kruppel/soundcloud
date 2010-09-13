@@ -1,8 +1,11 @@
-<!ENTITY soundcloud.filter "Filter">
-<!ENTITY soundcloud.genre "Genre">
-<!ENTITY soundcloud.clear "Clear">
-<!ENTITY soundcloud.add-station "Add Station">
-<!ENTITY soundcloud.enter-name "Enter the name you wish to give the station">
-<!ENTITY soundcloud.station-name "Station Name">
-<!ENTITY soundcloud.enter-url "Enter the URL to the SHOUTcast station">
-<!ENTITY soundcloud.enter-genre "Select a genre for the station">
+<!ENTITY soundcloud.login.caption.label "Login">
+<!ENTITY soundcloud.username.label "Email:">
+<!ENTITY soundcloud.password.label "Password:">
+<!ENTITY soundcloud.auto.login.label "Auto sign-in at launch">
+<!ENTITY soundcloud.login.button "Log in">
+<!ENTITY soundcloud.loggingin.label "Logging in...">
+<!ENTITY soundcloud.cancel.button "Cancel">
+<!ENTITY soundcloud.profile.caption "Profile">
+<!ENTITY soundcloud.profile.logout "Log out">
+<!ENTITY soundcloud.signup.label "Sign up for SoundCloud">
+<!ENTITY soundcloud.forgotpass.label "Forgot password?">
