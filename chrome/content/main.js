@@ -161,320 +161,319 @@ var mmListener = {
 /**
  *
  */
-SoundCloud = {
-  SB_NS: "http://songbirdnest.com/data/1.0#",
-  SP_NS: "http://songbirdnest.com/rdf/servicepane#",
+SoundCloud.SB_NS = "http://songbirdnest.com/data/1.0#";
+SoundCloud.SP_NS = "http://songbirdnest.com/rdf/servicepane#";
 
-  URL_SIGNUP: 'http://soundcloud.com/signup',
-  URL_PASSWORD: 'https://soundcloud.com/login',
+SoundCloud.URL_SIGNUP = 'http://soundcloud.com/signup';
+SoundCloud.URL_PASSWORD = 'https://soundcloud.com/login';
 
-  onLoad: function() {
-    // initialization code
-    this._initialized = true;
-    this._strings = document.getElementById("soundcloud-strings");
+SoundCloud.onLoad = function() {
+  // initialization code
+  this._initialized = true;
+  this._strings = document.getElementById("soundcloud-strings");
 
-    // Create a service pane node for our chrome
-    var SPS = Cc['@songbirdnest.com/servicepane/service;1'].
-      getService(Ci.sbIServicePaneService);
+  // Create a service pane node for our chrome
+  var SPS = Cc['@songbirdnest.com/servicepane/service;1'].
+    getService(Ci.sbIServicePaneService);
 
-    // Check whether the node already exists
-    if (SPS.getNode("SB:RadioStations:SoundCloud"))
-      return;
+  // Check whether the node already exists
+  if (SPS.getNode("SB:RadioStations:SoundCloud"))
+    return;
 		
-    // Walk nodes to see if a "Radio" folder already exists
-    var radioFolder = SPS.getNode("SB:RadioStations");
+  // Walk nodes to see if a "Radio" folder already exists
+  var radioFolder = SPS.getNode("SB:RadioStations");
 
-    if (!radioFolder) {
-      radioFolder = SPS.createNode();
-      radioFolder.id = "SB:RadioStations";
-      radioFolder.className = "folder radio";
-      radioFolder.name = this._strings.getString("radioFolderLabel");
-      radioFolder.setAttributeNS(this.SB_NS, "radioFolder", 1); // for backward-compat
-      radioFolder.setAttributeNS(this.SP_NS, "Weight", 2);
-      SPS.root.appendChild(radioFolder);
-    } 
+  if (!radioFolder) {
+    radioFolder = SPS.createNode();
+    radioFolder.id = "SB:RadioStations";
+    radioFolder.className = "folder radio";
+    radioFolder.name = this._strings.getString("radioFolderLabel");
+    radioFolder.setAttributeNS(this.SB_NS, "radioFolder", 1); // for backward-compat
+    radioFolder.setAttributeNS(this.SP_NS, "Weight", 2);
+    SPS.root.appendChild(radioFolder);
+  } 
 
-    radioFolder.editable = false;
-    radioFolder.hidden = false;
+  radioFolder.editable = false;
+  radioFolder.hidden = false;
 
-    // Add SoundCloud chrome to service pane
-    var scNode = SPS.createNode();
-    scNode.url = "chrome://soundcloud/content/directory.xul";
-    scNode.id = "SB:RadioStations:SoundCloud";
-    scNode.name = "SoundCloud";
-    scNode.image = SOCL_FAVICON_PATH;
-    radioFolder.appendChild(scNode);
-    scNode.editable = false;
-    scNode.hidden = false;
+  // Add SoundCloud chrome to service pane
+  var scNode = SPS.createNode();
+  scNode.url = "chrome://soundcloud/content/directory.xul";
+  scNode.id = "SB:RadioStations:SoundCloud";
+  scNode.name = "SoundCloud";
+  scNode.image = SOCL_FAVICON_PATH;
+  radioFolder.appendChild(scNode);
+  scNode.editable = false;
+  scNode.hidden = false;
 
 /*
-    var favNode = SPS.createNode();
-    favNode.url="chrome://soundcloud/content/directory.xul";
-    favNode.id = "urn:scfavorites"
-    favNode.name = "Favorites";
-    favNode.tooltip = "SoundCloud favorites";
-    favNode.editable = false;
-    scNode.appendChild(favNode);
-    favNode.hidden = false;
+  var favNode = SPS.createNode();
+  favNode.url="chrome://soundcloud/content/directory.xul";
+  favNode.id = "urn:scfavorites"
+  favNode.name = "Favorites";
+  favNode.tooltip = "SoundCloud favorites";
+  favNode.editable = false;
+  scNode.appendChild(favNode);
+  favNode.hidden = false;
 
-    var domNode = window.gServicePane.getDOMNode(favNode.id);
-    if (domNode) domNode.appendBadge(25, null);
+  var domNode = window.gServicePane.getDOMNode(favNode.id);
+  if (domNode) domNode.appendBadge(25, null);
 */
 
-    this._statusIcon = document.getElementById('soundcloudStatusIcon');
-    this._panelBinding = document.getElementById('soundcloudLoginPanel');
-    this._panel = this._getElement(this._panelBinding, 'loginPanel');
-    this._deck = this._getElement(this._panelBinding, 'loginDeck');
-    this._login = this._getElement(this._panelBinding, 'loginBox');
-    this._email = this._getElement(this._panelBinding, 'username');
-    this._loginAutoLogin = this._getElement(this._panelBinding,
-                                            'loginAutoLogin');
-    this._password = this._getElement(this._panelBinding, 'password');
-    this._loginError = this._getElement(this._panelBinding, 'loginError');
-    this._loginButton = this._getElement(this._panelBinding, 'loginButton');
-    this._loggingIn = this._getElement(this._panelBinding, 'loginProgressBox');
-    this._cancelButton = this._getElement(this._panelBinding, 'cancelButton');
+  this._statusIcon = document.getElementById('soundcloudStatusIcon');
+  this._panelBinding = document.getElementById('soundcloudLoginPanel');
+  this._panel = this._getElement(this._panelBinding, 'loginPanel');
+  this._deck = this._getElement(this._panelBinding, 'loginDeck');
+  this._login = this._getElement(this._panelBinding, 'loginBox');
+  this._email = this._getElement(this._panelBinding, 'username');
 
-    this._signup = this._getElement(this._panelBinding, 'signup');
-    this._signup.textContent = this._strings.getString('soundcloud.signup.label');
+  // Hacky solution to increase max length of username field
+  this._email.setAttribute("maxlength", 255);
 
-    this._forgotpass = this._getElement(this._panelBinding, 'forgotpass');
-    this._forgotpass.textContent =
-           this._strings.getString('soundcloud.forgotpass.label');
+  this._loginAutoLogin = this._getElement(this._panelBinding,
+                                          'loginAutoLogin');
+  this._password = this._getElement(this._panelBinding, 'password');
+  this._loginError = this._getElement(this._panelBinding, 'loginError');
+  this._loginButton = this._getElement(this._panelBinding, 'loginButton');
+  this._loggingIn = this._getElement(this._panelBinding, 'loginProgressBox');
+  this._cancelButton = this._getElement(this._panelBinding, 'cancelButton');
 
-    this._profile = this._getElement(this._panelBinding, 'profile');
-    this._logoutButton = this._getElement(this._panelBinding, 'logoutButton');
-    this._image = this._getElement(this._panelBinding, 'image');
+  this._signup = this._getElement(this._panelBinding, 'signup');
+  this._signup.textContent = this._strings.getString('soundcloud.signup.label');
 
-    this._profileAutoLogin = this._getElement(this._panelBinding,
-                                              'profileAutoLogin');
+  this._forgotpass = this._getElement(this._panelBinding, 'forgotpass');
+  this._forgotpass.textContent =
+         this._strings.getString('soundcloud.forgotpass.label');
 
-    // Wire up click event for the status icon
-    this._statusIcon.addEventListener('click',
-      function(event) {
-      // Only the left button
-        if (event.button != 0) return;
-        SoundCloud.showPanel();
-      }, false);
-   
-    // Wire up UI events for popup buttons
-    this._loginButton.addEventListener('command',
-      function(event) { SoundCloud.onLoginClick(event); }, false);
-    this._cancelButton.addEventListener('command',
-      function(event) { SoundCloud.onCancelClick(event); }, false);
-    this._logoutButton.addEventListener('command',
-      function(event) { SoundCloud.onLogoutClick(event); }, false);
+  this._profile = this._getElement(this._panelBinding, 'profile');
+  this._logoutButton = this._getElement(this._panelBinding, 'logoutButton');
+  this._image = this._getElement(this._panelBinding, 'image');
 
-    // Wire up the signup link
-    this._signup.addEventListener('click',
-      function(event) { SoundCloud.loadURI(SoundCloud.URL_SIGNUP, event); }, false);
+  this._profileAutoLogin = this._getElement(this._panelBinding,
+                                            'profileAutoLogin');
 
-    this._forgotpass.addEventListener('click',
-      function(event) { SoundCloud.loadURI(SoundCloud.URL_PASSWORD, event); }, false);
+  // Wire up click event for the status icon
+  this._statusIcon.addEventListener('click',
+    function(event) {
+    // Only the left button
+      if (event.button != 0) return;
+      SoundCloud.showPanel();
+    }, false);
 
-    var self = this;
-    this._panelBinding.addEventListener("login-button-click",
-                  function(event) { self._handleUIEvents(event); }, false);
-    this._panelBinding.addEventListener("cancel-button-clicked",
-                  function(event) { self._handleUIEvents(event); }, false);
-    this._panelBinding.addEventListener("logout-button-clicked",
-                  function(event) { self._handleUIEvents(event); }, false);
+  // Wire up UI events for popup buttons
+  this._loginButton.addEventListener('command',
+    function(event) { SoundCloud.onLoginClick(event); }, false);
+  this._cancelButton.addEventListener('command',
+    function(event) { SoundCloud.onCancelClick(event); }, false);
+  this._logoutButton.addEventListener('command',
+    function(event) { SoundCloud.onLogoutClick(event); }, false);
 
-    // Focus & select email field on popupshown event
-    this._panel.addEventListener('popupshown',
-      function(event) {
-        if (SoundCloud._deck.selectedPanel == SoundCloud._login) {
-          SoundCloud._email.focus();
-          SoundCloud._email.select();
-        }
-      }, false);
+  // Wire up the signup link
+  this._signup.addEventListener('click',
+    function(event) { SoundCloud.loadURI(SoundCloud.URL_SIGNUP, event); }, false);
 
-    // React to changes in the login form
-    this._email.addEventListener('input', 
-      function(event) { SoundCloud.loginFormChanged(event); }, false);
-    this._password.addEventListener('input',
-      function(event) { SoundCloud.loginFormChanged(event); }, false);
-    SoundCloud.loginFormChanged();
+  this._forgotpass.addEventListener('click',
+    function(event) { SoundCloud.loadURI(SoundCloud.URL_PASSWORD, event); }, false);
 
-    // React to keypresses
-    this._email.addEventListener('keypress', 
-      function(event) { SoundCloud.loginFormKeypress(event); }, false);
-    this._password.addEventListener('keypress',
-      function(event) { SoundCloud.loginFormKeypress(event); }, false);
+  var self = this;
+  this._panelBinding.addEventListener("login-button-click",
+                function(event) { self._handleUIEvents(event); }, false);
+  this._panelBinding.addEventListener("cancel-button-clicked",
+                function(event) { self._handleUIEvents(event); }, false);
+  this._panelBinding.addEventListener("logout-button-clicked",
+                function(event) { self._handleUIEvents(event); }, false);
 
-    // Attach our listener for media core events
-    gMM.addListener(mmListener);
+  // Focus & select email field on popupshown event
+  this._panel.addEventListener('popupshown',
+    function(event) {
+      if (SoundCloud._deck.selectedPanel == SoundCloud._login) {
+        SoundCloud._email.focus();
+        SoundCloud._email.select();
+      }
+    }, false);
 
-    this.onLoggedInStateChanged();
+  // React to changes in the login form
+  this._email.addEventListener('input', 
+    function(event) { SoundCloud.loginFormChanged(event); }, false);
+  this._password.addEventListener('input',
+    function(event) { SoundCloud.loginFormChanged(event); }, false);
+  SoundCloud.loginFormChanged();
 
-    // Attach our listener to the ShowCurrentTrack event issued by the
-    // faceplate
-    var faceplateManager = Cc['@songbirdnest.com/faceplate/manager;1'].
-      getService(Ci.sbIFaceplateManager);
-    var pane = faceplateManager.getPane("songbird-dashboard");
-    var sbWindow = Cc["@mozilla.org/appshell/window-mediator;1"].
-      getService(Ci.nsIWindowMediator).
-      getMostRecentWindow("Songbird:Main").window;
-    sbWindow.addEventListener("ShowCurrentTrack", curTrackListener, true);
+  // React to keypresses
+  this._email.addEventListener('keypress', 
+    function(event) { SoundCloud.loginFormKeypress(event); }, false);
+  this._password.addEventListener('keypress',
+    function(event) { SoundCloud.loginFormKeypress(event); }, false);
 
-    // Create our properties if they don't exist
-    var pMgr = Cc["@songbirdnest.com/Songbird/Properties/PropertyManager;1"].
-      getService(Ci.sbIPropertyManager);
+  // Attach our listener for media core events
+  gMM.addListener(mmListener);
 
-    if (!pMgr.hasProperty(SOCL_title)) {
-      var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"].
-        createInstance(Ci.sbITextPropertyInfo);
-      pI.id = SOCL_title;
-      pI.displayName = this._strings.getString("trackName");
-      pI.userEditable = false;
-      pI.userViewable = false;
-      pMgr.addPropertyInfo(pI);
-    }
-    
-    if (!pMgr.hasProperty(SOCL_time)) {
-      var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Number;1"].
-        createInstance(Ci.sbINumberPropertyInfo);
-      pI.id = SOCL_time;
-      pI.displayName = this._strings.getString("duration");
-      pI.userEditable = false;
-      pI.userViewable = false;
-      pMgr.addPropertyInfo(pI);
-    }
+  this.onLoggedInStateChanged();
 
-    if (!pMgr.hasProperty(SOCL_user)) {
-      var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"].
-        createInstance(Ci.sbITextPropertyInfo);
-      pI.id = SOCL_user;
-      pI.displayName = this._strings.getString("user");
-      pI.userEditable = false;
-      pI.userViewable = false;
-      pMgr.addPropertyInfo(pI);
-    }
+  // Attach our listener to the ShowCurrentTrack event issued by the
+  // faceplate
+  var faceplateManager = Cc['@songbirdnest.com/faceplate/manager;1'].
+    getService(Ci.sbIFaceplateManager);
+  var pane = faceplateManager.getPane("songbird-dashboard");
+  var sbWindow = Cc["@mozilla.org/appshell/window-mediator;1"].
+    getService(Ci.nsIWindowMediator).
+    getMostRecentWindow("Songbird:Main").window;
+  sbWindow.addEventListener("ShowCurrentTrack", curTrackListener, true);
 
-    if (!pMgr.hasProperty(SOCL_plays)) {
-      var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"].
-        createInstance(Ci.sbITextPropertyInfo);
-      pI.id = SOCL_plays;
-      pI.displayName = " ";
-      pI.userEditable = false;
-      pI.userViewable = false;
-      pMgr.addPropertyInfo(pI);
-    }
+  // Create our properties if they don't exist
+  var pMgr = Cc["@songbirdnest.com/Songbird/Properties/PropertyManager;1"].
+    getService(Ci.sbIPropertyManager);
 
-    if (!pMgr.hasProperty(SOCL_favs)) {
-      var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"].
-        createInstance(Ci.sbITextPropertyInfo);
-      pI.id = SOCL_favs;
-      pI.displayName = " ";
-      pI.userEditable = false;
-      pI.userViewable = false;
-      pMgr.addPropertyInfo(pI);
-    }
+  if (!pMgr.hasProperty(SOCL_title)) {
+    var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"].
+      createInstance(Ci.sbITextPropertyInfo);
+    pI.id = SOCL_title;
+    pI.displayName = this._strings.getString("trackName");
+    pI.userEditable = false;
+    pI.userViewable = false;
+    pMgr.addPropertyInfo(pI);
+  }
 
-    if (!pMgr.hasProperty(SOCL_url)) {
-      var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"].
-        createInstance(Ci.sbITextPropertyInfo);
-      pI.id = SOCL_url;
-      pI.displayName = this._strings.getString("streamURL");
-      pI.userEditable = true;
-      pI.userViewable = false;
-      pMgr.addPropertyInfo(pI);
-    }
+  if (!pMgr.hasProperty(SOCL_time)) {
+    var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Number;1"].
+      createInstance(Ci.sbINumberPropertyInfo);
+    pI.id = SOCL_time;
+    pI.displayName = this._strings.getString("duration");
+    pI.userEditable = false;
+    pI.userViewable = false;
+    pMgr.addPropertyInfo(pI);
+  }
 
-    // Register our observer for application shutdown
-    soundcloudUninstallObserver.register();
-		
-    SoundCloud._prefBranch = Cc["@mozilla.org/preferences-service;1"]
-      .getService(Ci.nsIPrefService).getBranch("songbird.metadata.")
-      .QueryInterface(Ci.nsIPrefBranch2);
-		
-    // Reset the filter at startup
-    Application.prefs.setValue("extensions.soundcloud.filter", "");
-		
-  },
+  if (!pMgr.hasProperty(SOCL_user)) {
+    var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"].
+      createInstance(Ci.sbITextPropertyInfo);
+    pI.id = SOCL_user;
+    pI.displayName = this._strings.getString("user");
+    pI.userEditable = false;
+    pI.userViewable = false;
+    pMgr.addPropertyInfo(pI);
+  }
 
-  showPanel: function() {
-    this._panel.openPopup(this._statusIcon);
-  },
+  if (!pMgr.hasProperty(SOCL_plays)) {
+    var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"].
+      createInstance(Ci.sbITextPropertyInfo);
+    pI.id = SOCL_plays;
+    pI.displayName = " ";
+    pI.userEditable = false;
+    pI.userViewable = false;
+    pMgr.addPropertyInfo(pI);
+  }
 
-  loginFormChanged: function(event) {
-    if (this._email.value.length && this._password.value.length) {
-      this._loginButton.disabled = false;
-    } else {
-      this._loginButton.disabled = true;
-    }
-  },
+  if (!pMgr.hasProperty(SOCL_favs)) {
+    var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"].
+      createInstance(Ci.sbITextPropertyInfo);
+    pI.id = SOCL_favs;
+    pI.displayName = " ";
+    pI.userEditable = false;
+    pI.userViewable = false;
+    pMgr.addPropertyInfo(pI);
+  }
 
-  loginFormKeypress: function(event) {
+  if (!pMgr.hasProperty(SOCL_url)) {
+    var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"].
+      createInstance(Ci.sbITextPropertyInfo);
+    pI.id = SOCL_url;
+    pI.displayName = this._strings.getString("streamURL");
+    pI.userEditable = true;
+    pI.userViewable = false;
+    pMgr.addPropertyInfo(pI);
+  }
+
+  SoundCloud._prefBranch = Cc["@mozilla.org/preferences-service;1"]
+    .getService(Ci.nsIPrefService).getBranch("songbird.metadata.")
+    .QueryInterface(Ci.nsIPrefBranch2);
+
+  	
+}
+
+SoundCloud.showPanel = function() {
+  this._panel.openPopup(this._statusIcon);
+}
+
+SoundCloud.loginFormChanged = function(event) {
+  if (this._email.value.length && this._password.value.length) {
+    this._loginButton.disabled = false;
+  } else {
+    this._loginButton.disabled = true;
+  }
+}
+
+SoundCloud.loginFormKeypress =
+  function(event) {
     if (event.keyCode == KeyEvent.DOM_VK_RETURN ||
         event.keyCode == KeyEvent.DOM_VK_ENTER) {
       if (!this._loginButton.disabled) {
         this.onLoginClick(event);
       }
     }
-  },
-
-  onLoginClick: function(event) {
-    this._deck.selectedPanel = this._loggingIn;
-    var url = "http://api.soundcloud.com/oauth/request_token";
-    var accessor = { consumerSecret: "YqGENlIGpWPnjQDJ2XCLAur2La9cTLdMYcFfWVIsnvw"};
-    var message = { action: url,
-                    method: "POST",
-                    parameters: []
-                  };
-
-    message.parameters.push(['oauth_consumer_key', 'eJ2Mqrpr2P4TdO62XXJ3A']);
-    message.parameters.push(['oauth_signature_method', 'HMAC-SHA1']);
-
-    OAuth.setTimestampAndNonce(message);
-    OAuth.SignatureMethod.sign(message, accessor);
-
-    var params = "";
-
-    for (var p in message.parameters) {
-      if (p == 0) {
-        params += message.parameters[p][0] + "=" + message.parameters[p][1];
-      } else {
-        params += "&" + message.parameters[p][0] + "=" + message.parameters[p][1];
-      }
-    }
-
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', url, true);
-
-    xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-    xhr.setRequestHeader("Content-length", params.length);
-    xhr.setRequestHeader("Connection", "close");
-
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState == 4) {
-        if (xhr.status == 200) {
-          alert(xhr.responseText);
-        }
-      }
-    }
-  
-    xhr.send(params);
-  },
-
-  onCancelClick: function(event) {
-    this._deck.selectedPanel = this._login;
-  },
-
-  onLogoutClick: function(event) {
-    this._deck.selectedPanel = this._login;
-  },
-
-  loadURI: function(uri, event) {
-    gBrowser.loadURI(uri, null, null, event, '_blank');
-    this._panel.hidePopup();
-  },
-
-  onUnLoad: function() {
-    this._initialized = false;
-    gMM.removeListener(mmListener);
   }
+
+SoundCloud.onLoginClick = function(event) {
+  this._deck.selectedPanel = this._loggingIn;
+  var url = "http://api.soundcloud.com/oauth/request_token";
+  var accessor = { consumerSecret: "YqGENlIGpWPnjQDJ2XCLAur2La9cTLdMYcFfWVIsnvw"};
+  var message = { action: url,
+                  method: "POST",
+                  parameters: []
+                };
+
+  message.parameters.push(['oauth_consumer_key', 'eJ2Mqrpr2P4TdO62XXJ3A']);
+  message.parameters.push(['oauth_signature_method', 'HMAC-SHA1']);
+
+  OAuth.setTimestampAndNonce(message);
+  OAuth.SignatureMethod.sign(message, accessor);
+
+  var params = "";
+
+  for (var p in message.parameters) {
+    if (p == 0) {
+      params += message.parameters[p][0] + "=" + message.parameters[p][1];
+    } else {
+      params += "&" + message.parameters[p][0] + "=" + message.parameters[p][1];
+    }
+  }
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', url, true);
+
+  xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+  xhr.setRequestHeader("Content-length", params.length);
+  xhr.setRequestHeader("Connection", "close");
+
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState == 4) {
+      if (xhr.status == 200) {
+        alert(xhr.responseText);
+      }
+    }
+  }
+
+  xhr.send(params);
 }
+
+SoundCloud.onCancelClick = function(event) {
+  this._deck.selectedPanel = this._login;
+}
+
+SoundCloud.onLogoutClick = function(event) {
+  this._deck.selectedPanel = this._login;
+}
+
+SoundCloud.loadURI = function(uri, event) {
+  gBrowser.loadURI(uri, null, null, event, '_blank');
+  this._panel.hidePopup();
+}
+
+SoundCloud.onUnLoad = function() {
+  this._initialized = false;
+  gMM.removeListener(mmListener);
+}
+
 
 // SoundCloud event handlers for login events
 SoundCloud.onLoggedInStateChanged = function SoundCloud_onLoggedInStateChanged() {
@@ -484,45 +483,6 @@ SoundCloud.onLoggedInStateChanged = function SoundCloud_onLoggedInStateChanged()
   }
 
 }
-
-
-/*
-SoundCloud.metadataObserver = {
-  observe: function(subject, topic, data) {
-    var item;
-      try {
-        item = gMM.sequencer.currentItem;
-       } catch (e) {
-         return;
-       }
-
-    if (subject instanceof Ci.nsIPrefBranch) {
-      if (data == "title" && item && item.getProperty(SC_streamName)) {
-        if (!Application.prefs.getValue("extensions.soundcloud.title-parsing", 
-                                        true))
-          return;
-
-        var title = subject.getCharPref(data);
-
-        if (title.indexOf(item.getProperty(SC_streamName)) >= 0)
-          return;
-
-        var m = title.match(/^(.+) - ([^-]+)$/);
-	
-        if (m) {
-          SoundCloud.ts = Date.now();
-          item.setProperty(SBProperties.artistName, m[1]);
-          item.setProperty(SBProperties.trackName, m[2]);
-					
-          var ev = gMM.createEvent(Ci.sbIMediacoreEvent.TRACK_CHANGE,
-                                   gMM.primaryCore, item);
-          gMM.QueryInterface(Ci.sbIMediacoreEventTarget).dispatchEvent(ev);
-        }
-      }
-    }
-  }
-};
-*/
 
 var curTrackListener = function(e) {
   var list;
@@ -547,120 +507,12 @@ var curTrackListener = function(e) {
       streamName = list.getItemByGuid(gPPS.currentGUID)
                        .getProperty(SOCL_title);
     }
-
-    // check to see if this tab is already loaded
-    /*
-    var tabs = gBrowser.mTabs;
-    var found = -1;
-    var loadURL = "http://shoutcast.com/directory/?s=" + escape(streamName);
-                
-    for (var i=0; i<tabs.length; i++) {
-      var curBrowser = gBrowser.getBrowserAtIndex(i);
-      var loadingURI = curBrowser.userTypedValue;
-      var compValue;
-
-      if (loadingURI != null) {
-        compValue = loadingURI;
-      } else {
-        compValue = curBrowser.currentURI.spec;
-
-      if (compValue == loadURL) {
-        found = i;
-        break;
-      }
-    }
-
-    if (found != -1) {
-      // a tab already exists, so select it
-      gBrowser.selectedTab = tabs[found];
-    } else {
-      // otherwise load a new tab
-      gBrowser.loadOneTab(loadURL);
-    }
-
-    // prevent the event from bubbling upwards
-    e.preventDefault();
-    */
-  }
-}
-
-var soundcloudUninstallObserver = {
-  _uninstall : false,
-  _disable : false,
-  _tabs : null,
-
-  observe : function(subject, topic, data) {
-    if (topic == "em-action-requested") {
-      // Extension has been flagged to be uninstalled
-      subject.QueryInterface(Ci.nsIUpdateItem);
-
-    if (subject.id == "soundcloud@songbirdnest.com") {
-      if (data == "item-uninstalled") {
-        this._uninstall = true;
-      } else if (data == "item-cancel-action") {
-        this._uninstall = false;
-        }
-      }
-    } else if (topic == "quit-application-granted") {
-      // We're shutting down, so check to see if we were flagged
-      // for uninstall - if we were, then cleanup here
-      if (this._uninstall) {
-        var tempLibGuid;
-        var radioLibGuid;
-        var prefs = Cc["@mozilla.org/preferences-service;1"].
-          getService(Components.interfaces.nsIPrefService);
-        var scPrefs = prefs.getBranch("extensions.soundcloud.");
-
-        // Things to cleanup:
-        // Remove preferences
-        /*
-        if (scPrefs.prefHasUserValue("plsinit"))
-          scPrefs.clearUserPref("plsinit");
-
-        if (scPrefs.prefHasUserValue("filter"))
-          scPrefs.clearUserPref("filter");
-
-        if (scPrefs.prefHasUserValue("custom-genres"))
-          scPrefs.clearUserPref("custom-genres");
-
-        if (scPrefs.prefHasUserValue("library.guid")) {
-          radioLibGuid = scPrefs.getCharPref("library.guid");
-          scPrefs.clearUserPref("library.guid");
-	}
-
-        if (scPrefs.prefHasUserValue("templib.guid")) {
-          tempLibGuid = scPrefs.getCharPref("templib.guid");
-          scPrefs.clearUserPref("templib.guid");
-        }
-        */
-
-        scPrefs.deleteBranch("");
-      }
-
-      this.unregister();
-    }
-  },
-
-  register : function() {
-    var observerService = Cc["@mozilla.org/observer-service;1"]
-      .getService(Ci.nsIObserverService);
-
-    observerService.addObserver(this, "em-action-requested", false);
-    observerService.addObserver(this, "quit-application-granted", false);
-  },
-
-  unregister : function() {
-    var observerService = Cc["@mozilla.org/observer-service;1"]
-      .getService(Ci.nsIObserverService);
-    observerService.removeObserver(this, "em-action-requested");
-    observerService.removeObserver(this, "quit-application-granted");
   }
 }
 
 SoundCloud._getElement = function(aWidget, aElementID) {
   return document.getAnonymousElementByAttribute(aWidget, "sbid", aElementID);
 }
-
 
 window.addEventListener("load",
                         function(e) { SoundCloud.onLoad(e); }, false);

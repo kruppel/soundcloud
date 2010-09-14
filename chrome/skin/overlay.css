@@ -35,8 +35,6 @@ treecol[bind="http://songbirdnest.com/data/1.0#streamURL"] > label,
 .header-actions {
        -moz-box-align: center;
        margin-right: 50px;
-/*       margin-top: -25px;
-*/
 }
 
 .soundcloud-logo {

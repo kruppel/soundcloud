@@ -13,7 +13,7 @@ var Application = Cc["@mozilla.org/fuel/application;1"]
  * Utility functions to be used by multiple windows
  */
 sbSoundCloud = {
-  LS_NS: "http://songbirdnest.com/rdf/library-servicepane#",
+  LS_NS: "http://songbirdnest.com/rdf/library-servicepane#"
 }
 
 function NSGetModule(compMgr, fileSpec) {

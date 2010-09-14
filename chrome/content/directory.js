@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2008, Pioneers of the Inevitable, Inc.
+Copyright (c) 2010, Pioneers of the Inevitable, Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,6 @@ if (typeof(Ci) == "undefined")
   var Ci = Components.interfaces;
 if (typeof(Cu) == "undefined")
   var Cu = Components.utils;
-
-//XXX Make a dummy Utils.jsm for the timebeing
-//Cu.import("resource://soundcloud/SCUtils.jsm");
 
 if (typeof(songbirdMainWindow) == "undefined")
   var songbirdMainWindow = Cc["@mozilla.org/appshell/window-mediator;1"].

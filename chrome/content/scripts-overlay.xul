@@ -10,7 +10,8 @@
          xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
          xmlns:html="http://www.w3.org/1999/xhtml"
          xmlns:svg="http://www.w3.org/1999/svg"
-         xmlns:xlink="http://www.w3.org/1999/xlink">
+         xmlns:xlink="http://www.w3.org/1999/xlink"
+         xmlns:xbl="http://www.mozilla.org/xbl">
 
   <stringbundleset id="stringbundleset"> 
      <stringbundle id="soundcloud-strings" src="chrome://soundcloud/locale/overlay.properties"/>
@@ -28,8 +29,7 @@
                     cancelButtonLabel="&soundcloud.cancel.button;"
                     profileCaption="&soundcloud.profile.caption;"
                     profileCheckboxLabel = "Holla"
-                    logoutButtonLabel="&soundcloud.profile.logout;" />
-
+                    logoutButtonLabel="&soundcloud.profile.logout;"/>
   </popupset>
 
   <statusbar id="status-bar">
