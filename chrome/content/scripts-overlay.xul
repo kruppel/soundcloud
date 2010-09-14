@@ -10,8 +10,7 @@
          xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
          xmlns:html="http://www.w3.org/1999/xhtml"
          xmlns:svg="http://www.w3.org/1999/svg"
-         xmlns:xlink="http://www.w3.org/1999/xlink"
-         xmlns:xbl="http://www.mozilla.org/xbl">
+         xmlns:xlink="http://www.w3.org/1999/xlink">
 
   <stringbundleset id="stringbundleset"> 
      <stringbundle id="soundcloud-strings" src="chrome://soundcloud/locale/overlay.properties"/>
