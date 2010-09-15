@@ -27,7 +27,6 @@
                     loggingLabel="&soundcloud.loggingin.label;"
                     cancelButtonLabel="&soundcloud.cancel.button;"
                     profileCaption="&soundcloud.profile.caption;"
-                    profileCheckboxLabel = "Holla"
                     logoutButtonLabel="&soundcloud.profile.logout;"/>
   </popupset>
 
@@ -38,9 +37,8 @@
                     tooltiptext="" />
   </statusbar>
 
-  <script src="radioProperties.js"/>
-  <script src="oauth.js"/>
-  <script src="sha1.js"/>
-  <script src="main.js"/>
-
+  <script type="application/x-javascript" src="radioProperties.js"/>
+  <script type="application/x-javascript" src="oauth.js"/>
+  <script type="application/x-javascript" src="sha1.js"/>
+  <script type="application/x-javascript" src="main.js"/>
 </overlay>

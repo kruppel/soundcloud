@@ -72,11 +72,6 @@ if (typeof(LibraryUtils) == "undefined") {
 const soundcloudTempLibGuid = "extensions.soundcloud.templib.guid";
 const soundcloudLibraryGuid = "extensions.soundcloud.library.guid";
 const soundcloudPlaylistInit = "extensions.soundcloud.library.plsinit";
-const defaultSearchType = "track";
-
-const PlaylistCommandsBuilder = new Components.Constructor(
-                                       "@songbirdnest.com/Songbird/PlaylistCommandsBuilder;1",
-                                       "sbIPlaylistCommandsBuilder");
 
 var CloudDirectory = {
   radioLib: null,
@@ -118,23 +113,6 @@ var CloudDirectory = {
       //this.playlist.appendColumn(SOCL_dl, "60");
       //this.playlist.appendColumn(SOCL_url, "290");  
     }
-
-    /*
-    this.m_cmd_Test = new PlaylistCommandsBuilder();
-    this.m_cmd_Test.appendAction(null, 
-                                 "soundcloud_cmd_test",
-                                 "Test",
-                                 "To test",
-                                 plCmd_Test_TriggerCallback);
-
-    this.m_playlistCommands = new PlaylistCommandsBuilder();
-    this.m_playlistCommands.appendPlaylistCommands(null, "soundcloud_Test", this.m_cmd_Test);
-
-    var mgr = Cc["@songbirdnest.com/Songbird/PlaylistCommandsManager;1"]
-              .createInstance(Ci.sbIPlaylistCommandsManager);
-
-    mgr.publish(kPlaylistCommands.MEDIAITEM_DEFAULT, this.m_playlistCommands);
-    */
 
     var ldtv = this.playlist.tree.view.
       QueryInterface(Ci.sbILocalDatabaseTreeView);
@@ -375,8 +353,4 @@ function onPlay(e) {
 
     e.stopPropagation();
     e.preventDefault();
-}
-
-function plCmd_Test_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
-  alert("hello. this is a test");
 }

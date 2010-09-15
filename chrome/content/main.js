@@ -169,7 +169,6 @@ SoundCloud.URL_PASSWORD = 'https://soundcloud.com/login';
 
 SoundCloud.onLoad = function() {
   // initialization code
-  this._initialized = true;
   this._strings = document.getElementById("soundcloud-strings");
 
   // Create a service pane node for our chrome
@@ -470,7 +469,6 @@ SoundCloud.loadURI = function(uri, event) {
 }
 
 SoundCloud.onUnLoad = function() {
-  this._initialized = false;
   gMM.removeListener(mmListener);
 }
 
