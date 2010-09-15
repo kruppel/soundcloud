@@ -4,12 +4,14 @@ srcdir = @srcdir@
 VPATH = @srcdir@
 
 include $(DEPTH)/build/autodefs.mk
-
+ 
 IS_EXTENSION = 1
-
-SUBDIRS = soundcloud \
-          $(NULL)
-
-SUBDIRDEPS = src : public
+ 
+SOCL_MODULES_DIR = $(EXTENSION_STAGE_DIR)/modules
+ 
+CREATEDIRS = $(SOCL_MODULES_DIR)
 
 include $(topsrcdir)/build/rules.mk
+
+export::
+	$(INSTALL_FILE) $(srcdir)/OAuth.jsm $(SOCL_MODULES_DIR)

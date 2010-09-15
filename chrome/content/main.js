@@ -169,8 +169,10 @@ SoundCloud.URL_PASSWORD = 'https://soundcloud.com/login';
 
 SoundCloud.onLoad = function() {
   // initialization code
-  this._initialized = true;
   this._strings = document.getElementById("soundcloud-strings");
+
+  //this._service = Components.classes['@songbirdnest.com/soundcloud;1'].
+  //  getService().wrappedJSObject;
 
   // Create a service pane node for our chrome
   var SPS = Cc['@songbirdnest.com/servicepane/service;1'].
@@ -415,6 +417,8 @@ SoundCloud.loginFormKeypress =
 
 SoundCloud.onLoginClick = function(event) {
   this._deck.selectedPanel = this._loggingIn;
+
+  //this._service.login();
   var url = "http://api.soundcloud.com/oauth/request_token";
   var accessor = { consumerSecret: "YqGENlIGpWPnjQDJ2XCLAur2La9cTLdMYcFfWVIsnvw"};
   var message = { action: url,
@@ -427,7 +431,7 @@ SoundCloud.onLoginClick = function(event) {
 
   OAuth.setTimestampAndNonce(message);
   OAuth.SignatureMethod.sign(message, accessor);
-
+ 
   var params = "";
 
   for (var p in message.parameters) {
@@ -443,17 +447,6 @@ SoundCloud.onLoginClick = function(event) {
 
   xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
   xhr.setRequestHeader("Content-length", params.length);
-  xhr.setRequestHeader("Connection", "close");
-
-  xhr.onreadystatechange = function() {
-    if (xhr.readyState == 4) {
-      if (xhr.status == 200) {
-        alert(xhr.responseText);
-      }
-    }
-  }
-
-  xhr.send(params);
 }
 
 SoundCloud.onCancelClick = function(event) {
@@ -470,7 +463,6 @@ SoundCloud.loadURI = function(uri, event) {
 }
 
 SoundCloud.onUnLoad = function() {
-  this._initialized = false;
   gMM.removeListener(mmListener);
 }
 
@@ -507,6 +499,34 @@ var curTrackListener = function(e) {
       streamName = list.getItemByGuid(gPPS.currentGUID)
                        .getProperty(SOCL_title);
     }
+
+    // check to see if this tab is already loaded
+    var tabs = gBrowser.mTabs;
+    var found = -1;
+    var loadURL = "chrome://soundcloud/content/directory.xul";
+    for (var i=0; i<tabs.length; i++) {
+      var curBrowser = gBrowser.getBrowserAtIndex(i);
+      var loadingURI = curBrowser.userTypedValue;
+      var compValue;
+      if (loadingURI != null)
+        compValue = loadingURI;
+      else
+        compValue = curBrowser.currentURI.spec;
+      if (compValue == loadURL) {
+        found = i;
+        break;
+      }
+    }
+    if (found != -1) {
+      // a tab already exists, so select it
+      gBrowser.selectedTab = tabs[found];
+    } else {
+      // otherwise load a new tab
+      gBrowser.loadOneTab(loadURL);
+    }
+
+    // prevent the event from bubbling upwards
+    e.preventDefault();
   }
 }
 

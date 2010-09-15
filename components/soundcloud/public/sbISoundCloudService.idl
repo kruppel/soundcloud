@@ -1,0 +1,17 @@
+/*
+ */
+
+#include "nsISupports.idl"
+
+/*
+ *
+ */
+[scriptable, uuid(dfa0469c-1dd1-11b2-a34d-aea86aafaf52)]
+interface sbISoundCloudService : nsISupports 
+{	
+
+  attribute AString nowplaying_url;
+  attribute boolean autoLogin;
+  attribute boolean loggedIn;
+
+};

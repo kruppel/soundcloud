@@ -1,4 +1,5 @@
-DEPTH = ../../..
+#preedTODO: add copyright
+DEPTH = ../../../../..
 topsrcdir = @top_srcdir@
 srcdir = @srcdir@
 VPATH = @srcdir@
@@ -7,9 +8,7 @@ include $(DEPTH)/build/autodefs.mk
 
 IS_EXTENSION = 1
 
-SUBDIRS = soundcloud \
-          $(NULL)
-
-SUBDIRDEPS = src : public
+SONGBIRD_COMPONENTS = $(srcdir)/sbSoundCloud.js \
+                      $(NULL)
 
 include $(topsrcdir)/build/rules.mk

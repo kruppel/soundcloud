@@ -1,4 +1,4 @@
-DEPTH = ../../..
+DEPTH = ../../../../..
 topsrcdir = @top_srcdir@
 srcdir = @srcdir@
 VPATH = @srcdir@
@@ -7,9 +7,11 @@ include $(DEPTH)/build/autodefs.mk
 
 IS_EXTENSION = 1
 
-SUBDIRS = soundcloud \
-          $(NULL)
+# compile IDL
+XPIDL_SRCS = sbISoundCloudService.idl \
+             $(NULL)
 
-SUBDIRDEPS = src : public
+# xpt target
+XPIDL_MODULE = sbSoundCloudService.xpt
 
 include $(topsrcdir)/build/rules.mk
