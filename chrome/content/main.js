@@ -171,8 +171,10 @@ SoundCloud.onLoad = function() {
   // initialization code
   this._strings = document.getElementById("soundcloud-strings");
 
-  //this._service = Components.classes['@songbirdnest.com/soundcloud;1'].
-  //  getService().wrappedJSObject;
+  this._service = Components.classes['@songbirdnest.com/soundcloud;1'].
+    getService(Ci.sbISoundCloudService);
+
+  Cu.reportError(this._service.nowplaying_url);
 
   // Create a service pane node for our chrome
   var SPS = Cc['@songbirdnest.com/servicepane/service;1'].
@@ -278,7 +280,7 @@ SoundCloud.onLoad = function() {
     function(event) { SoundCloud.loadURI(SoundCloud.URL_PASSWORD, event); }, false);
 
   var self = this;
-  this._panelBinding.addEventListener("login-button-click",
+  this._panelBinding.addEventListener("login-button-clicked",
                 function(event) { self._handleUIEvents(event); }, false);
   this._panelBinding.addEventListener("cancel-button-clicked",
                 function(event) { self._handleUIEvents(event); }, false);
@@ -419,6 +421,7 @@ SoundCloud.onLoginClick = function(event) {
   this._deck.selectedPanel = this._loggingIn;
 
   //this._service.login();
+
   var url = "http://api.soundcloud.com/oauth/request_token";
   var accessor = { consumerSecret: "YqGENlIGpWPnjQDJ2XCLAur2La9cTLdMYcFfWVIsnvw"};
   var message = { action: url,
@@ -447,6 +450,7 @@ SoundCloud.onLoginClick = function(event) {
 
   xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
   xhr.setRequestHeader("Content-length", params.length);
+
 }
 
 SoundCloud.onCancelClick = function(event) {

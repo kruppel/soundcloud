@@ -46,11 +46,7 @@ treecol[bind="http://songbirdnest.com/data/1.0#streamURL"] > label,
        display: -moz-box;
        padding-left: 3px;
        padding-right: 3px;
-       padding-top: 2px;
-/*
-       margin-left: 5px;
-       margin-right: 5px;
-*/
+       /*padding-top: 2px;*/
 }
 
 textbox.textbox-input {

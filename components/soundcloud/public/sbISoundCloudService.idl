@@ -6,12 +6,12 @@
 /*
  *
  */
-[scriptable, uuid(dfa0469c-1dd1-11b2-a34d-aea86aafaf52)]
+[scriptable, uuid(32067828-1dd2-11b2-8c5b-ec25e8be3bc2)]
 interface sbISoundCloudService : nsISupports 
 {	
 
   attribute AString nowplaying_url;
-  attribute boolean autoLogin;
-  attribute boolean loggedIn;
+  //attribute boolean autoLogin;
+  //attribute boolean loggedIn;
 
 };

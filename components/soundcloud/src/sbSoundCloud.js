@@ -46,7 +46,7 @@ const SIG_METHOD = "HMAC-SHA1";
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 // import observer utils
-Cu.import("resource://app/jsmodules/ObserverUtils.jsm");
+//Cu.import("resource://app/jsmodules/ObserverUtils.jsm");
 
 // object to manage login state
 var Logins = {
@@ -58,7 +58,7 @@ var Logins = {
   LOGIN_FIELD_PASSWORD: 'password',
 
   get: function() {
-    // username & password
+    // email & password
     var email = '';
     var password = '';
     // lets ask the login manager
@@ -104,6 +104,7 @@ function urlencode(o) {
 
 function POST(url, params, onload, onerror) {
   var xhr = null;
+  /*
   var accessor = { consumerSecret: CONSUMER_SECRET };
   var message = { action: url,
                   method: "POST",
@@ -119,6 +120,7 @@ function POST(url, params, onload, onerror) {
   var params = "";
 
   params = urlencode(message.parameters);
+  */
 
   try {
     xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance();
@@ -144,35 +146,28 @@ function sbSoundCloud() {
   this.wrappedJSObject = this;
   Cu.import("resource://soundcloud/OAuth.jsm");
 
-  // XXX - Need to review
-  this._observerSet = new ObserverSet();
-  this._observerSet.add(this,
-                        "songbird-library-manager-before-shutdown",
-                        false,
-                        true);
-
-
   var login = Logins.get();
-  this.username = login.username;
+  this.email = login.email;
   this.password = login.password;
 
-  this.nowplaying_url = null;
+  this._nowplaying_url = null;
 
   this.__defineGetter__('nowplaying_url', function() {
-    return this.nowplaying_url;
+    return this._nowplaying_url;
   });
   this.__defineSetter__('nowplaying_url', function(val) {
-    this.nowplaying_url = val;
+    this._nowplaying_url = val;
   });
 
   var prefsService = Cc['@mozilla.org/preferences-service;1']
       .getService(Ci.nsIPrefBranch);
 
+  /*
   this.__defineGetter__('autoLogin', function() {
-    return prefsService.getBoolPref('extensions.lastfm.autologin');
+    return prefsService.getBoolPref('extensions.soundcloud.autologin');
   });
   this.__defineSetter__('autoLogin', function(val) {
-    prefsService.setBoolPref('extensions.lastfm.autologin', val);
+    prefsService.setBoolPref('extensions.soundcloud.autologin', val);
     this.listeners.each(function(l) { l.onAutoLoginChanged(val); });
   });
 
@@ -182,6 +177,7 @@ function sbSoundCloud() {
     this._loggedIn = aLoggedIn;
     this.listeners.each(function(l) { l.onLoggedInStateChanged(); });
   });
+  */
 
   // get the playback history service
   this._playbackHistory =
@@ -215,20 +211,19 @@ function sbSoundCloud() {
   }
   radioFolder.editable = false;
 
-  this._servicePaneNode = this._servicePaneService.createNode();
-  this._servicePaneNode.url = "chrome://soundcloud/content/directory.xul";
-  this._servicePaneNode.id = "SB:RadioStations:SoundCloud";
-  this._servicePaneNode.name = "SoundCloud";
-  this._servicePaneNode.image = 'chrome://soundcloud/skin/soundcloud_favicon.png';
-  this._servicePaneNode.editable = false;
-  this._servicePaneNode.hidden = false;
-  radioFolder.appendChild(this._servicePaneNode);
+  var soclRadio = this._servicePaneService.getNode("SB:RadioStations:SoundCloud");
+  if (!soclRadio) {
+    this._servicePaneNode = this._servicePaneService.createNode();
+    this._servicePaneNode.url = "chrome://soundcloud/content/directory.xul";
+    this._servicePaneNode.id = "SB:RadioStations:SoundCloud";
+    this._servicePaneNode.name = "SoundCloud";
+    this._servicePaneNode.image = 'chrome://soundcloud/skin/soundcloud_favicon.png';
+    this._servicePaneNode.editable = false;
+    this._servicePaneNode.hidden = false;
+    radioFolder.appendChild(this._servicePaneNode);
+  }
 
   this.updateServicePaneNodes();
-
-  var observerService = Cc["@mozilla.org/observer-service;1"]
-                          .getService(Ci.nsIObserverService);
-  observerService.addObserver(this, "http-on-modify-request", false);
 
 }
 
@@ -246,7 +241,7 @@ sbSoundCloud.prototype.updateServicePaneNodes = function updateSPNodes() {
 
 sbSoundCloud.prototype.shouldAutoLogin =
 function sbSoundCloud_shouldAutoLogin() {
-  return this.autoLogin && this.username && this.password;
+  return this.autoLogin && this.email && this.password;
 }
 
 sbSoundCloud.prototype.login = function sbSoundCloud_login(clearSession) {
@@ -261,6 +256,20 @@ function sbSoundCloud_requestToken(success, failure) {
   var self = this;
   var url = SOCL_URL + "oauth/request_token";
 
+  var accessor = { consumerSecret: CONSUMER_SECRET };
+  var message = { action: url,
+                  method: "POST",
+                  parameters: []
+                };
+
+  message.parameters.push(['oauth_consumer_key', CONSUMER_KEY]);
+  message.parameters.push(['oauth_signature_method', SIG_METHOD]);
+
+  OAuth.setTimestampAndNonce(message);
+  OAuth.SignatureMethod.sign(message, accessor);
+
+  var params = urlencode(message.parameters);
+
   this._reqtoken_xhr = POST(url, params, function(xhr) {
       if (xhr.status != 200) {
         dump('HTTP status ' + xhr.status + ' posting to ' + url);
@@ -272,9 +281,8 @@ function sbSoundCloud_requestToken(success, failure) {
     });
 }
 
-sbSoundCloud.prototype.shutdown = function sbSondCloud_shutdown() {
-  this._observerSet.removeAll();
-  this._observerSet = null;
+sbSoundCloud.prototype.shutdown = function sbSoundCloud_shutdown() {
+
 }
 
 var components = [sbSoundCloud];
