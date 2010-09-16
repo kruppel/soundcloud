@@ -10,6 +10,4 @@ IS_EXTENSION = 1
 SUBDIRS = soundcloud \
           $(NULL)
 
-SUBDIRDEPS = src : public
-
 include $(topsrcdir)/build/rules.mk

@@ -165,7 +165,7 @@ SoundCloud.SB_NS = "http://songbirdnest.com/data/1.0#";
 SoundCloud.SP_NS = "http://songbirdnest.com/rdf/servicepane#";
 
 SoundCloud.URL_SIGNUP = 'http://soundcloud.com/signup';
-SoundCloud.URL_PASSWORD = 'https://soundcloud.com/login';
+SoundCloud.URL_PASSWORD = 'https://soundcloud.com/login/forgot';
 
 SoundCloud.onLoad = function() {
   // initialization code
