@@ -1,5 +1,4 @@
-/*
- *=BEGIN SONGBIRD GPL
+/* *=BEGIN SONGBIRD GPL
  *
  * This file is part of the Songbird web player.
  *
@@ -27,6 +26,7 @@
  * \brief Service component for SoundCloud.
  */
 const Cc = Components.classes;
+const CC = Components.Constructor;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
@@ -43,6 +43,9 @@ const SOCL_URL = 'http://api.soundcloud.com';
 const CONSUMER_SECRET = "YqGENlIGpWPnjQDJ2XCLAur2La9cTLdMYcFfWVIsnvw";
 const CONSUMER_KEY = "eJ2Mqrpr2P4TdO62XXJ3A";
 const SIG_METHOD = "HMAC-SHA1";
+
+var REQUEST_TOKEN = '';
+var TOKEN_SECRET = '';
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 // import observer utils
@@ -92,14 +95,18 @@ var Logins = {
   }
 }
 
-function urlencode(o) {
-  var s = '';
-  for (var k in o) {
-    var v = o[k];
-    if (s.length) { s += '&'; }
-    s += encodeURIComponent(k) + '=' + encodeURIComponent(v);
+function urlencode(obj) {
+  var params = '';
+
+  for (let p in obj) {
+    if (p == 0) {
+      params += obj[p][0] + "=" + obj[p][1];
+    } else {
+      params += "&" + obj[p][0] + "=" + obj[p][1];
+    }
   }
-  return s;
+
+  return params;
 }
 
 function POST(url, params, onload, onerror) {
@@ -162,6 +169,8 @@ function sbSoundCloud() {
   var prefsService = Cc['@mozilla.org/preferences-service;1']
       .getService(Ci.nsIPrefBranch);
 
+  this._retry_count = 0;
+
   /*
   this.__defineGetter__('autoLogin', function() {
     return prefsService.getBoolPref('extensions.soundcloud.autologin');
@@ -178,7 +187,6 @@ function sbSoundCloud() {
     this.listeners.each(function(l) { l.onLoggedInStateChanged(); });
   });
   */
-
   // get the playback history service
   this._playbackHistory =
       Cc['@songbirdnest.com/Songbird/PlaybackHistoryService;1']
@@ -224,7 +232,6 @@ function sbSoundCloud() {
   }
 
   this.updateServicePaneNodes();
-
 }
 
 // XPCOM Voodoo
@@ -244,17 +251,43 @@ function sbSoundCloud_shouldAutoLogin() {
   return this.autoLogin && this.email && this.password;
 }
 
-sbSoundCloud.prototype.login = function sbSoundCloud_login(clearSession) {
+sbSoundCloud.prototype.login =
+function sbSoundCloud_login(clearSession) {
   var self = this;
   self.requestToken(function success() { dump("Token yes!"); },
                     function failure() { dump("Token fail!"); });
   return;
 }
 
+sbSoundCloud.prototype.sign = function sbSoundCloud_sign(message) {
+  var baseString = this.getBaseString(message); 
+  var signature = b64_hmac_sha1(CONSUMER_SECRET + "&" + TOKEN_SECRET, 
+                                baseString) + "=";
+  return signature;
+}
+
+sbSoundCloud.prototype.getBaseString =
+function sbSoundCloud_getBaseString(message) {
+  var params = message.parameters;
+  var s = "";
+  for (var p in params) {
+    if (params[p][0] != 'oauth_signature') {
+      if (p == 0) {
+        s = params[p][0] + "=" + params[p][1];
+      } else {
+        s += "&" + params[p][0] + "=" + params[p][1];
+      }
+    }
+  }
+
+  return message.method + '&' + encodeURIComponent(message.action)
+                        + '&' + encodeURIComponent(s);
+}
+
 sbSoundCloud.prototype.requestToken =
 function sbSoundCloud_requestToken(success, failure) {
   var self = this;
-  var url = SOCL_URL + "oauth/request_token";
+  var url = SOCL_URL + "/oauth/request_token";
 
   var accessor = { consumerSecret: CONSUMER_SECRET };
   var message = { action: url,
@@ -263,22 +296,92 @@ function sbSoundCloud_requestToken(success, failure) {
                 };
 
   message.parameters.push(['oauth_consumer_key', CONSUMER_KEY]);
+  message.parameters.push(['oauth_nonce', OAuth.nonce(6)]);
   message.parameters.push(['oauth_signature_method', SIG_METHOD]);
-
-  OAuth.setTimestampAndNonce(message);
-  OAuth.SignatureMethod.sign(message, accessor);
+  message.parameters.push(['oauth_timestamp', OAuth.timestamp()]);
+  message.parameters.push(['oauth_signature', self.sign(message)]);
 
   var params = urlencode(message.parameters);
 
-  this._reqtoken_xhr = POST(url, params, function(xhr) {
-      if (xhr.status != 200) {
-        dump('HTTP status ' + xhr.status + ' posting to ' + url);
+/*
+  var params = "";
+
+  for (let p in message.parameters) {
+    if (p == 0) {
+      params += message.parameters[p][0] + "=" + message.parameters[p][1];
+    } else {
+      params += "&" + message.parameters[p][0] + "=" + message.parameters[p][1];
+    }
+  }
+*/
+
+  var xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance();
+  xhr.mozBackgroundRequest = true;
+  xhr.open('POST', url, true);
+
+  xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+  xhr.setRequestHeader("Content-length", params.length);
+  xhr.setRequestHeader("Connection", "close");
+
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState == 4) {
+      if (xhr.status == 200) {
+        let response = xhr.responseText;
+        REQUEST_TOKEN = response.split('&')[0].split('=')[1];
+        TOKEN_SECRET = response.split('&')[1].split('=')[1];
+
+        self._retry_count = 0;
+
+        // Note that authorize is spelled the _correct_ way
+        self.authorize(function success() { dump("Authorized!"); },
+                       function failure() { dump("Token fail!"); });
+
+      } else if (++self._retry_count < 20) {
+        self.requestToken(success, failure)
       } else {
-        dump(xhr.responseText);
+        dump("\nStatus is " + xhr.status + "\n");
+        self._retry_count = 0;
       }
-    }, function(xhr) {
-      dump("Failed!");
-    });
+    }
+  }
+  xhr.send(params);
+}
+
+sbSoundCloud.prototype.authorize =
+function sbSoundCloud_authorize(success, failure) {
+  var self = this;
+  Logins.set(self.email, self.password);
+
+  var url = SOCL_URL + "/oauth/authorize?oauth_token=" + REQUEST_TOKEN;
+
+  var window = Cc["@mozilla.org/appshell/window-mediator;1"]
+                 .getService(Ci.nsIWindowMediator)
+                 .getMostRecentWindow('Songbird:Main');
+  var gBrowser = window.gBrowser;
+  var authTab = gBrowser.loadOneTab(url, null, null, null, false);
+/*
+  var mp = [];
+  mp.push(['oauth_token', REQUEST_TOKEN]);
+
+  var params = urlencode(mp);
+  dump('authorize params: ' + params);
+
+  var xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance();
+  xhr.mozBackgroundRequest = true;
+  xhr.open('GET', url, true);
+
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState == 4) {
+      if (xhr.status == 200) {
+        let content = xhr.responseText;
+
+      } else {
+        failure;
+      }
+    }
+  }
+  xhr.send(params);
+*/
 }
 
 sbSoundCloud.prototype.shutdown = function sbSoundCloud_shutdown() {

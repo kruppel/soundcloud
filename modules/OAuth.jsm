@@ -70,7 +70,7 @@
 
    Another option is to call OAuth.correctTimestamp with a Unix timestamp.
  */
-var EXPORTED_SYMBOLS = [ "OAuth" ];
+var EXPORTED_SYMBOLS = [ "OAuth", "b64_hmac_sha1", "core_sha1",  "core_hmac_sha1", "binb2b64" ];
 
 var OAuth; if (OAuth == null) OAuth = {};
 
@@ -368,6 +368,7 @@ OAuth.setProperties(OAuth.SignatureMethod.prototype, // instance members
         var baseString = OAuth.SignatureMethod.getBaseString(message);
         var signature = this.getSignature(baseString);
         OAuth.setParameter(message, "oauth_signature", signature);
+        dump(signature);
         return signature; // just in case someone's interested
     }
 ,
@@ -576,7 +577,7 @@ function hex_sha1(s){return binb2hex(core_sha1(str2binb(s),s.length * chrsz));}
 function b64_sha1(s){return binb2b64(core_sha1(str2binb(s),s.length * chrsz));}
 function str_sha1(s){return binb2str(core_sha1(str2binb(s),s.length * chrsz));}
 function hex_hmac_sha1(key, data){ return binb2hex(core_hmac_sha1(key, data));}
-function b64_hmac_sha1(key, data){ return binb2b64(core_hmac_sha1(key, data));}
+function b64_hmac_sha1(key, data){ dump("in algorithm"); return binb2b64(core_hmac_sha1(key, data));}
 function str_hmac_sha1(key, data){ return binb2str(core_hmac_sha1(key, data));}
 
 /*

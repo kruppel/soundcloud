@@ -59,6 +59,7 @@
                 disabled="true" />
       </hbox>
     </hbox>
+  <image src="chrome://soundcloud/skin/test_waveform.png" height="60"/>
   </vbox>
   <deck id="loading-deck" flex="1"><!-- selectedIndex="0">
     <vbox pack="center" flex="1">

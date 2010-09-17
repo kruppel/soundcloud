@@ -172,10 +172,9 @@ SoundCloud.onLoad = function() {
   this._strings = document.getElementById("soundcloud-strings");
 
   this._service = Components.classes['@songbirdnest.com/soundcloud;1'].
-    getService(Ci.sbISoundCloudService);
+    getService().wrappedJSObject;
 
-  Cu.reportError(this._service.nowplaying_url);
-
+  /*
   // Create a service pane node for our chrome
   var SPS = Cc['@songbirdnest.com/servicepane/service;1'].
     getService(Ci.sbIServicePaneService);
@@ -209,7 +208,7 @@ SoundCloud.onLoad = function() {
   radioFolder.appendChild(scNode);
   scNode.editable = false;
   scNode.hidden = false;
-
+  */
 /*
   var favNode = SPS.createNode();
   favNode.url="chrome://soundcloud/content/directory.xul";
@@ -419,38 +418,11 @@ SoundCloud.loginFormKeypress =
 
 SoundCloud.onLoginClick = function(event) {
   this._deck.selectedPanel = this._loggingIn;
+  this._service.email = this._email.value;
+  this._service.password = this._password.value;
+  dump("\n\n\nPASSWORD: \n" + this._password.value + "\n\n");
 
-  //this._service.login();
-
-  var url = "http://api.soundcloud.com/oauth/request_token";
-  var accessor = { consumerSecret: "YqGENlIGpWPnjQDJ2XCLAur2La9cTLdMYcFfWVIsnvw"};
-  var message = { action: url,
-                  method: "POST",
-                  parameters: []
-                };
-
-  message.parameters.push(['oauth_consumer_key', 'eJ2Mqrpr2P4TdO62XXJ3A']);
-  message.parameters.push(['oauth_signature_method', 'HMAC-SHA1']);
-
-  OAuth.setTimestampAndNonce(message);
-  OAuth.SignatureMethod.sign(message, accessor);
- 
-  var params = "";
-
-  for (var p in message.parameters) {
-    if (p == 0) {
-      params += message.parameters[p][0] + "=" + message.parameters[p][1];
-    } else {
-      params += "&" + message.parameters[p][0] + "=" + message.parameters[p][1];
-    }
-  }
-
-  var xhr = new XMLHttpRequest();
-  xhr.open('POST', url, true);
-
-  xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-  xhr.setRequestHeader("Content-length", params.length);
-
+  this._service.login(true);
 }
 
 SoundCloud.onCancelClick = function(event) {
