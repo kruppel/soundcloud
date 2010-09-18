@@ -56,7 +56,7 @@
 
     <songbird:displayPane>
       <Description>
-        <songbird:contentUrl>chrome://soundcloud/content/waveform.xul</songbird:contentUrl>
+        <songbird:contentUrl>chrome://soundcloud/content/waveform.html</songbird:contentUrl>
         <songbird:contentTitle>@EXTENSION_NAME@</songbird:contentTitle>
         <songbird:contentIcon>chrome://soundcloud/skin/inactive.png</songbird:contentIcon>
         <songbird:defaultWidth>177</songbird:defaultWidth>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE window [
+<!ENTITY % optionsDTD SYSTEM "chrome://soundcloud/locale/options.dtd" >
+<!ENTITY % soundcloudDTD SYSTEM "chrome://soundcloud/locale/overlay.dtd" >
+<!ENTITY % songbirdDTD SYSTEM "chrome://songbird/locale/songbird.dtd" >
+%optionsDTD;
+%soundcloudDTD;
+%songbirdDTD;
+]>
+
+<?xml-stylesheet href="chrome://global/skin" type="text/css"?>
+<?xml-stylesheet href="chrome://global/skin/defaultDisplayPane.css"
+                 type="text/css"?>
+<?xml-stylesheet href="chrome://songbird/skin/songbird.css" type="text/css"?>
+<?xml-stylesheet href="chrome://songbird/content/bindings/bindings.css"
+                 type="text/css"?>
+<?xml-stylesheet href="chrome://soundcloud/skin/waveform.css"
+                 type="text/css"?>
+
+<page title="soundcloud-waveform"
+      xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+      xmlns:html="http://www.w3.org/1999/xhtml"
+      xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+      xmlns:xbl="http://www.mozilla.org/xbl">
+
+  <stringbundleset id="stringbundleset"> 
+    <stringbundle id="soundcloud-strings"
+                  src="chrome://soundcloud/locale/overlay.properties"/>
+  </stringbundleset>
+
+  <hbox flex="1" id="container">
+    <image flex="1" id="waveform" src="chrome://soundcloud/skin/test_waveform.png" />
+    <box flex="1" id="playhead" style="width: 50%; height: 100%; background-color: #333;" />
+  </hbox>
+</page>
