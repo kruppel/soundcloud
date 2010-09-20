@@ -142,7 +142,7 @@ function GET(url, params, onload, onerror) {
 
   try {
 
-  } catche(e) {
+  } catch(e) {
     Cu.reportError(e);
     onerror(xhr);
   }
@@ -204,6 +204,7 @@ function sbSoundCloud() {
     prefsService.setBoolPref('extensions.soundcloud.autologin', val);
     this.listeners.each(function(l) { l.onAutoLoginChanged(val); });
   });
+  */
 
   this._loggedIn = false;
   this.__defineGetter__('loggedIn', function() { return this._loggedIn; });
@@ -211,7 +212,7 @@ function sbSoundCloud() {
     this._loggedIn = aLoggedIn;
     this.listeners.each(function(l) { l.onLoggedInStateChanged(); });
   });
-  */
+
   // get the playback history service
   this._playbackHistory =
       Cc['@songbirdnest.com/Songbird/PlaybackHistoryService;1']
@@ -329,7 +330,7 @@ function sbSoundCloud_requestToken(success, failure) {
 
   var accessor = { consumerSecret: CONSUMER_SECRET };
   var message = { action: url,
-                  method: "POST",
+                  method: 'POST',
                   parameters: []
                 };
 
@@ -406,7 +407,7 @@ function sbSoundCloud_authorize(success, failure) {
 
     var accessor = { consumerSecret: CONSUMER_SECRET };
     var message = { action: url,
-                    method: "POST",
+                    method: 'POST',
                     parameters: []
                   };
 
@@ -419,7 +420,7 @@ function sbSoundCloud_authorize(success, failure) {
 
     var params = urlencode(message.parameters);
 
-    self._reqtoken_xhr = POST(url, params,
+    self._accesstoken_xhr = POST(url, params,
         function(xhr) {
           /* success function
             - Need to make sure request is valid: "Invalid OAuth Request"
@@ -430,6 +431,7 @@ function sbSoundCloud_authorize(success, failure) {
 
           self._retry_count = 0;
 
+          self.listeners.each(function(l) { l.onLoginSucceeded(); });
           // Note that authorize is spelled the _correct_ way
           //self.authorize(function success() { dump("Authorized!"); },
           //               function failure() { dump("Token fail!"); });
@@ -439,37 +441,6 @@ function sbSoundCloud_authorize(success, failure) {
           self._retry_count = 0;
           dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
         });
-/*
-      var xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance();
-      xhr.mozBackgroundRequest = true;
-      xhr.open('POST', url, true);
-
-      xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-      xhr.setRequestHeader("Content-length", params.length);
-      xhr.setRequestHeader("Connection", "close");
-
-      xhr.onreadystatechange = function() {
-        if (xhr.readyState == 4) {
-          if (xhr.status == 200) {
-            let response = xhr.responseText;
-            OAUTH_TOKEN = response.split('&')[0].split('=')[1];
-            TOKEN_SECRET = response.split('&')[1].split('=')[1];
-
-            self._retry_count = 0;
-
-            dump("\n\n\n\n" + xhr.responseText + "\n\n\n\n");
-
-          } else if (++self._retry_count < 20) {
-            self.accessToken(function success() { dump("Token yes!"); },
-                    function failure() { dump("Token fail!"); });
-          } else {
-            dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
-            self._retry_count = 0;
-          }
-        }
-      }
-    xhr.send(params);
-*/
   }
  
   gBrowser.addEventListener("DOMContentLoaded", self._authListener, false);

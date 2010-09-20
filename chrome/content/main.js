@@ -169,7 +169,8 @@ SoundCloud.URL_PASSWORD = 'https://soundcloud.com/login/forgot';
 
 SoundCloud.Icons = {
   busy: 'chrome://soundcloud/skin/busy.png',
-  disabled: 'chrome://soundcloud/skin/disabled.png'
+  disabled: 'chrome://soundcloud/skin/disabled.png',
+  logged_in: 'chrome://soundcloud/skin/soundcloud_favicon.png'
 };
 
 SoundCloud.onLoad = function() {
@@ -283,6 +284,7 @@ SoundCloud.onLoad = function() {
   gMM.addListener(mmListener);
 
   this.onLoggedInStateChanged();
+  this.updateStatus();
 
   // Attach our listener to the ShowCurrentTrack event issued by the
   // faceplate
@@ -410,17 +412,33 @@ SoundCloud.loadURI = function(uri, event) {
 
 // SoundCloud event handlers for login events
 SoundCloud.onLoggedInStateChanged = function SoundCloud_onLoggedInStateChanged() {
-  if (false) {
+  if (this._service.loggedIn) {
+    this._deck.selectedPanel = this._profile;
   } else {
     this._deck.selectedPanel = this._login;
   }
 
+  this.updateStatus();
 }
 
 SoundCloud.onLoginBegins = function SoundCloud_onLoginBegins() {
   this._deck.selectedPanel = this._loggingIn;
   this.setStatusIcon(this.Icons.busy);
   //this.setStatusTextId('soundcloud.state.logging_in');
+}
+
+SoundCloud.onLoginSucceeded = function SoundCloud_onLoginSucceeded() {
+  this._deck.selectedPanel = this._profile;
+  this.setStatusIcon(this.Icons.logged_in);
+}
+
+SoundCloud.updateStatus = function SoundCloud_updateStatus() {
+  if (this._service.loggedIn) {
+    this.setStatusIcon(this.Icons.logged_in);
+    //this.setStatusTextId('soundcloud.state'+stateName);
+  } else {
+    this.setStatusIcon(this.Icons.disabled);
+  }
 }
 
 SoundCloud.setStatusIcon = function SoundCloud_setStatusIcon(aIcon) {
