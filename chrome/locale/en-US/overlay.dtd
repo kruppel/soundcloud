@@ -1,5 +1,5 @@
 <!ENTITY soundcloud.login.caption.label "Login">
-<!ENTITY soundcloud.username.label "Email:">
+<!ENTITY soundcloud.username.label "Username:">
 <!ENTITY soundcloud.password.label "Password:">
 <!ENTITY soundcloud.auto.login.label "Auto sign-in at launch">
 <!ENTITY soundcloud.login.button "Log in">

@@ -22,7 +22,8 @@ body {
       height: 100%;
       z-index: 1;
       background-image: url(chrome://soundcloud/skin/playhead.png);
-      -moz-background-size: 50%;
+/*      -moz-background-size: 50%;
       background-size: 50%;
+      -moz-box-shadow: rgba(255, 0, 140, 0.199219) 0px 0px 4px;*/
       position: absolute;
 }

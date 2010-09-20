@@ -167,48 +167,19 @@ SoundCloud.SP_NS = "http://songbirdnest.com/rdf/servicepane#";
 SoundCloud.URL_SIGNUP = 'http://soundcloud.com/signup';
 SoundCloud.URL_PASSWORD = 'https://soundcloud.com/login/forgot';
 
+SoundCloud.Icons = {
+  busy: 'chrome://soundcloud/skin/busy.png',
+  disabled: 'chrome://soundcloud/skin/disabled.png'
+};
+
 SoundCloud.onLoad = function() {
   // initialization code
   this._strings = document.getElementById("soundcloud-strings");
 
   this._service = Components.classes['@songbirdnest.com/soundcloud;1'].
     getService().wrappedJSObject;
+  this._service.listeners.add(this);
 
-  /*
-  // Create a service pane node for our chrome
-  var SPS = Cc['@songbirdnest.com/servicepane/service;1'].
-    getService(Ci.sbIServicePaneService);
-
-  // Check whether the node already exists
-  if (SPS.getNode("SB:RadioStations:SoundCloud"))
-    return;
-		
-  // Walk nodes to see if a "Radio" folder already exists
-  var radioFolder = SPS.getNode("SB:RadioStations");
-
-  if (!radioFolder) {
-    radioFolder = SPS.createNode();
-    radioFolder.id = "SB:RadioStations";
-    radioFolder.className = "folder radio";
-    radioFolder.name = this._strings.getString("radioFolderLabel");
-    radioFolder.setAttributeNS(this.SB_NS, "radioFolder", 1); // for backward-compat
-    radioFolder.setAttributeNS(this.SP_NS, "Weight", 2);
-    SPS.root.appendChild(radioFolder);
-  } 
-
-  radioFolder.editable = false;
-  radioFolder.hidden = false;
-
-  // Add SoundCloud chrome to service pane
-  var scNode = SPS.createNode();
-  scNode.url = "chrome://soundcloud/content/directory.xul";
-  scNode.id = "SB:RadioStations:SoundCloud";
-  scNode.name = "SoundCloud";
-  scNode.image = SOCL_FAVICON_PATH;
-  radioFolder.appendChild(scNode);
-  scNode.editable = false;
-  scNode.hidden = false;
-  */
 /*
   var favNode = SPS.createNode();
   favNode.url="chrome://soundcloud/content/directory.xul";
@@ -228,10 +199,10 @@ SoundCloud.onLoad = function() {
   this._panel = this._getElement(this._panelBinding, 'loginPanel');
   this._deck = this._getElement(this._panelBinding, 'loginDeck');
   this._login = this._getElement(this._panelBinding, 'loginBox');
-  this._email = this._getElement(this._panelBinding, 'username');
+  this._username = this._getElement(this._panelBinding, 'username');
 
   // Hacky solution to increase max length of username field
-  this._email.setAttribute("maxlength", 255);
+  this._username.setAttribute("maxlength", 255);
 
   this._loginAutoLogin = this._getElement(this._panelBinding,
                                           'loginAutoLogin');
@@ -286,24 +257,24 @@ SoundCloud.onLoad = function() {
   this._panelBinding.addEventListener("logout-button-clicked",
                 function(event) { self._handleUIEvents(event); }, false);
 
-  // Focus & select email field on popupshown event
+  // Focus & select username field on popupshown event
   this._panel.addEventListener('popupshown',
     function(event) {
       if (SoundCloud._deck.selectedPanel == SoundCloud._login) {
-        SoundCloud._email.focus();
-        SoundCloud._email.select();
+        SoundCloud._username.focus();
+        SoundCloud._username.select();
       }
     }, false);
 
   // React to changes in the login form
-  this._email.addEventListener('input', 
+  this._username.addEventListener('input', 
     function(event) { SoundCloud.loginFormChanged(event); }, false);
   this._password.addEventListener('input',
     function(event) { SoundCloud.loginFormChanged(event); }, false);
   SoundCloud.loginFormChanged();
 
   // React to keypresses
-  this._email.addEventListener('keypress', 
+  this._username.addEventListener('keypress', 
     function(event) { SoundCloud.loginFormKeypress(event); }, false);
   this._password.addEventListener('keypress',
     function(event) { SoundCloud.loginFormKeypress(event); }, false);
@@ -399,7 +370,7 @@ SoundCloud.showPanel = function() {
 }
 
 SoundCloud.loginFormChanged = function(event) {
-  if (this._email.value.length && this._password.value.length) {
+  if (this._username.value.length && this._password.value.length) {
     this._loginButton.disabled = false;
   } else {
     this._loginButton.disabled = true;
@@ -417,8 +388,7 @@ SoundCloud.loginFormKeypress =
   }
 
 SoundCloud.onLoginClick = function(event) {
-  this._deck.selectedPanel = this._loggingIn;
-  this._service.email = this._email.value;
+  this._service.username = this._username.value;
   this._service.password = this._password.value;
   dump("\n\n\nPASSWORD: \n" + this._password.value + "\n\n");
 
@@ -438,11 +408,6 @@ SoundCloud.loadURI = function(uri, event) {
   this._panel.hidePopup();
 }
 
-SoundCloud.onUnLoad = function() {
-  gMM.removeListener(mmListener);
-}
-
-
 // SoundCloud event handlers for login events
 SoundCloud.onLoggedInStateChanged = function SoundCloud_onLoggedInStateChanged() {
   if (false) {
@@ -450,6 +415,29 @@ SoundCloud.onLoggedInStateChanged = function SoundCloud_onLoggedInStateChanged()
     this._deck.selectedPanel = this._login;
   }
 
+}
+
+SoundCloud.onLoginBegins = function SoundCloud_onLoginBegins() {
+  this._deck.selectedPanel = this._loggingIn;
+  this.setStatusIcon(this.Icons.busy);
+  //this.setStatusTextId('soundcloud.state.logging_in');
+}
+
+SoundCloud.setStatusIcon = function SoundCloud_setStatusIcon(aIcon) {
+  this._statusIcon.setAttribute('src', aIcon);
+}
+
+SoundCloud.setStatusText = function SoundCloud_setStatusText(aText) {
+  this._statusIcon.setAttribute('tooltip', aText);
+}
+
+SoundCloud.setStatusText = function SoundCloud_setStatusText(aId) {
+  this._statusIcon.setStatusText(this._strings.getString(aId));
+}
+
+SoundCloud.onUnLoad = function() {
+  this._service.listeners.remove(this);
+  gMM.removeListener(mmListener);
 }
 
 var curTrackListener = function(e) {

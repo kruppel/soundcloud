@@ -44,7 +44,7 @@ const CONSUMER_SECRET = "YqGENlIGpWPnjQDJ2XCLAur2La9cTLdMYcFfWVIsnvw";
 const CONSUMER_KEY = "eJ2Mqrpr2P4TdO62XXJ3A";
 const SIG_METHOD = "HMAC-SHA1";
 
-var REQUEST_TOKEN = '';
+var OAUTH_TOKEN = '';
 var TOKEN_SECRET = '';
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -57,12 +57,12 @@ var Logins = {
       .getService(Ci.nsILoginManager),
 
   LOGIN_HOSTNAME: 'http://soundcloud.com',
-  LOGIN_FIELD_EMAIL: 'username',
+  LOGIN_FIELD_USERNAME: 'username',
   LOGIN_FIELD_PASSWORD: 'password',
 
   get: function() {
-    // email & password
-    var email = '';
+    // username & password
+    var username = '';
     var password = '';
     // lets ask the login manager
     var logins = this.loginManager.findLogins({}, this.LOGIN_HOSTNAME,
@@ -70,17 +70,17 @@ var Logins = {
     for (var i = 0; i < logins.length; i++) {
       if (i==0) {
         // use the first username & password we find
-        email = logins[i].username;
+        username = logins[i].username;
         password = logins[i].password;
       } else {
         // get rid of the rest
         this.loginManager.removeLogin(logins[i]);
       }
     }
-    return {email: email, password: password};
+    return {username: username, password: password};
   },
 
-  set: function(email, password) {
+  set: function(username, password) {
     var logins = this.loginManager.findLogins({}, this.LOGIN_HOSTNAME,
                                               '', null);
     for (var i=0; i<logins.length; i++) {
@@ -90,8 +90,36 @@ var Logins = {
     var nsLoginInfo = new CC("@mozilla.org/login-manager/loginInfo;1",
       Ci.nsILoginInfo, "init");
     this.loginManager.addLogin(new nsLoginInfo(this.LOGIN_HOSTNAME,
-        '', null, email, password,
-        this.LOGIN_FIELD_EMAIL, this.LOGIN_FIELD_PASSWORD));
+        '', null, username, password,
+        this.LOGIN_FIELD_USERNAME, this.LOGIN_FIELD_PASSWORD));
+  }
+}
+
+function Listeners() {
+  var listeners = [];
+  this.add = function Listeners_add(aListener) {
+    listeners.push(aListener);
+  }
+  this.remove = function Listeners_remove(aListener) {
+    for(;;) {
+      // find our listener in the array
+      let i = listeners.indexOf(aListener);
+      if (i >= 0) {
+        // remove it
+        listeners.splice(i, 1);
+      } else {
+        return;
+      }
+    }
+  }
+  this.each = function Listeners_each(aCallback) {
+    for (var i=0; i<listeners.length; i++) {
+      try {
+        aCallback(listeners[i]);
+      } catch(e) {
+        Cu.reportError(e);
+      }
+    }
   }
 }
 
@@ -109,25 +137,20 @@ function urlencode(obj) {
   return params;
 }
 
+function GET(url, params, onload, onerror) {
+  var xhr = null;
+
+  try {
+
+  } catche(e) {
+    Cu.reportError(e);
+    onerror(xhr);
+  }
+  return xhr;
+}
+
 function POST(url, params, onload, onerror) {
   var xhr = null;
-  /*
-  var accessor = { consumerSecret: CONSUMER_SECRET };
-  var message = { action: url,
-                  method: "POST",
-                  parameters: []
-                };
-
-  message.parameters.push(['oauth_consumer_key', CONSUMER_KEY]);
-  message.parameters.push(['oauth_signature_method', SIG_METHOD]);
-
-  OAuth.setTimestampAndNonce(message);
-  OAuth.SignatureMethod.sign(message, accessor);
-
-  var params = "";
-
-  params = urlencode(message.parameters);
-  */
 
   try {
     xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance();
@@ -153,8 +176,10 @@ function sbSoundCloud() {
   this.wrappedJSObject = this;
   Cu.import("resource://soundcloud/OAuth.jsm");
 
+  this.listeners = new Listeners();
+
   var login = Logins.get();
-  this.email = login.email;
+  this.username = login.username;
   this.password = login.password;
 
   this._nowplaying_url = null;
@@ -248,14 +273,22 @@ sbSoundCloud.prototype.updateServicePaneNodes = function updateSPNodes() {
 
 sbSoundCloud.prototype.shouldAutoLogin =
 function sbSoundCloud_shouldAutoLogin() {
-  return this.autoLogin && this.email && this.password;
+  return this.autoLogin && this.username && this.password;
 }
 
 sbSoundCloud.prototype.login =
 function sbSoundCloud_login(clearSession) {
   var self = this;
-  self.requestToken(function success() { dump("Token yes!"); },
-                    function failure() { dump("Token fail!"); });
+  self.requestToken(function req_success() {
+                      self.authorize(function auth_success() {
+                                       dump("Authorized!");
+                                     },
+                                     function auth_failure() {
+                                       dump("Token fail!");
+                                     });
+                      }, function req_failure() {
+                           dump("Request token fail!");
+                         });
   return;
 }
 
@@ -287,6 +320,11 @@ function sbSoundCloud_getBaseString(message) {
 sbSoundCloud.prototype.requestToken =
 function sbSoundCloud_requestToken(success, failure) {
   var self = this;
+  self.listeners.each(function(l) { l.onLoginBegins(); });
+
+  OAUTH_TOKEN = "";
+  TOKEN_SECRET = "";
+
   var url = SOCL_URL + "/oauth/request_token";
 
   var accessor = { consumerSecret: CONSUMER_SECRET };
@@ -303,31 +341,13 @@ function sbSoundCloud_requestToken(success, failure) {
 
   var params = urlencode(message.parameters);
 
-/*
-  var params = "";
-
-  for (let p in message.parameters) {
-    if (p == 0) {
-      params += message.parameters[p][0] + "=" + message.parameters[p][1];
-    } else {
-      params += "&" + message.parameters[p][0] + "=" + message.parameters[p][1];
-    }
-  }
-*/
-
-  var xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance();
-  xhr.mozBackgroundRequest = true;
-  xhr.open('POST', url, true);
-
-  xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-  xhr.setRequestHeader("Content-length", params.length);
-  xhr.setRequestHeader("Connection", "close");
-
-  xhr.onreadystatechange = function() {
-    if (xhr.readyState == 4) {
-      if (xhr.status == 200) {
+  self._reqtoken_xhr = POST(url, params,
+      function(xhr) {
+        /* success function
+          - Need to make sure request is valid: "Invalid OAuth Request"
+        */
         let response = xhr.responseText;
-        REQUEST_TOKEN = response.split('&')[0].split('=')[1];
+        OAUTH_TOKEN = response.split('&')[0].split('=')[1];
         TOKEN_SECRET = response.split('&')[1].split('=')[1];
 
         self._retry_count = 0;
@@ -335,53 +355,137 @@ function sbSoundCloud_requestToken(success, failure) {
         // Note that authorize is spelled the _correct_ way
         self.authorize(function success() { dump("Authorized!"); },
                        function failure() { dump("Token fail!"); });
-
-      } else if (++self._retry_count < 20) {
-        self.requestToken(success, failure)
-      } else {
-        dump("\nStatus is " + xhr.status + "\n");
+      },
+      function(xhr) {
+        /* failure function */
         self._retry_count = 0;
-      }
-    }
-  }
-  xhr.send(params);
+        dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
+      });
 }
 
 sbSoundCloud.prototype.authorize =
 function sbSoundCloud_authorize(success, failure) {
   var self = this;
-  Logins.set(self.email, self.password);
+  Logins.set(self.username, self.password);
 
-  var url = SOCL_URL + "/oauth/authorize?oauth_token=" + REQUEST_TOKEN;
+  var url = SOCL_URL + "/oauth/authorize?oauth_token=" + OAUTH_TOKEN + "&display=popup";
 
   var window = Cc["@mozilla.org/appshell/window-mediator;1"]
                  .getService(Ci.nsIWindowMediator)
                  .getMostRecentWindow('Songbird:Main');
   var gBrowser = window.gBrowser;
-  var authTab = gBrowser.loadOneTab(url, null, null, null, false);
-/*
-  var mp = [];
-  mp.push(['oauth_token', REQUEST_TOKEN]);
 
-  var params = urlencode(mp);
-  dump('authorize params: ' + params);
+  function removeAuthListeners() {
+    gBrowser.removeEventListeners("DOMContentLoaded",
+                                  self._authListener, false);
+    gBrowser.removeEventListener("unload", removeAuthListeners, false);
+    authTab.removeEventListener("TabClose",
+                                self._authTabCloseListener, false);
+  }
 
-  var xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance();
-  xhr.mozBackgroundRequest = true;
-  xhr.open('GET', url, true);
+  self._authListener = function(e) {
+    if (gBrowser.getBrowserForDocument(e.target) !=
+        gBrowser.getBrowserForTab(authTab)) {
+      return;
+    }
+    var doc = gBrowser.contentDocument;
+    var loggedIn = doc.getElementsByTagName("h1")[0].innerHTML;
+    if (loggedIn == "You're now connected") {
+      dump("\n\n\n\nCONNECTED\n\n\n\n");
+      // XXX - TO BE MADE MORE GENERIC
 
-  xhr.onreadystatechange = function() {
-    if (xhr.readyState == 4) {
-      if (xhr.status == 200) {
-        let content = xhr.responseText;
-
-      } else {
-        failure;
-      }
+      self.accessToken(function success() { dump("Access yes!"); },
+        function failure() { dump("Access fail!"); });
+    } else {
+      /* Login failed due to incorrect username || password */
     }
   }
-  xhr.send(params);
+
+  self.accessToken = function(success, failure) {
+    var url = SOCL_URL + "/oauth/access_token";
+
+    var accessor = { consumerSecret: CONSUMER_SECRET };
+    var message = { action: url,
+                    method: "POST",
+                    parameters: []
+                  };
+
+    message.parameters.push(['oauth_consumer_key', CONSUMER_KEY]);
+    message.parameters.push(['oauth_nonce', OAuth.nonce(6)]);
+    message.parameters.push(['oauth_signature_method', SIG_METHOD]);
+    message.parameters.push(['oauth_timestamp', OAuth.timestamp()]);
+    message.parameters.push(['oauth_token', OAUTH_TOKEN]);
+    message.parameters.push(['oauth_signature', self.sign(message)]);
+
+    var params = urlencode(message.parameters);
+
+    self._reqtoken_xhr = POST(url, params,
+        function(xhr) {
+          /* success function
+            - Need to make sure request is valid: "Invalid OAuth Request"
+          */
+          let response = xhr.responseText;
+          OAUTH_TOKEN = response.split('&')[0].split('=')[1];
+          TOKEN_SECRET = response.split('&')[1].split('=')[1];
+
+          self._retry_count = 0;
+
+          // Note that authorize is spelled the _correct_ way
+          //self.authorize(function success() { dump("Authorized!"); },
+          //               function failure() { dump("Token fail!"); });
+        },
+        function(xhr) {
+          /* failure function */
+          self._retry_count = 0;
+          dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
+        });
+/*
+      var xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance();
+      xhr.mozBackgroundRequest = true;
+      xhr.open('POST', url, true);
+
+      xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+      xhr.setRequestHeader("Content-length", params.length);
+      xhr.setRequestHeader("Connection", "close");
+
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4) {
+          if (xhr.status == 200) {
+            let response = xhr.responseText;
+            OAUTH_TOKEN = response.split('&')[0].split('=')[1];
+            TOKEN_SECRET = response.split('&')[1].split('=')[1];
+
+            self._retry_count = 0;
+
+            dump("\n\n\n\n" + xhr.responseText + "\n\n\n\n");
+
+          } else if (++self._retry_count < 20) {
+            self.accessToken(function success() { dump("Token yes!"); },
+                    function failure() { dump("Token fail!"); });
+          } else {
+            dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
+            self._retry_count = 0;
+          }
+        }
+      }
+    xhr.send(params);
 */
+  }
+ 
+  gBrowser.addEventListener("DOMContentLoaded", self._authListener, false);
+  gBrowser.addEventListener("unload", removeAuthListeners, false);
+
+  var authTab = gBrowser.loadOneTab(url, null, null, null, false);
+
+  self._authTabCloseListener = function(e) {
+    removeAuthListeners();
+    //self.listeners.each(function(listener) {
+    //  listener.onLoginFailed();
+    //});
+
+  authTab.addEventListener("TabClose", self._authTabCloseListener, false);
+
+  }
 }
 
 sbSoundCloud.prototype.shutdown = function sbSoundCloud_shutdown() {
