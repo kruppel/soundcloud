@@ -19,7 +19,7 @@ if (typeof(gMetrics) == "undefined")
     createInstance(Ci.sbIMetrics);
 
 if (typeof(SOCL_FAVICON_PATH) == "undefined")
-  const SOCL_FAVICON_PATH = "chrome://soundcloud/skin/soundcloud_favicon.png";
+  const SOCL_FAVICON_PATH = "chrome://soundcloud/skin/sc.png";
 
 const soundcloudTempLibGuid = "extensions.soundcloud.templib.guid";
 
@@ -170,7 +170,7 @@ SoundCloud.URL_PASSWORD = 'https://soundcloud.com/login/forgot';
 SoundCloud.Icons = {
   busy: 'chrome://soundcloud/skin/busy.png',
   disabled: 'chrome://soundcloud/skin/disabled.png',
-  logged_in: 'chrome://soundcloud/skin/soundcloud_favicon.png'
+  logged_in: 'chrome://soundcloud/skin/sc.png'
 };
 
 SoundCloud.onLoad = function() {
@@ -213,8 +213,7 @@ SoundCloud.onLoad = function() {
   this._loggingIn = this._getElement(this._panelBinding, 'loginProgressBox');
   this._cancelButton = this._getElement(this._panelBinding, 'cancelButton');
 
-  this._signup = this._getElement(this._panelBinding, 'signup');
-  this._signup.textContent = this._strings.getString('soundcloud.signup.label');
+  this._signupButton = this._getElement(this._panelBinding, 'signupButton');
 
   this._forgotpass = this._getElement(this._panelBinding, 'forgotpass');
   this._forgotpass.textContent =
@@ -244,7 +243,7 @@ SoundCloud.onLoad = function() {
     function(event) { SoundCloud.onLogoutClick(event); }, false);
 
   // Wire up the signup link
-  this._signup.addEventListener('click',
+  this._signupButton.addEventListener('click',
     function(event) { SoundCloud.loadURI(SoundCloud.URL_SIGNUP, event); }, false);
 
   this._forgotpass.addEventListener('click',

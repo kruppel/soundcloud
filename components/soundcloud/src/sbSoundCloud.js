@@ -251,7 +251,7 @@ function sbSoundCloud() {
     this._servicePaneNode.url = "chrome://soundcloud/content/directory.xul";
     this._servicePaneNode.id = "SB:RadioStations:SoundCloud";
     this._servicePaneNode.name = "SoundCloud";
-    this._servicePaneNode.image = 'chrome://soundcloud/skin/soundcloud_favicon.png';
+    this._servicePaneNode.image = 'chrome://soundcloud/skin/sc.png';
     this._servicePaneNode.editable = false;
     this._servicePaneNode.hidden = false;
     radioFolder.appendChild(this._servicePaneNode);

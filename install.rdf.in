@@ -52,7 +52,7 @@
     <em:creator>Kurt Ruppel (kurt@songbirdnest.com)</em:creator>
     <em:description>Play SoundCloud in Songbird.</em:description>
 
-    <em:iconURL>chrome://soundcloud/skin/soundcloud-favicon.png</em:iconURL>
+    <em:iconURL>chrome://soundcloud/skin/sc.png</em:iconURL>
 
     <songbird:displayPane>
       <Description>

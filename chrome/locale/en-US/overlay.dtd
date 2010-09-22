@@ -7,5 +7,7 @@
 <!ENTITY soundcloud.cancel.button "Cancel">
 <!ENTITY soundcloud.profile.caption "Profile">
 <!ENTITY soundcloud.profile.logout "Log out">
-<!ENTITY soundcloud.signup.label "Sign up for SoundCloud">
+<!ENTITY soundcloud.signup.label "Sign up for a new account">
+<!ENTITY soundcloud.signup.button.label "Create New Account">
+<!ENTITY soundcloud.newaccount.caption "Create New Account">
 <!ENTITY soundcloud.forgotpass.label "Forgot password?">
