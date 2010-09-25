@@ -141,7 +141,13 @@ function GET(url, params, onload, onerror) {
   var xhr = null;
 
   try {
-
+    xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance();
+    xhr.mozBackgroundRequest = true;
+    xhr.onload = function(event) { onload(xhr); }
+    xhr.onerror = function(event) { onerror(xhr); }
+    xhr.open('GET', url, false);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.send(params);
   } catch(e) {
     Cu.reportError(e);
     onerror(xhr);
@@ -318,6 +324,26 @@ function sbSoundCloud_getBaseString(message) {
                         + '&' + encodeURIComponent(s);
 }
 
+sbSoundCloud.prototype.getParameters =
+function sbSoundCloud_getParameters(url, mtype) {
+  var self = this;
+  var accessor = { consumerSecret: CONSUMER_SECRET };
+  var message = { action: url,
+                  method: mtype,
+                  parameters: []
+                };
+
+  message.parameters.push(['oauth_consumer_key', CONSUMER_KEY]);
+  message.parameters.push(['oauth_nonce', OAuth.nonce(6)]);
+  message.parameters.push(['oauth_signature_method', SIG_METHOD]);
+  message.parameters.push(['oauth_timestamp', OAuth.timestamp()]);
+  message.parameters.push(['oauth_token', OAUTH_TOKEN]);
+
+  message.parameters.push(['oauth_signature', self.sign(message)]);
+
+  return urlencode(message.parameters);
+}
+
 sbSoundCloud.prototype.requestToken =
 function sbSoundCloud_requestToken(success, failure) {
   var self = this;
@@ -328,19 +354,7 @@ function sbSoundCloud_requestToken(success, failure) {
 
   var url = SOCL_URL + "/oauth/request_token";
 
-  var accessor = { consumerSecret: CONSUMER_SECRET };
-  var message = { action: url,
-                  method: 'POST',
-                  parameters: []
-                };
-
-  message.parameters.push(['oauth_consumer_key', CONSUMER_KEY]);
-  message.parameters.push(['oauth_nonce', OAuth.nonce(6)]);
-  message.parameters.push(['oauth_signature_method', SIG_METHOD]);
-  message.parameters.push(['oauth_timestamp', OAuth.timestamp()]);
-  message.parameters.push(['oauth_signature', self.sign(message)]);
-
-  var params = urlencode(message.parameters);
+  var params = self.getParameters(url, 'POST');
 
   self._reqtoken_xhr = POST(url, params,
       function(xhr) {
@@ -348,14 +362,24 @@ function sbSoundCloud_requestToken(success, failure) {
           - Need to make sure request is valid: "Invalid OAuth Request"
         */
         let response = xhr.responseText;
-        OAUTH_TOKEN = response.split('&')[0].split('=')[1];
-        TOKEN_SECRET = response.split('&')[1].split('=')[1];
+        if (response == "Invalid OAuth Request") {
+          if (self._retry_count < 5) {
+            dump("OAuth Request #" + ++self._retry_count);
+            self.requestToken(success, failure);
+          } else {
+            self._retry_count = 0;
+            Cu.reportError(response);
+          }
+        } else {
+          OAUTH_TOKEN = response.split('&')[0].split('=')[1];
+          TOKEN_SECRET = response.split('&')[1].split('=')[1];
 
-        self._retry_count = 0;
+          self._retry_count = 0;
 
-        // Note that authorize is spelled the _correct_ way
-        self.authorize(function success() { dump("Authorized!"); },
-                       function failure() { dump("Token fail!"); });
+          // Note that authorize is spelled the _correct_ way
+          self.authorize(function success() { dump("Authorized!"); },
+                         function failure() { dump("Token fail!"); });
+        }
       },
       function(xhr) {
         /* failure function */
@@ -405,26 +429,12 @@ function sbSoundCloud_authorize(success, failure) {
   self.accessToken = function(success, failure) {
     var url = SOCL_URL + "/oauth/access_token";
 
-    var accessor = { consumerSecret: CONSUMER_SECRET };
-    var message = { action: url,
-                    method: 'POST',
-                    parameters: []
-                  };
+    var params = self.getParameters(url, 'POST');
 
-    message.parameters.push(['oauth_consumer_key', CONSUMER_KEY]);
-    message.parameters.push(['oauth_nonce', OAuth.nonce(6)]);
-    message.parameters.push(['oauth_signature_method', SIG_METHOD]);
-    message.parameters.push(['oauth_timestamp', OAuth.timestamp()]);
-    message.parameters.push(['oauth_token', OAUTH_TOKEN]);
-    message.parameters.push(['oauth_signature', self.sign(message)]);
-
-    var params = urlencode(message.parameters);
+    dump(params);
 
     self._accesstoken_xhr = POST(url, params,
         function(xhr) {
-          /* success function
-            - Need to make sure request is valid: "Invalid OAuth Request"
-          */
           let response = xhr.responseText;
           OAUTH_TOKEN = response.split('&')[0].split('=')[1];
           TOKEN_SECRET = response.split('&')[1].split('=')[1];
@@ -432,9 +442,8 @@ function sbSoundCloud_authorize(success, failure) {
           self._retry_count = 0;
 
           self.listeners.each(function(l) { l.onLoginSucceeded(); });
-          // Note that authorize is spelled the _correct_ way
-          //self.authorize(function success() { dump("Authorized!"); },
-          //               function failure() { dump("Token fail!"); });
+          self.apiCall(function success() { dump("Access yes!"); },
+                       function failure() { dump("My profile no!"); });
         },
         function(xhr) {
           /* failure function */
@@ -457,6 +466,25 @@ function sbSoundCloud_authorize(success, failure) {
   authTab.addEventListener("TabClose", self._authTabCloseListener, false);
 
   }
+}
+
+sbSoundCloud.prototype.apiCall =
+function sbSoundCloud_apiCall(success, falure) {
+  var self = this;
+
+  var url = SOCL_URL + "/oauth/test_request";
+
+  var params = self.getParameters(url, 'GET');
+
+  self._api_xhr = GET(url, params,
+      function(xhr) {
+        let response = xhr.responseText;
+        dump("\n\n" + response + "\n\n");
+      },
+      function(xhr) {
+        /* failure function */
+        dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
+      });
 }
 
 sbSoundCloud.prototype.shutdown = function sbSoundCloud_shutdown() {
