@@ -39,7 +39,7 @@ const NS = 'http://www.songbirdnest.com/lastfm#';
 const SB_NS = 'http://songbirdnest.com/data1.0#';
 const SP_NS = 'http://songbirdnest.com/rdf/servicepane#';
 
-const SOCL_URL = 'http://api.soundcloud.com';
+const SOCL_URL = 'https://api.soundcloud.com';
 const CONSUMER_SECRET = "YqGENlIGpWPnjQDJ2XCLAur2La9cTLdMYcFfWVIsnvw";
 const CONSUMER_KEY = "eJ2Mqrpr2P4TdO62XXJ3A";
 const SIG_METHOD = "HMAC-SHA1";
@@ -145,9 +145,10 @@ function GET(url, params, onload, onerror) {
     xhr.mozBackgroundRequest = true;
     xhr.onload = function(event) { onload(xhr); }
     xhr.onerror = function(event) { onerror(xhr); }
-    xhr.open('GET', url, false);
+    xhr.open('GET', url + "?" + params, true);
+    xhr.setRequestHeader('Authorization', 'OAuth');
     xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.send(params);
+    xhr.send();
   } catch(e) {
     Cu.reportError(e);
     onerror(xhr);
@@ -300,9 +301,10 @@ function sbSoundCloud_login(clearSession) {
 }
 
 sbSoundCloud.prototype.sign = function sbSoundCloud_sign(message) {
-  var baseString = this.getBaseString(message); 
-  var signature = b64_hmac_sha1(CONSUMER_SECRET + "&" + TOKEN_SECRET, 
-                                baseString) + "=";
+  var baseString = this.getBaseString(message);
+  var signature = b64_hmac_sha1(encodeURIComponent(CONSUMER_SECRET)
+                                + "&" + encodeURIComponent(TOKEN_SECRET), 
+                                baseString);
   return signature;
 }
 
@@ -334,10 +336,12 @@ function sbSoundCloud_getParameters(url, mtype) {
                 };
 
   message.parameters.push(['oauth_consumer_key', CONSUMER_KEY]);
-  message.parameters.push(['oauth_nonce', OAuth.nonce(6)]);
+  message.parameters.push(['oauth_nonce', OAuth.nonce(11)]);
   message.parameters.push(['oauth_signature_method', SIG_METHOD]);
   message.parameters.push(['oauth_timestamp', OAuth.timestamp()]);
-  message.parameters.push(['oauth_token', OAUTH_TOKEN]);
+  if (OAUTH_TOKEN)
+    message.parameters.push(['oauth_token', OAUTH_TOKEN]);
+  message.parameters.push(['oauth_version', "1.0"]);
 
   message.parameters.push(['oauth_signature', self.sign(message)]);
 
@@ -374,6 +378,7 @@ function sbSoundCloud_requestToken(success, failure) {
           OAUTH_TOKEN = response.split('&')[0].split('=')[1];
           TOKEN_SECRET = response.split('&')[1].split('=')[1];
 
+          dump("\n" + TOKEN_SECRET + "\n");
           self._retry_count = 0;
 
           // Note that authorize is spelled the _correct_ way
@@ -393,7 +398,9 @@ function sbSoundCloud_authorize(success, failure) {
   var self = this;
   Logins.set(self.username, self.password);
 
-  var url = SOCL_URL + "/oauth/authorize?oauth_token=" + OAUTH_TOKEN + "&display=popup";
+  var url = SOCL_URL + "/oauth/authorize?oauth_token="
+                     + OAUTH_TOKEN + "&display=popup&consumer_key="
+                     + CONSUMER_KEY;
 
   var window = Cc["@mozilla.org/appshell/window-mediator;1"]
                  .getService(Ci.nsIWindowMediator)
@@ -439,11 +446,15 @@ function sbSoundCloud_authorize(success, failure) {
           OAUTH_TOKEN = response.split('&')[0].split('=')[1];
           TOKEN_SECRET = response.split('&')[1].split('=')[1];
 
+          dump("\n\nRESPONSE\n" + response);
+          dump("\n\nOAUTH_TOKEN\n" + OAUTH_TOKEN + "\n\n");
+          dump("\n\nTOKEN_SECRET\n" + TOKEN_SECRET + "\n\n");
+
           self._retry_count = 0;
 
           self.listeners.each(function(l) { l.onLoginSucceeded(); });
-          self.apiCall(function success() { dump("Access yes!"); },
-                       function failure() { dump("My profile no!"); });
+          window.setTimeout(function() { self.apiCall(function success() { dump("Access yes!"); },
+                       function failure() { dump("My profile no!"); }); }, 10000);
         },
         function(xhr) {
           /* failure function */
@@ -472,14 +483,16 @@ sbSoundCloud.prototype.apiCall =
 function sbSoundCloud_apiCall(success, falure) {
   var self = this;
 
-  var url = SOCL_URL + "/oauth/test_request";
+  var url = SOCL_URL + "/me.json";
 
   var params = self.getParameters(url, 'GET');
+
+  dump("\n" + params + "\n");
 
   self._api_xhr = GET(url, params,
       function(xhr) {
         let response = xhr.responseText;
-        dump("\n\n" + response + "\n\n");
+        dump("\n\nRESPONSE-ME\n" + response + "\n\n");
       },
       function(xhr) {
         /* failure function */
