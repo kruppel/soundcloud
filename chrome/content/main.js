@@ -177,8 +177,8 @@ SoundCloud.onLoad = function() {
   // initialization code
   this._strings = document.getElementById("soundcloud-strings");
 
-  this._service = Components.classes['@songbirdnest.com/soundcloud;1'].
-    getService().wrappedJSObject;
+  this._service = Components.classes['@songbirdnest.com/soundcloud;1']
+                                    .getService().wrappedJSObject;
   this._service.listeners.add(this);
 
 /*
@@ -424,11 +424,6 @@ SoundCloud.onLoginBegins = function SoundCloud_onLoginBegins() {
   this._deck.selectedPanel = this._loggingIn;
   this.setStatusIcon(this.Icons.busy);
   //this.setStatusTextId('soundcloud.state.logging_in');
-}
-
-SoundCloud.onLoginSucceeded = function SoundCloud_onLoginSucceeded() {
-  this._deck.selectedPanel = this._profile;
-  this.setStatusIcon(this.Icons.logged_in);
 }
 
 SoundCloud.updateStatus = function SoundCloud_updateStatus() {

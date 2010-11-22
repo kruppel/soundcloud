@@ -7,7 +7,4 @@ include $(DEPTH)/build/autodefs.mk
 
 IS_EXTENSION = 1
 
-SUBDIRS = soundcloud \
-          $(NULL)
-
 include $(topsrcdir)/build/rules.mk

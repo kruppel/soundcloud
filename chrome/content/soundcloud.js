@@ -1,6 +1,51 @@
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cr = Components.results;
+var Cu = Components.utils;
+
+Cu.import("resource://app/jsmodules/DOMUtils.jsm");
+
 const soundcloudURL = "http://api.soundcloud.com/tracks.json?order=hotness";
 
 var SoundCloud = {
+  _open: function SoundCloud_open() {
+    this._service = Cc['@songbirdnest.com/soundcloud;1']
+                      .getService().wrappedJSObject;
+    this._browser = document.getElementById("soundcloud_auth_browser");
+    this._browser.loadURI(this._service.soundcloud_url
+                          + '/oauth/authorize?oauth_token='
+                          + this._service.oauth_token
+                          + '&display=popup');
+    var self = this;
+    this._domEventListenerSet = new DOMEventListenerSet();
+    this._domEventListenerSet.add(window,
+                                  "DOMContentLoaded",
+                                  function(aEvent) {
+                                    self._authListener(aEvent);
+                                  },
+                                  true,
+                                  false);
+  },
+
+  _authListener: function SoundCloud_authListener(aEvent) {
+    var doc = this._browser.contentDocument;
+    var state = doc.getElementsByTagName("h1")[0].innerHTML;
+    if (state == "You're now connected") {
+      this._service.loggedIn = true;
+      window.close();
+    } else if (state == "Access Denied") {
+      window.close();
+    }
+  },
+
+  _close: function SoundCloud_close() {
+    this._service.authCallback();
+
+    if (this._domEventListenerSet) {
+      this._domEventListenerSet.removeAll();
+      this._domEventListenerSet = null;
+    }
+  },
         
   getSearchURL : function(event) {
     // Reset the library
