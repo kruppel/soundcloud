@@ -444,7 +444,8 @@ function sbSoundCloud_accessToken(success, failure) {
         TOKEN_SECRET = response.split('&')[1].split('=')[1];
 
         self.listeners.each(function(l) { l.onLoggedInStateChanged(); });
-        self.apiCall(function success() { dump("Access yes!"); },
+        self.apiCall('test',
+                     function success() { dump("Access yes!"); },
                      function failure() { dump("My profile no!"); });
       },
       function(xhr) {
@@ -453,16 +454,27 @@ function sbSoundCloud_accessToken(success, failure) {
 }
 
 sbSoundCloud.prototype.apiCall =
-function sbSoundCloud_apiCall(success, failure) {
+function sbSoundCloud_apiCall(type, success, failure) {
   var self = this;
+  var url = SOCL_URL;
 
-  var url = SOCL_URL + "/me.json";
-  var params = self.getParameters(url, 'GET');
+  switch (type) {
+    case "test":
+      url += "/oauth/test_request";
+      var params = self.getParameters(url, 'GET');
+      break;
+    case "me":
+      url += "/me.json";
+      var params = self.getParameters(url, 'GET');
+      break;
+    default:
+      break;
+  }
 
   self._api_xhr = GET(url, params,
       function(xhr) {
         let response = xhr.responseText;
-        dump("\n\nRESPONSE-ME\n" + response + "\n\n");
+        dump("\n\nURL: " + url + "\nRESPONSE\n" + response + "\n\n");
         var prefsService = Cc['@mozilla.org/preferences-service;1']
                              .getService(Ci.nsIPrefBranch);
         prefsService.setCharPref("extensions.soundcloud." +
@@ -471,7 +483,6 @@ function sbSoundCloud_apiCall(success, failure) {
                                  OAUTH_TOKEN);
       },
       function(xhr) {
-        /* failure function */
         dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
       });
 }

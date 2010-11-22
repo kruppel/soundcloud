@@ -36,7 +36,7 @@
         onload="SoundCloud._open();"
         onunload="SoundCloud._close();"
         minwidth="420"
-        minheight="650"
+        minheight="630"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 
   <browser id="soundcloud_auth_browser" type="content" flex="1" />
