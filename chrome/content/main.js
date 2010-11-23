@@ -232,6 +232,7 @@ SoundCloud.onLoad = function() {
   this._loginAutoLogin = this._getElement(this._panelBinding,
                                           'loginAutoLogin');
   this._loginButton = this._getElement(this._panelBinding, 'loginButton');
+  this._logoutButton = this._getElement(this._panelBinding, 'logoutButton');
   this._loginError = this._getElement(this._panelBinding, 'loginError');
   this._loggingIn = this._getElement(this._panelBinding, 'loginProgressBox');
   this._cancelButton = this._getElement(this._panelBinding, 'cancelButton');
@@ -242,10 +243,9 @@ SoundCloud.onLoad = function() {
   this._forgotpass.textContent =
          this._strings.getString('soundcloud.forgotpass.label');
 
-  this._profile = this._getElement(this._panelBinding, 'profile');
-  this._logoutButton = this._getElement(this._panelBinding, 'logoutButton');
+  this._profile = this._getElement(this._panelBinding, 'profileBox');
   this._image = this._getElement(this._panelBinding, 'image');
-
+  this._realname = this._getElement(this._panelBinding, 'realname');
   this._profileAutoLogin = this._getElement(this._panelBinding,
                                             'profileAutoLogin');
 
@@ -412,7 +412,6 @@ SoundCloud.loginFormKeypress = function SoundCloud_loginFormKeypress(event) {
   }
 }
 
-/*
 SoundCloud.onProfileUpdated = function SoundCloud_onProfileUpdated() {
   var avatar = 'chrome://soundcloud/skin/default-avatar.png';
   if (this._service.avatar) {
@@ -422,10 +421,9 @@ SoundCloud.onProfileUpdated = function SoundCloud_onProfileUpdated() {
   if (this._service.realname && this._service.realname.length) {
     this._realname.textContent = this._service.realname;
   } else {
-    this._realName.textContent = this._service.realname;
+    this._realName.textContent = this._username;
   }
 }
-*/
 
 SoundCloud.onLoginClick = function SoundCloud_onLoginClick(event) {
   this._service.username = this._username.value;
