@@ -196,8 +196,9 @@ function sbSoundCloud() {
     this._nowplaying_url = val;
   });
 
-  var prefsService = Cc['@mozilla.org/preferences-service;1']
-      .getService(Ci.nsIPrefBranch);
+  this._prefs = Cc['@mozilla.org/preferences-service;1']
+                  .getService(Ci.nsIPrefService)
+                  .getBranch("extensions.soundcloud.");
 
   this._retry_count = 0;
 
@@ -206,9 +207,7 @@ function sbSoundCloud() {
   });
 
   this.__defineGetter__('oauth_token', function() {
-    return prefsService.getCharPref("extensions.soundcloud." +
-                                    this._username +
-                                    ".oauth_token");
+    return this._prefs.getCharPref(this.username + ".oauth_token");
   });
 
   /*
@@ -383,12 +382,8 @@ function sbSoundCloud_requestToken(success, failure) {
           OAUTH_TOKEN = response.split('&')[0].split('=')[1];
           TOKEN_SECRET = response.split('&')[1].split('=')[1];
 
-          var prefsService = Cc['@mozilla.org/preferences-service;1']
-                               .getService(Ci.nsIPrefBranch);
-          prefsService.setCharPref("extensions.soundcloud." +
-                                   this.username +
-                                   ".oauth_token",
-                                   OAUTH_TOKEN);
+          self._prefs.setCharPref(self.username + ".oauth_token",
+                                  OAUTH_TOKEN);
 
           self._retry_count = 0;
           self.authorize(function success() { dump("Authorized!"); },
@@ -435,13 +430,10 @@ function sbSoundCloud_accessToken(success, failure) {
       function(xhr) {
         let response = xhr.responseText;
         OAUTH_TOKEN = response.split('&')[0].split('=')[1];
-        var prefsService = Cc['@mozilla.org/preferences-service;1']
-                             .getService(Ci.nsIPrefBranch);
-        prefsService.setCharPref("extensions.soundcloud." +
-                                 this.username +
-                                 ".oauth_token",
-                                 OAUTH_TOKEN);
         TOKEN_SECRET = response.split('&')[1].split('=')[1];
+
+        self._prefs.setCharPref(self.username + ".oauth_token",
+                                OAUTH_TOKEN);
 
         self.listeners.each(function(l) { l.onLoggedInStateChanged(); });
         self.apiCall('test',
@@ -475,12 +467,9 @@ function sbSoundCloud_apiCall(type, success, failure) {
       function(xhr) {
         let response = xhr.responseText;
         dump("\n\nURL: " + url + "\nRESPONSE\n" + response + "\n\n");
-        var prefsService = Cc['@mozilla.org/preferences-service;1']
-                             .getService(Ci.nsIPrefBranch);
-        prefsService.setCharPref("extensions.soundcloud." +
-                                 this.username +
-                                 ".oauth_token",
-                                 OAUTH_TOKEN);
+        self._prefs.setCharPref(self.username + ".oauth_token",
+                                OAUTH_TOKEN);
+
       },
       function(xhr) {
         dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
