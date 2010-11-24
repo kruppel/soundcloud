@@ -22,17 +22,6 @@
                   src="chrome://soundcloud/locale/overlay.properties"/>
   </stringbundleset>
 
-  <script type="application/x-javascript" 
-          src="chrome://songbird/content/scripts/songbirdInterfaces.js"/>
-  <script type="application/x-javascript" 
-          src="chrome://songbird/content/scripts/windowUtils.js"/>
-  <script type="application/x-javascript" 
-          src="chrome://songbird/content/scripts/browserUtilities.js"/>
-
-  <script type="application/javascript" src="radioProperties.js"/>
-  <script type="application/javascript" src="soundcloud.js"/>
-  <script type="application/javascript" src="directory.js"/>
-
   <vbox id="soundcloud-box">
     <hbox flex="1" id="search-box" style="height:60px;background-image:url(chrome://soundcloud/skin/bg-header-soundcloud.png);">
       <hbox align="center">
@@ -63,4 +52,16 @@
                persist="column-list column-widths"
                hidecolumnpicker="true"
                editable="false" />
+
+  <script type="application/javascript" 
+          src="chrome://songbird/content/scripts/songbirdInterfaces.js"/>
+  <script type="application/javascript" 
+          src="chrome://songbird/content/scripts/windowUtils.js"/>
+  <script type="application/javascript" 
+          src="chrome://songbird/content/scripts/browserUtilities.js"/>
+
+  <script type="application/javascript" src="radioProperties.js"/>
+  <script type="application/javascript" src="soundcloud.js"/>
+  <script type="application/javascript" src="directory.js"/>
+
 </page>

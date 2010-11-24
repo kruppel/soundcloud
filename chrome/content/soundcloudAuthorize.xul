@@ -36,10 +36,17 @@
         onload="SoundCloud._open();"
         onunload="SoundCloud._close();"
         minwidth="420"
-        minheight="675"
+        minheight="670"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 
-  <browser id="soundcloud_auth_browser" type="content" flex="1" />
+  <deck id="soundcloud_auth_deck" flex="1">
+    <vbox id="soundcloud_auth_loading" pack="center" flex="1" style="background-color: #111111;">
+      <hbox pack="center">
+        <image src="chrome://soundcloud/skin/throbber-cloud.gif" width="65" height="42"/>
+      </hbox>
+    </vbox>
+    <browser id="soundcloud_auth_browser" type="content" flex="1" />
+  </deck>
 
   <script type="application/x-javascript"
           src="chrome://soundcloud/content/soundcloud.js"/>

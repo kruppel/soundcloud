@@ -26,12 +26,13 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-if (typeof(Cc) == "undefined")
-  var Cc = Components.classes;
-if (typeof(Ci) == "undefined")
-  var Ci = Components.interfaces;
-if (typeof(Cu) == "undefined")
-  var Cu = Components.utils;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
+
+Cu.import("resource://app/components/kPlaylistCommands.jsm");
+Cu.import("resource://app/jsmodules/sbProperties.jsm");
+Cu.import("resource://app/jsmodules/sbLibraryUtils.jsm");
 
 if (typeof(songbirdMainWindow) == "undefined")
   var songbirdMainWindow = Cc["@mozilla.org/appshell/window-mediator;1"].
@@ -50,24 +51,6 @@ if (typeof(ioService) == "undefined")
 if (typeof(gMetrics) == "undefined")
   var gMetrics = Cc["@songbirdnest.com/Songbird/Metrics;1"].
     createInstance(Ci.sbIMetrics);
-
-if (typeof(kPlaylistCommands) == "undefined") {
-  Cu.import("resource://app/components/kPlaylistCommands.jsm");
-  if (!kPlaylistCommands)
-    throw new Error("Import of kPlaylistCommands module failed!");
-}
-
-if (typeof(SBProperties) == "undefined") {
-  Cu.import("resource://app/jsmodules/sbProperties.jsm");
-  if (!SBProperties)
-    throw new Error("Import of sbProperties module failed");
-}
-
-if (typeof(LibraryUtils) == "undefined") {
-  Cu.import("resource://app/jsmodules/sbLibraryUtils.jsm");
-  if (!LibraryUtils)
-    throw new Error("Import of sbLibraryUtils module failed");
-}
 
 const soundcloudTempLibGuid = "extensions.soundcloud.templib.guid";
 const soundcloudLibraryGuid = "extensions.soundcloud.library.guid";

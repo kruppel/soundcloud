@@ -4,7 +4,9 @@ var Cr = Components.results;
 var Cu = Components.utils;
 
 Cu.import("resource://app/jsmodules/DOMUtils.jsm");
+Cu.import("resource://app/jsmodules/WindowUtils.jsm");
 
+const CONSUMER_KEY = "eJ2Mqrpr2P4TdO62XXJ3A";
 const soundcloudURL = "http://api.soundcloud.com/tracks.json?order=hotness";
 
 var SoundCloud = {
@@ -29,6 +31,14 @@ var SoundCloud = {
 
   _authListener: function SoundCloud_authListener(aEvent) {
     var doc = this._browser.contentDocument;
+    var deck = document.getElementById("soundcloud_auth_deck");
+
+    if (deck.selectedPanel != this._browser) {
+      deck.selectedPanel = this._browser;
+      WindowUtils.sizeToContent(window);
+      return;
+    }
+
     var state = doc.getElementsByTagName("h1")[0].innerHTML;
     if (state == "You're now connected") {
       this._service.loggedIn = true;
@@ -54,7 +64,8 @@ var SoundCloud = {
     // Get value from search textbox
     var value = document.getElementById("soundcloud-search-textbox").value;
     var query = encodeURIComponent(value);
-    this.getTracks(soundcloudURL + "&q=" + query, 0);
+    var url = soundcloudURL + "&q=" + query + "&consumer_key=" + CONSUMER_KEY;
+    this.getTracks(url, 0);
   },
 
   getTracks : function(url, offset) {

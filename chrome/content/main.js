@@ -206,20 +206,6 @@ SoundCloud.onLoad = function() {
                                     .getService().wrappedJSObject;
   this._service.listeners.add(this);
 
-/*
-  var favNode = SPS.createNode();
-  favNode.url="chrome://soundcloud/content/directory.xul";
-  favNode.id = "urn:scfavorites"
-  favNode.name = "Favorites";
-  favNode.tooltip = "SoundCloud favorites";
-  favNode.editable = false;
-  scNode.appendChild(favNode);
-  favNode.hidden = false;
-
-  var domNode = window.gServicePane.getDOMNode(favNode.id);
-  if (domNode) domNode.appendBadge(25, null);
-*/
-
   this._statusIcon = document.getElementById('soundcloudStatusIcon');
   this._panelBinding = document.getElementById('soundcloudLoginPanel');
   this._panel = this._getElement(this._panelBinding, 'loginPanel');
@@ -232,7 +218,8 @@ SoundCloud.onLoad = function() {
   this._loginAutoLogin = this._getElement(this._panelBinding,
                                           'loginAutoLogin');
   this._loginButton = this._getElement(this._panelBinding, 'loginButton');
-  this._logoutButton = this._getElement(this._panelBinding, 'logoutButton');
+  this._newAccountGroupbox = this._getElement(this._panelBinding,
+                                              'newAccountGroupbox');
   this._loginError = this._getElement(this._panelBinding, 'loginError');
   this._loggingIn = this._getElement(this._panelBinding, 'loginProgressBox');
   this._cancelButton = this._getElement(this._panelBinding, 'cancelButton');
@@ -246,10 +233,34 @@ SoundCloud.onLoad = function() {
   this._profile = this._getElement(this._panelBinding, 'profileBox');
   this._image = this._getElement(this._panelBinding, 'image');
   this._realname = this._getElement(this._panelBinding, 'realname');
+  this._citycountry = this._getElement(this._panelBinding, 'profileDescription');
   this._profileAutoLogin = this._getElement(this._panelBinding,
                                             'profileAutoLogin');
 
+  var self = this;
   this._domEventListenerSet = new DOMEventListenerSet();
+
+  var onProfileUrlClicked = function(event) {
+    self.loadURI(self._service.profileurl, event);
+  }
+
+  // Wire up UI events for the profile links
+  this._domEventListenerSet.add(this._image,
+                                'click',
+                                onProfileUrlClicked,
+                                false,
+                                false);
+  this._domEventListenerSet.add(this._realname,
+                                'click',
+                                onProfileUrlClicked,
+                                false,
+                                false);
+
+  this._domEventListenerSet.add(this._citycountry,
+                                'click',
+                                function() { dump(self._citycountry); },
+                                false,
+                                false);
 
   // Wire up click event for the status icon
   this._statusIcon.addEventListener('click',
@@ -259,56 +270,56 @@ SoundCloud.onLoad = function() {
       SoundCloud.showPanel();
     }, false);
 
-  // Wire up UI events for popup buttons
-  this._loginButton.addEventListener('command',
-    function(event) { SoundCloud.onLoginClick(event); }, false);
-  this._cancelButton.addEventListener('command',
-    function(event) { SoundCloud.onCancelClick(event); }, false);
-  this._logoutButton.addEventListener('command',
-    function(event) { SoundCloud.onLogoutClick(event); }, false);
+  // wire up the signup link
+  var onSignupButtonClicked = function(event) {
+    self.loadURI(self.URL_SIGNUP, event);
+  };
+  this._domEventListenerSet.add(this._signupButton,
+                                'click',
+                                onSignupButtonClicked,
+                                false,
+                                false);
 
-  // Wire up the signup link
-  this._signupButton.addEventListener('click',
-    function(event) { SoundCloud.loadURI(SoundCloud.URL_SIGNUP, event); }, false);
+  // wire up the forgot password link
+  var onForgotpass = function(event) {
+    self.loadURI(self.URL_PASSWORD, event);
+  };
+  this._domEventListenerSet.add(this._forgotpass,
+                                'click',
+                                onForgotpass,
+                                false,
+                                false);
 
-  this._forgotpass.addEventListener('click',
-    function(event) { SoundCloud.loadURI(SoundCloud.URL_PASSWORD, event); }, false);
+  var onButtonClicked = function(event) { self._handleUIEvents(event); };
+  this._domEventListenerSet.add(this._panelBinding,
+                                'login-button-clicked',
+                                onButtonClicked,
+                                false,
+                                false);
+  this._domEventListenerSet.add(this._panelBinding,
+                                'cancel-button-clicked',
+                                onButtonClicked,
+                                false,
+                                false);
+  this._domEventListenerSet.add(this._panelBinding,
+                                'logout-button-clicked',
+                                onButtonClicked,
+                                false,
+                                false);
 
-  var self = this;
-  this._panelBinding.addEventListener("login-button-clicked",
-                function(event) { self._handleUIEvents(event); }, false);
-  this._panelBinding.addEventListener("cancel-button-clicked",
-                function(event) { self._handleUIEvents(event); }, false);
-  this._panelBinding.addEventListener("logout-button-clicked",
-                function(event) { self._handleUIEvents(event); }, false);
+  // copy the username & password out of the service into the UI
+  this._username.value = this._service.username;
+  this._password.value = this._service.password;
 
-  // Focus & select username field on popupshown event
-  this._panel.addEventListener('popupshown',
-    function(event) {
-      if (SoundCloud._deck.selectedPanel == SoundCloud._login) {
-        SoundCloud._username.focus();
-        SoundCloud._username.select();
-      }
-    }, false);
-
-  // React to changes in the login form
-  this._username.addEventListener('input', 
-    function(event) { SoundCloud.loginFormChanged(event); }, false);
-  this._password.addEventListener('input',
-    function(event) { SoundCloud.loginFormChanged(event); }, false);
-  SoundCloud.loginFormChanged();
-
-  // React to keypresses
-  this._username.addEventListener('keypress', 
-    function(event) { SoundCloud.loginFormKeypress(event); }, false);
-  this._password.addEventListener('keypress',
-    function(event) { SoundCloud.loginFormKeypress(event); }, false);
+  // Initially disable the login button if no username or password value
+  if (!this._username.value || !this._password.value) {
+    this._loginButton.disabled = true;
+  }
 
   // Attach our listener for media core events
   gMM.addListener(mmListener);
 
   this.onLoggedInStateChanged();
-  this.updateStatus();
 
   // Attach our listener to the ShowCurrentTrack event issued by the
   // faceplate
@@ -395,20 +406,31 @@ SoundCloud.showPanel = function() {
   this._panel.openPopup(this._statusIcon);
 }
 
-SoundCloud.loginFormChanged = function(event) {
-  if (this._username.value.length && this._password.value.length) {
-    this._loginButton.disabled = false;
-  } else {
-    this._loginButton.disabled = true;
+SoundCloud._handleUIEvents = function(aEvent) {
+  dump("\n" + aEvent.type + "\n");
+  switch (aEvent.type) {
+    case "login-button-clicked":
+      this._service.userLoggedOut = false;
+      this._service.username = this._username.value;
+      this._service.password = this._password.value;
+      // call login, telling the service to ignore any saved sessions
+      this._service.login(true);
+      break;
+    case "cancel-button-clicked":
+      this._service.cancelLogin();
+      this._service.userLoggedOut = true;
+      break;
+    case "logout-button-clicked":
+      this.onLogoutClick(aEvent);
+      break;
+    default:
+      break;
   }
-}
 
-SoundCloud.loginFormKeypress = function SoundCloud_loginFormKeypress(event) {
-  if (event.keyCode == KeyEvent.DOM_VK_RETURN ||
-      event.keyCode == KeyEvent.DOM_VK_ENTER) {
-    if (!this._loginButton.disabled) {
-      this.onLoginClick(event);
-    }
+  if (this._service.userLoggedOut) {
+    this._newAccountGroupbox.removeAttribute('loggedOut');
+  } else {
+    this._newAccountGroupbox.setAttribute('loggedOut', 'false');
   }
 }
 
@@ -423,12 +445,8 @@ SoundCloud.onProfileUpdated = function SoundCloud_onProfileUpdated() {
   } else {
     this._realName.textContent = this._username;
   }
-}
-
-SoundCloud.onLoginClick = function SoundCloud_onLoginClick(event) {
-  this._service.username = this._username.value;
-  this._service.password = this._password.value;
-  this._service.login(true);
+  this._citycountry.textContent = this._service.city + ", " +
+                                  this._service.country;
 }
 
 SoundCloud.onCancelClick = function SoundCloud_onCancelClick(event) {
@@ -436,7 +454,10 @@ SoundCloud.onCancelClick = function SoundCloud_onCancelClick(event) {
 }
 
 SoundCloud.onLogoutClick = function SoundCloud_onLogoutClick(event) {
-  this._deck.selectedPanel = this._login;
+  this._service.userLoggedOut = true;
+  this._service.logout();
+  this.setLoginError(null);
+  this.updateStatus();
 }
 
 SoundCloud.loadURI = function SoundCloud_loadURI(uri, event) {
@@ -445,7 +466,8 @@ SoundCloud.loadURI = function SoundCloud_loadURI(uri, event) {
 }
 
 // SoundCloud event handlers for login events
-SoundCloud.onLoggedInStateChanged = function SoundCloud_onLoggedInStateChanged() {
+SoundCloud.onLoggedInStateChanged =
+function SoundCloud_onLoggedInStateChanged() {
   if (this._service.loggedIn) {
     this._deck.selectedPanel = this._profile;
   } else {
@@ -459,6 +481,10 @@ SoundCloud.onLoginBegins = function SoundCloud_onLoginBegins() {
   this._deck.selectedPanel = this._loggingIn;
   this.setStatusIcon(this.Icons.busy);
   //this.setStatusTextId('soundcloud.state.logging_in');
+}
+
+SoundCloud.onLoginCancelled = function SoundCloud_onLoginCancelled() {
+  this.setLoginError(null);
 }
 
 SoundCloud.updateStatus = function SoundCloud_updateStatus() {
@@ -482,9 +508,24 @@ SoundCloud.setStatusText = function SoundCloud_setStatusText(aId) {
   this._statusIcon.setStatusText(this._strings.getString(aId));
 }
 
+SoundCloud.setLoginError = function SoundCloud_setLoginError(aText) {
+  if (aText) {
+    this._loginError.textContent = aText;
+    this._loginError.style.visibility = 'visible';
+  } else {
+    this._loginError.textContent = '';
+    this._loginError.style.visibility = 'collapse';
+  }
+}
+
 SoundCloud.onUnLoad = function() {
   this._service.listeners.remove(this);
   gMM.removeListener(mmListener);
+
+  if (this._domEventListenerSet) {
+    this._domEventListenerSet.removeAll();
+    this._domEventListenerSet = null;
+  }
 }
 
 var curTrackListener = function(e) {

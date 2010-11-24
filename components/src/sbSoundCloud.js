@@ -31,7 +31,9 @@ const Ci = Components.interfaces;
 const Cu = Components.utils;
 
 Cu.import("resource://app/jsmodules/sbProperties.jsm");
+Cu.import("resource://app/jsmodules/ServicePaneHelper.jsm");
 Cu.import("resource://app/jsmodules/StringUtils.jsm");
+
 var Application = Cc["@mozilla.org/fuel/application;1"]
                     .getService(Ci.fuelIApplication);
 
@@ -221,6 +223,15 @@ function sbSoundCloud() {
   });
   */
 
+  // user-logged-out pref
+  this.__defineGetter__('userLoggedOut', function() {
+    return this._prefs.getBoolPref('loggedOut');
+  });
+  this.__defineSetter__('userLoggedOut', function(val) {
+    this._prefs.setBoolPref('loggedOut', val);
+  });
+
+  // the loggedIn state
   this._loggedIn = false;
   this.__defineGetter__('loggedIn', function() { return this._loggedIn; });
   this.__defineSetter__('loggedIn', function(aLoggedIn){
@@ -283,13 +294,59 @@ sbSoundCloud.prototype.classID =
 sbSoundCloud.prototype.QueryInterface =
     XPCOMUtils.generateQI([Ci.sbISoundCloudService]);
 
-sbSoundCloud.prototype.updateServicePaneNodes = function updateSPNodes() {
-  var radioFolder = this._servicePaneService.getNode("SB:RadioStations");
+sbSoundCloud.prototype.updateServicePaneNodes =
+function sbSoundCloud_updateServicePaneNodes() {
+  var soclNode = this._servicePaneService
+                     .getNode("SB:RadioStations:SoundCloud");
+  if (this.loggedIn) {
+    // Create following node
+    // Need to do an async call to add children
+    let followingNode = this._servicePaneService.createNode();
+    followingNode.url="chrome://soundcloud/content/directory.xul";
+    followingNode.id = "urn:soclfollowing"
+    followingNode.name = "Following";
+    followingNode.tooltip = "People you follow";
+    followingNode.editable = false;
+    followingNode.setAttributeNS(SP_NS, "Weight", 10);
+    soclNode.appendChild(followingNode);
+    followingNode.hidden = false;
+
+    let followingBadge = ServicePaneHelper.getBadge(followingNode,
+                                                    "soclfollowingcount");
+    followingBadge.label = this.following;
+    followingBadge.visible = true;
+
+    // Create favorites node
+    let favNode = this._servicePaneService.createNode();
+    favNode.url="chrome://soundcloud/content/directory.xul";
+    favNode.id = "urn:soclfavorites"
+    favNode.name = "Favorites";
+    favNode.tooltip = "Tracks you loved";
+    favNode.editable = false;
+    favNode.setAttributeNS(SP_NS, "Weight", 20);
+    soclNode.appendChild(favNode);
+    favNode.hidden = false;
+
+    let favBadge = ServicePaneHelper.getBadge(favNode, "soclfavcount");
+    favBadge.label = this.favorites;
+    favBadge.visible = true;
+  } else {
+    let children = soclNode.childNodes;
+    while (children.hasMoreElements()) {
+      let child = children.getNext();
+      soclNode.removeChild(child);
+      // XXX - There has to be a better way of doing this
+      children = soclNode.childNodes;
+    }
+  }
 }
 
 sbSoundCloud.prototype.shouldAutoLogin =
 function sbSoundCloud_shouldAutoLogin() {
-  return this.autoLogin && this.username && this.password;
+  return this.autoLogin &&
+         this.username &&
+         this.password &&
+         !this.userLoggedOut;
 }
 
 sbSoundCloud.prototype.login =
@@ -306,6 +363,18 @@ function sbSoundCloud_login(clearSession) {
                            dump("Request token fail!");
                          });
   return;
+}
+
+sbSoundCloud.prototype.logout =
+function sbSoundCloud_logout() {
+  this.loggedIn = false;
+  this.updateServicePaneNodes();
+}
+
+sbSoundCloud.prototype.cancelLogin =
+function sbLastfm_cancelLogin() {
+  this.listeners.each(function() { l.onLoginCancelled(); });
+  this.logout();
 }
 
 sbSoundCloud.prototype.sign = function sbSoundCloud_sign(message) {
@@ -402,12 +471,12 @@ function sbSoundCloud_authorize(success, failure) {
   var self = this;
   Logins.set(self.username, self.password);
 
-  var window = Cc["@mozilla.org/appshell/window-mediator;1"]
-                 .getService(Ci.nsIWindowMediator)
-                 .getMostRecentWindow('Songbird:Main');
+  var mainWindow = Cc["@mozilla.org/appshell/window-mediator;1"]
+                     .getService(Ci.nsIWindowMediator)
+                     .getMostRecentWindow('Songbird:Main');
   var features = "modal=yes,dependent=yes,resizable=yes,titlebar=no";
-  window.openDialog("chrome://soundcloud/content/soundcloudAuthorize.xul",
-                    "soundcloud_authorize", features);
+  mainWindow.openDialog("chrome://soundcloud/content/soundcloudAuthorize.xul",
+                        "soundcloud_authorize", features);
 }
 
 sbSoundCloud.prototype.authCallback =
@@ -460,11 +529,15 @@ function sbSoundCloud_updateProfile(onSuccess, onFailure) {
       dump("\n" + json + "\n");
       var jsObject = JSON.parse(json);
       self.realname = jsObject.username;
-      self.avatar = jsObject.image_url;
+      self.avatar = jsObject.avatar_url;
+      self.following = jsObject.followings_count;
+      self.favorites = jsObject.public_favorites_count;
+      self.city = jsObject.city;
+      self.country = jsObject.country;
       self.profileurl = jsObject.permalink_url;
       self.listeners.each(function(l) { l.onProfileUpdated(); });
 
-      //self.updateServicePaneNodes();
+      self.updateServicePaneNodes();
 
       if (typeof(onSuccess) == "function")
         onSuccess();
