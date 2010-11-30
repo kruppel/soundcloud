@@ -34,23 +34,23 @@ Cu.import("resource://app/components/kPlaylistCommands.jsm");
 Cu.import("resource://app/jsmodules/sbProperties.jsm");
 Cu.import("resource://app/jsmodules/sbLibraryUtils.jsm");
 
-if (typeof(songbirdMainWindow) == "undefined")
-  var songbirdMainWindow = Cc["@mozilla.org/appshell/window-mediator;1"].
-    getService(Ci.nsIWindowMediator).
-    getMostRecentWindow("Songbird:Main").window;
+if (typeof(mainWindow) == "undefined")
+  var mainWindow = Cc["@mozilla.org/appshell/window-mediator;1"]
+                     .getService(Ci.nsIWindowMediator)
+                     .getMostRecentWindow("Songbird:Main").window;
 
 if (typeof(gBrowser) == "undefined")
-  var gBrowser = Cc["@mozilla.org/appshell/window-mediator;1"].
-    getService(Ci.nsIWindowMediator).
-    getMostRecentWindow("Songbird:Main").window.gBrowser;
+  var gBrowser = Cc["@mozilla.org/appshell/window-mediator;1"]
+                   .getService(Ci.nsIWindowMediator)
+                   .getMostRecentWindow("Songbird:Main").window.gBrowser;
 
 if (typeof(ioService) == "undefined")
-  var ioService = Cc["@mozilla.org/network/io-service;1"].
-    getService(Ci.nsIIOService);
+  var ioService = Cc["@mozilla.org/network/io-service;1"]
+                    .getService(Ci.nsIIOService);
 
 if (typeof(gMetrics) == "undefined")
-  var gMetrics = Cc["@songbirdnest.com/Songbird/Metrics;1"].
-    createInstance(Ci.sbIMetrics);
+  var gMetrics = Cc["@songbirdnest.com/Songbird/Metrics;1"]
+                   .createInstance(Ci.sbIMetrics);
 
 const soundcloudTempLibGuid = "extensions.soundcloud.templib.guid";
 const soundcloudLibraryGuid = "extensions.soundcloud.library.guid";
@@ -61,9 +61,9 @@ var CloudDirectory = {
   tracksFound: 0,
 
   init : function() {
-    var servicePaneStrings = Cc["@mozilla.org/intl/stringbundle;1"].
-      getService(Ci.nsIStringBundleService).
-      createBundle("chrome://soundcloud/locale/overlay.properties");
+    var servicePaneStrings = Cc["@mozilla.org/intl/stringbundle;1"]
+        .getService(Ci.nsIStringBundleService)
+        .createBundle("chrome://soundcloud/locale/overlay.properties");
 
     // Set the tab title
     document.title = servicePaneStrings.GetStringFromName("radioTabTitle");
@@ -75,8 +75,8 @@ var CloudDirectory = {
 
     // Bind the playlist widget to our library
     this.playlist = document.getElementById("soundcloud-directory");
-    var libraryManager = Cc['@songbirdnest.com/Songbird/library/Manager;1'].
-      getService(Ci.sbILibraryManager);
+    var libraryManager = Cc['@songbirdnest.com/Songbird/library/Manager;1']
+                           .getService(Ci.sbILibraryManager);
     this.playlist.bind(this.radioLib.createView());
 
     // If this is the first time we've loaded the playlist, clear the 
@@ -119,8 +119,8 @@ var CloudDirectory = {
   },
 
   _getLibraries : function CloudDirectory__getLibraries() {
-    var libraryManager = Cc["@songbirdnest.com/Songbird/library/Manager;1"].
-      getService(Ci.sbILibraryManager);
+    var libraryManager = Cc["@songbirdnest.com/Songbird/library/Manager;1"]
+                           .getService(Ci.sbILibraryManager);
     var libGuid = Application.prefs.getValue(soundcloudLibraryGuid, "");
     
     if (libGuid != "") {
@@ -157,17 +157,17 @@ var CloudDirectory = {
 
   loadTable : function(trackList) {
     // Make the progress meter spin
-    var el = songbirdMainWindow.document
-                               .getElementById("sb-status-bar-status-progressmeter");
+    var el = mainWindow.document
+                       .getElementById("sb-status-bar-status-progressmeter");
     el.mode = "undetermined";
  
     // if genre is null, then we're just being asked to filter our existing
     // data and we don't need to reload data
     if (trackList != null) {
-      var trackArray = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"].
-        createInstance(Ci.nsIMutableArray);
-      var propertiesArray = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"].
-        createInstance(Ci.nsIMutableArray);
+      var trackArray = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
+                         .createInstance(Ci.nsIMutableArray);
+      var propertiesArray = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
+                              .createInstance(Ci.nsIMutableArray);
 
       for (var i=0; i<trackList.length; i++) {
         var title = trackList[i].title;
@@ -182,9 +182,9 @@ var CloudDirectory = {
 
       if (!streamable) continue;
 
-      var props = Cc[
-        "@songbirdnest.com/Songbird/Properties/MutablePropertyArray;1"].
-        createInstance(Ci.sbIMutablePropertyArray);
+      var props =
+          Cc["@songbirdnest.com/Songbird/Properties/MutablePropertyArray;1"]
+            .createInstance(Ci.sbIMutablePropertyArray);
 
       props.appendProperty(SOCL_title, title);
       props.appendProperty(SOCL_time, duration);
@@ -256,20 +256,20 @@ function createLibrary(databaseGuid, databaseLocation, init) {
     directory = databaseLocation.QueryInterface(Ci.nsIFileURL).file;
   }
   else {
-    directory = Cc["@mozilla.org/file/directory_service;1"].
-      getService(Ci.nsIProperties).
-      get("ProfD", Ci.nsIFile);
+    directory = Cc["@mozilla.org/file/directory_service;1"]
+                  .getService(Ci.nsIProperties)
+                  .get("ProfD", Ci.nsIFile);
     directory.append("db");
   }    
 
   var file = directory.clone();
   file.append(databaseGuid + ".db");
   
-	var libraryFactory = Cc[
-	  "@songbirdnest.com/Songbird/Library/LocalDatabase/LibraryFactory;1"].
-    getService(Ci.sbILibraryFactory);
-  var hashBag = Cc["@mozilla.org/hash-property-bag;1"].
-    createInstance(Ci.nsIWritablePropertyBag2);
+  var libraryFactory =
+      Cc["@songbirdnest.com/Songbird/Library/LocalDatabase/LibraryFactory;1"]
+        .getService(Ci.sbILibraryFactory);
+  var hashBag = Cc["@mozilla.org/hash-property-bag;1"]
+                  .createInstance(Ci.nsIWritablePropertyBag2);
   hashBag.setPropertyAsInterface("databaseFile", file);
   var library = libraryFactory.createLibrary(hashBag);
   
@@ -291,8 +291,8 @@ var libListener = {
   onProgress: function(i) {},
   onComplete: function(array, result) {
     // Reset the progress meter
-    var el = songbirdMainWindow.document
-                               .getElementById("sb-status-bar-status-progressmeter");
+    var el = mainWindow.document
+                       .getElementById("sb-status-bar-status-progressmeter");
     el.mode = "";
     CloudDirectory.setTracksFound(array.length);
 
@@ -307,12 +307,12 @@ function onPlay(e) {
     var item = CloudDirectory.playlist.mediaListView.selection.currentMediaItem;
     var id = item.getProperty(SOCL_url);
     
-    var plsMgr = Cc["@songbirdnest.com/Songbird/PlaylistReaderManager;1"].
-      getService(Ci.sbIPlaylistReaderManager);
-    var listener = Cc["@songbirdnest.com/Songbird/PlaylistReaderListener;1"].
-      createInstance(Ci.sbIPlaylistReaderListener);
-    var ioService = Cc["@mozilla.org/network/io-service;1"].
-      getService(Ci.nsIIOService);
+    var plsMgr = Cc["@songbirdnest.com/Songbird/PlaylistReaderManager;1"]
+                   .getService(Ci.sbIPlaylistReaderManager);
+    var listener = Cc["@songbirdnest.com/Songbird/PlaylistReaderListener;1"]
+                     .createInstance(Ci.sbIPlaylistReaderListener);
+    var ioService = Cc["@mozilla.org/network/io-service;1"]
+                      .getService(Ci.nsIIOService);
 
     listener.playWhenLoaded = true;
     listener.observer = {

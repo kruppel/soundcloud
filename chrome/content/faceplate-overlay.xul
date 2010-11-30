@@ -9,9 +9,4 @@
                            class="sb-player-button" insertbefore="play_fwd_button" />
   </hbox>
 
-  <sb-autoscroll id="sb-faceplate-autoscroll-box">
-  <!--  <image id="soundcloud-icon" position="1"
-           src="chrome://soundcloud/skin/soundcloud_favicon.png" />
-  !-->
-  </sb-autoscroll>
 </overlay>

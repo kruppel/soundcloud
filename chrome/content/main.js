@@ -21,18 +21,6 @@
  *=END SONGBIRD GPL
  */
 
-// Make a namespace.
-if (typeof SoundCloud == 'undefined') {
-  var SoundCloud = {};
-}
-
-if (typeof Cc == 'undefined')
-  var Cc = Components.classes;
-if (typeof Ci == 'undefined')
-  var Ci = Components.interfaces;
-if (typeof Cu == 'undefined')
-  var Cu = Components.utils;
-
 Cu.import("resource://app/jsmodules/DOMUtils.jsm");
 
 if (typeof(gMM) == "undefined")
@@ -43,10 +31,13 @@ if (typeof(gMetrics) == "undefined")
   var gMetrics = Cc["@songbirdnest.com/Songbird/Metrics;1"]
                    .createInstance(Ci.sbIMetrics);
 
-if (typeof(SOCL_FAVICON_PATH) == "undefined")
-  const SOCL_FAVICON_PATH = "chrome://soundcloud/skin/sc.png";
+const SOCL_FAVICON_PATH = "chrome://soundcloud/skin/sc.png";
 
 const soundcloudTempLibGuid = "extensions.soundcloud.templib.guid";
+
+// Create a namespace
+if (typeof SoundCloud == 'undefined')
+  var SoundCloud = {};
 
 var mmListener = {
   time : null,
@@ -58,6 +49,7 @@ var mmListener = {
     if (gMM.sequencer.view == null)
       return;
     
+    alert(currentItem.getProperty(SOCL_url));
     var list = gMM.sequencer.view.mediaList;
 
     switch (ev.type) {

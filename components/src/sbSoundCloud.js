@@ -33,11 +33,12 @@ const Cu = Components.utils;
 Cu.import("resource://app/jsmodules/sbProperties.jsm");
 Cu.import("resource://app/jsmodules/ServicePaneHelper.jsm");
 Cu.import("resource://app/jsmodules/StringUtils.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 var Application = Cc["@mozilla.org/fuel/application;1"]
                     .getService(Ci.fuelIApplication);
 
-const NS = 'http://www.songbirdnest.com/lastfm#';
+const NS = 'http://songbirdnest.com/soundcloud#';
 const SB_NS = 'http://songbirdnest.com/data1.0#';
 const SP_NS = 'http://songbirdnest.com/rdf/servicepane#';
 
@@ -49,8 +50,6 @@ const SIG_METHOD = "HMAC-SHA1";
 
 var OAUTH_TOKEN = '';
 var TOKEN_SECRET = '';
-
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 // object to manage login state
 var Logins = {
@@ -475,7 +474,7 @@ function sbSoundCloud_authorize(success, failure) {
                      .getService(Ci.nsIWindowMediator)
                      .getMostRecentWindow('Songbird:Main');
   var features = "modal=yes,dependent=yes,resizable=yes,titlebar=no";
-  mainWindow.openDialog("chrome://soundcloud/content/soundcloudAuthorize.xul",
+  mainWindow.openDialog(AUTH_PAGE,
                         "soundcloud_authorize", features);
 }
 
