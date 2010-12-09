@@ -33,6 +33,7 @@ const Cu = Components.utils;
 Cu.import("resource://app/jsmodules/sbProperties.jsm");
 Cu.import("resource://app/jsmodules/ServicePaneHelper.jsm");
 Cu.import("resource://app/jsmodules/StringUtils.jsm");
+Cu.import("resource://app/jsmodules/SBDataRemoteUtils.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 var Application = Cc["@mozilla.org/fuel/application;1"]
@@ -41,6 +42,8 @@ var Application = Cc["@mozilla.org/fuel/application;1"]
 const NS = 'http://songbirdnest.com/soundcloud#';
 const SB_NS = 'http://songbirdnest.com/data1.0#';
 const SP_NS = 'http://songbirdnest.com/rdf/servicepane#';
+
+const SOUNDCLOUD_LIBNAME = 'soundcloud-search.db';
 
 const SOCL_URL = 'https://api.soundcloud.com';
 const AUTH_PAGE = 'chrome://soundcloud/content/soundcloudAuthorize.xul'
@@ -249,6 +252,34 @@ function sbSoundCloud() {
     .getService(Ci.sbIMediacoreManager);
   this._mediacoreManager.addListener(this);
 
+  var libraryManager = Cc["@songbirdnest.com/Songbird/library/Manager;1"]
+                         .getService(Ci.sbILibraryManager);
+  var libraryFactory =
+    Cc["@songbirdnest.com/Songbird/Library/LocalDatabase/LibraryFactory;1"]
+      .getService(Ci.sbILibraryFactory);
+
+  var libGuid = this._prefs.getCharPref("library.guid");
+  dump("\n\n\n\nLIB GUID::::" + libGuid + "\n\n\n\n");
+
+  if (libGuid == "") {
+    var file = Cc["@mozilla.org/file/directory_service;1"]
+                 .getService(Ci.nsIProperties).get("ProfD", Ci.nsIFile);
+    file.append("db");
+    file.append(SOUNDCLOUD_LIBNAME);
+    var bag = Cc["@mozilla.org/hash-property-bag;1"]
+                .createInstance(Ci.nsIWritablePropertyBag2);
+    bag.setPropertyAsInterface("databaseFile", file);
+    this._library = libraryFactory.createLibrary(bag);
+    this._library.name = "SoundCloud Search";
+    libraryManager.registerLibrary(this._library, true);
+    this._prefs.setCharPref("library.guid", this._library.guid);
+  } else {
+    this._library = libraryManager.getLibrary(libGuid);
+    this._prefs.setCharPref("library.guid", this._library.guid);
+  }
+
+  this.__defineGetter__('library', function() { return this._library; });
+
   this._strings =
     Cc["@mozilla.org/intl/stringbundle;1"]
       .getService(Ci.nsIStringBundleService)
@@ -330,12 +361,8 @@ function sbSoundCloud_updateServicePaneNodes() {
     favBadge.label = this.favorites;
     favBadge.visible = true;
   } else {
-    let children = soclNode.childNodes;
-    while (children.hasMoreElements()) {
-      let child = children.getNext();
-      soclNode.removeChild(child);
-      // XXX - There has to be a better way of doing this
-      children = soclNode.childNodes;
+    while (soclNode.firstChild) {
+      soclNode.removeChild(soclNode.firstChild);
     }
   }
 }
@@ -565,8 +592,7 @@ function sbSoundCloud_apiCall(type, flags, callback) {
       let json = xhr.responseText;
       let jsObject = JSON.parse(xhr.responseText);
       if (jsObject.error) {
-        dump("API call error!\n" + jsObject.error + "\n");
-        return;
+        callback(false, json);
       }
 
       self._prefs.setCharPref(self.username + ".oauth_token",
@@ -576,6 +602,34 @@ function sbSoundCloud_apiCall(type, flags, callback) {
     function(xhr) {
       dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
     });
+}
+
+sbSoundCloud.prototype.onMediacoreEvent =
+function sbSoundCloud_onMediacoreEvent(aEvent) {
+  switch(aEvent.type) {
+    case Ci.sbIMediacoreEvent.STREAM_END:
+    case Ci.sbIMediacoreEvent.STREAM_STOP:
+      this.onStop();
+      break;
+    case Ci.sbIMediacoreEvent.VIEW_CHANGE:
+      break;
+    case Ci.sbIMediacoreEvent.BEFORE_TRACK_CHANGE:
+      break;
+    case Ci.sbIMediacoreEvent.TRACK_CHANGE:
+      this.onTrackChange(aEvent.data);
+      break;
+    default:
+      break;
+  }
+}
+
+sbSoundCloud.prototype.onTrackChange =
+function sbSoundCloud_onTrackChange(aItem) {
+
+}
+
+sbSoundCloud.prototype.onStop = function sbSoundCloud_onStop() {
+
 }
 
 sbSoundCloud.prototype.shutdown = function sbSoundCloud_shutdown() {

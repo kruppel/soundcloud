@@ -49,7 +49,6 @@ var mmListener = {
     if (gMM.sequencer.view == null)
       return;
     
-    alert(currentItem.getProperty(SOCL_url));
     var list = gMM.sequencer.view.mediaList;
 
     switch (ev.type) {
@@ -161,7 +160,7 @@ var mmListener = {
       // OR if we're not playing Last.fm
       if ((gMM.status.state == Ci.sbIMediacoreStatus.STATUS_STOPPED) ||
           (gMM.status.state == Ci.sbIMediacoreStatus.STATUS_PLAYING &&
-           Application.prefs.getValue('songbird.lastfm.radio.station', '') == ''))
+           Application.prefs.getValue('songbird.soundcloud.radio.station', '') == ''))
       {
         for (var i in mmListener.disableTags) {
           var elements = document.getElementsByTagName(mmListener.disableTags[i]);
@@ -399,7 +398,6 @@ SoundCloud.showPanel = function() {
 }
 
 SoundCloud._handleUIEvents = function(aEvent) {
-  dump("\n" + aEvent.type + "\n");
   switch (aEvent.type) {
     case "login-button-clicked":
       this._service.userLoggedOut = false;

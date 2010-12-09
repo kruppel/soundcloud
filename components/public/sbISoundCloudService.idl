@@ -3,6 +3,8 @@
 
 #include "nsISupports.idl"
 
+interface sbILibrary;
+
 /*
  *
  */
@@ -11,6 +13,10 @@ interface sbISoundCloudService : nsISupports
 {	
 
   attribute AString nowplaying_url;
+  readonly attribute AString soundcloud_url;
+  readonly attribute AString oauth_token;
+  attribute PRBool userLoggedOut;
+  readonly attribute sbILibrary library;
   //attribute boolean autoLogin;
   //attribute boolean loggedIn;
 
