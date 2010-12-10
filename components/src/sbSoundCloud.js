@@ -140,7 +140,7 @@ function urlencode(obj) {
   return params;
 }
 
-function GET(url, params, onload, onerror) {
+function GET(url, params, onload, onerror, oauth) {
   var xhr = null;
 
   dump("\n\n" + url + "?" + params + "\n\n");
@@ -150,7 +150,8 @@ function GET(url, params, onload, onerror) {
     xhr.onload = function(event) { onload(xhr); }
     xhr.onerror = function(event) { onerror(xhr); }
     xhr.open('GET', url + "?" + params, true);
-    xhr.setRequestHeader('Authorization', 'OAuth');
+    if (oauth)
+      xhr.setRequestHeader('Authorization', 'OAuth');
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.send();
   } catch(e) {
@@ -573,35 +574,74 @@ function sbSoundCloud_updateProfile(onSuccess, onFailure) {
 sbSoundCloud.prototype.apiCall =
 function sbSoundCloud_apiCall(type, flags, callback) {
   var self = this;
+  var authRequired = false;
   var url = SOCL_URL;
+
+  var method = "";
+  var params = "";
+  var success = {};
+  var failure = {};
 
   switch (type) {
     case "test":
+      method = 'GET';
       url += "/oauth/test_request";
+      authRequired = true;
       break;
     case "me":
+      method = 'GET';
       url += "/me.json";
+      authRequired = true;
+      success = function(xhr) {
+        let json = xhr.responseText;
+        let jsObject = JSON.parse(xhr.responseText);
+        if (jsObject.error) {
+          callback(false, json);
+        }
+        self._prefs.setCharPref(self.username + ".oauth_token",
+                                OAUTH_TOKEN);
+        callback(true, json);
+      };
+      failure = function(xhr) {
+        dump("\nStatus is " + xhr.status + "\n"
+                            + xhr.getAllResponseHeaders());
+      };
+      break;
+    case "tracks":
+      method = 'GET';
+      url += "/tracks.json";
+
+      if (flags) {
+        for (let flag in flags) {
+          params += flag + "=" + flags[flag] + "&";
+        }
+      }
+
+      success = function(xhr) {
+        let json = xhr.responseText;
+        let jsObject = JSON.parse(xhr.responseText);
+        if (jsObject.error) {
+          callback(false, json);
+        }
+        callback(true, json);
+      };
+      failure = function(xhr) {
+        dump("\nStatus is " + xhr.status + "\n"
+                            + xhr.getAllResponseHeaders());
+      };
+      
       break;
     default:
       break;
   }
 
-  var params = self.getParameters(url, 'GET');
+  if (authRequired) {
+    params = self.getParameters(url, method);
+  } else {
+    params += "consumer_key=" + CONSUMER_KEY;
+  }
 
-  return GET(url, params, function(xhr) {
-      let json = xhr.responseText;
-      let jsObject = JSON.parse(xhr.responseText);
-      if (jsObject.error) {
-        callback(false, json);
-      }
-
-      self._prefs.setCharPref(self.username + ".oauth_token",
-                              OAUTH_TOKEN);
-      callback(true, json);
-    },
-    function(xhr) {
-      dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
-    });
+  return GET(url, params, success, failure, authRequired);
 }
 
 sbSoundCloud.prototype.onMediacoreEvent =

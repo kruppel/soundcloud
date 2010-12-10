@@ -55,50 +55,5 @@ var SoundCloud = {
       this._domEventListenerSet.removeAll();
       this._domEventListenerSet = null;
     }
-  },
-        
-  getSearchURL : function(event) {
-    // Reset the library
-    CloudDirectory.radioLib.clear();
-    CloudDirectory.resetTracksFound();
-    // Get value from search textbox
-    var value = document.getElementById("soundcloud-search-textbox").value;
-    var query = encodeURIComponent(value);
-    var url = soundcloudURL + "&q=" + query + "&consumer_key=" + CONSUMER_KEY;
-    this.getTracks(url, 0);
-  },
-
-  getTracks : function(url, offset) {
-    var req;
-
-    try{
-      // create the XMLHttpRequest object
-      req = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance();
-      req.onreadystatechange = function() {
-        if (req.readyState == 4) {
-          if (req.status == 200) {
-            // Could be more safe/secure... you could potentially inject
-            // harmful js here. Going to assume SoundCloud is a reliable
-            // source though.
-            let rs = eval('(' + req.responseText + ')');
-            let results = rs.length;
-            let next = offset + results;
-            CloudDirectory.loadTable(rs);
-            if (results > 40) {
-              SoundCloud.getTracks(url, next);
-            } else {
-              /*
-             */
-            }
-          }
-        }
-      }
-
-      // open connection to the URL
-      req.open('GET', url + "&offset=" + offset, true);
-      req.send(null);
-    } catch(e) {
-      Cu.reportError(e);
-    }
   }
 }

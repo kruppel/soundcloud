@@ -13,35 +13,21 @@
 <page id="soundcloud-window"
       xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
       xmlns:html="http://www.w3.org/1999/xhtml"
-      onload="setTimeout(function() { CloudDirectory.init();
-                                    }, 100);"
-      onunload="CloudDirectory.unload()">
-
-  <stringbundleset id="stringbundleset">
-    <stringbundle id="soundcloud-strings"
-                  src="chrome://soundcloud/locale/overlay.properties"/>
-  </stringbundleset>
+      onload="CloudDirectory.onLoad();"
+      onunload="CloudDirectory.onUnload()">
 
   <vbox id="soundcloud-box">
-    <hbox flex="1" id="search-box" style="height:60px;background-image:url(chrome://soundcloud/skin/bg-header-soundcloud.png);">
+    <hbox flex="1" id="soundcloud-search">
       <hbox align="center">
-        <label class="soundcloud-logo"
-               onclick="Components.classes['@mozilla.org/appshell/window-mediator;1']
-	                          .getService(Components.interfaces.nsIWindowMediator)
-                                  .getMostRecentWindow('Songbird:Main').gBrowser
-                                  .loadOneTab('http://soundcloud.com');"
-               style="cursor:pointer;">
+        <label id="soundcloud-logo">
           <image src="chrome://soundcloud/skin/soundcloud_new_logo.png" />
         </label>
       </hbox>
       <spacer flex="1" />
       <hbox class="header-actions" pack="end">
         <textbox id="soundcloud-search-textbox"
-                 oninput="CloudDirectory.inputSearch(event)"
-                 onkeydown="CloudDirectory.triggerSearch(event)"
                  class="search-textbox" />
         <button id="soundcloud-search-btn" label="Search"
-                oncommand="SoundCloud.getSearchURL()"
                 disabled="true" />
       </hbox>
     </hbox>

@@ -75,7 +75,6 @@ var mmListener = {
         // Ensure the playing buttons and SoundCloud faceplate
         // icon are in the right state
         mmListener.playingTrack = item;
-        mmListener.setPlayerState(true);
 
         // if we're here then we're a soundcloud stream, and we should
         // start a timer
@@ -107,69 +106,10 @@ var mmListener = {
 
       case Ci.sbIMediacoreEvent.METADATA_CHANGE:
         var currentItem = gMM.sequencer.currentItem;
-        /*
-        if (currentItem.getProperty(SC_url) == -1) {
-          var props = ev.data;
-
-          for (var i=0; i<props.length; i++) {
-            var prop = props.getPropertyAt(i);
-            dump(prop.id + " == " + prop.value + "\n");
-
-            if (prop.id == SBProperties.bitRate) {
-              dump("bitrate!!!!!!!\n");
-              var libraryManager = Cc['@songbirdnest.com/Songbird/library/Manager;1'].
-                getService(Ci.sbILibraryManager);
-              var libGuid = Application.prefs.get(shoutcastTempLibGuid);
-              var l = libraryManager.getLibrary(libGuid.value);
-              var a = l.getItemsByProperty(SBProperties.customType,
-                                           "radio_favouritesList");
-              var faves = a.queryElementAt(0, Ci.sbIMediaList);
-
-              var item = faves.getItemByGuid(currentItem.getProperty(
-                SBProperties.outerGUID));
-              dump("item: " + item.guid + "\n");
-              dump("outer; " + currentItem.getProperty(SBProperties.outerGUID));
-              item.setProperty(SBProperties.bitRate, prop.value);
-            }
-          }
-        }
-        */
         break;
 
       default:
         break;
-    }
-  },
-
-  disableTags : [ ],
-
-  setPlayerState: function(stream) {
-    var playButton = document.getElementById("play_pause_button");
-
-    if (stream) {
-      for (var i in mmListener.disableTags) {
-        var elements = document.getElementsByTagName(mmListener.disableTags[i]);
-
-        for (var j=0; j<elements.length; j++) {
-          elements[j].setAttribute('disabled', 'true');
-        }
-      }
-
-    } else {
-      // if we're not playing something then reset the button state
-      // OR if we're not playing Last.fm
-      if ((gMM.status.state == Ci.sbIMediacoreStatus.STATUS_STOPPED) ||
-          (gMM.status.state == Ci.sbIMediacoreStatus.STATUS_PLAYING &&
-           Application.prefs.getValue('songbird.soundcloud.radio.station', '') == ''))
-      {
-        for (var i in mmListener.disableTags) {
-          var elements = document.getElementsByTagName(mmListener.disableTags[i]);
-
-          for (var j=0; j<elements.length; j++) {
-            elements[j].removeAttribute('disabled');
-          }
-        }
-      }
     }
   }
 }
@@ -508,7 +448,7 @@ SoundCloud.setLoginError = function SoundCloud_setLoginError(aText) {
   }
 }
 
-SoundCloud.onUnLoad = function() {
+SoundCloud.onUnload = function() {
   this._service.listeners.remove(this);
   gMM.removeListener(mmListener);
 
@@ -579,4 +519,4 @@ SoundCloud._getElement = function(aWidget, aElementID) {
 window.addEventListener("load",
                         function(e) { SoundCloud.onLoad(e); }, false);
 window.addEventListener("unload",
-                        function(e) { SoundCloud.onUnLoad(e); }, false);
+                        function(e) { SoundCloud.onUnload(e); }, false);
