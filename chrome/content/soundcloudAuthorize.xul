@@ -33,6 +33,7 @@
 <dialog id="soundcloud_auth_window"
         hidechrome="true"
         buttons=","
+        ondialogaccept="return false;"
         onload="SoundCloud._open();"
         onunload="SoundCloud._close();"
         minwidth="420"
@@ -49,6 +50,6 @@
   </deck>
 
   <script type="application/x-javascript"
-          src="chrome://soundcloud/content/soundcloud.js"/>
+          src="chrome://soundcloud/content/authorize.js"/>
 
 </dialog>

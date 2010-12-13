@@ -4,12 +4,14 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <link type="text/css" rel="stylesheet" media="screen"
         href="chrome://soundcloud/skin/waveform.css" />
+  <script type="text/javascript" src="soundcloudProperties.js"></script>
+  <script type="text/javascript" src="waveform.js"></script>
 </head>
 
 <body id="socl-wf-body">
   <div class="socl-wf-display">
     <img id="waveform" src="chrome://soundcloud/skin/test_waveform.png" />
-    <div class="playhead" style="width: 33%; border-right: 1px solid rgb(255,85,0);" />
+    <div id="wf-cursor" class="playhead" style="width: 33%; border-right: 1px solid rgb(255,85,0);" />
     <div class="seekhead" style="display: none;" >
       <div style="left: 33%; height: 100%; background: #F50; z-index:2;">
         <span>0.03</span>

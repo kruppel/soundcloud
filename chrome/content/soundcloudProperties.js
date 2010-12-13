@@ -1,8 +1,7 @@
-const SOCL_NS = "http://songbirdnest.com/data/1.0#";
-const SOCL_title = SOCL_NS + "trackName";
-const SOCL_time = SOCL_NS + "duration";
-const SOCL_user = SOCL_NS + "user";
-const SOCL_plays = SOCL_NS + "playcount";
-const SOCL_favs = SOCL_NS + "favcount";
-const SOCL_url = SOCL_NS + "streamURL";
-const SOCL_dl = SOCL_NS + "downloadButton";
+// SoundCloud property constants
+const SB_NS = "http://songbirdnest.com/data/1.0#";
+const SB_PROPERTY_USER = SB_NS + "user";
+const SB_PROPERTY_PLAYS = SB_NS + "playcount";
+const SB_PROPERTY_FAVS = SB_NS + "favcount";
+const SB_PROPERTY_WAVEFORM = SB_NS + "waveformURL";
+const SB_PROPERTY_URL = SB_NS + "streamURL";

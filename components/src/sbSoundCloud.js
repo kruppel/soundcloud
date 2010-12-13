@@ -30,18 +30,25 @@ const CC = Components.Constructor;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
+Cu.import("resource://app/jsmodules/DebugUtils.jsm");
+Cu.import("resource://app/jsmodules/SBDataRemoteUtils.jsm");
 Cu.import("resource://app/jsmodules/sbProperties.jsm");
 Cu.import("resource://app/jsmodules/ServicePaneHelper.jsm");
 Cu.import("resource://app/jsmodules/StringUtils.jsm");
-Cu.import("resource://app/jsmodules/SBDataRemoteUtils.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 var Application = Cc["@mozilla.org/fuel/application;1"]
                     .getService(Ci.fuelIApplication);
 
 const NS = 'http://songbirdnest.com/soundcloud#';
-const SB_NS = 'http://songbirdnest.com/data1.0#';
+const SB_NS = 'http://songbirdnest.com/data/1.0#';
 const SP_NS = 'http://songbirdnest.com/rdf/servicepane#';
+
+// SoundCloud property constants
+const SB_PROPERTY_USER = SB_NS + "user";
+const SB_PROPERTY_PLAYS = SB_NS + "playcount";
+const SB_PROPERTY_FAVS = SB_NS + "favcount";
+const SB_PROPERTY_WAVEFORM = SB_NS + "waveformURL";
 
 const SOUNDCLOUD_LIBNAME = 'soundcloud-search.db';
 
@@ -188,6 +195,8 @@ function sbSoundCloud() {
   this.wrappedJSObject = this;
   Cu.import("resource://soundcloud/OAuth.jsm");
 
+  this.log = DebugUtils.generateLogFunction("sbSoundCloud");
+
   this.listeners = new Listeners();
 
   var login = Logins.get();
@@ -250,7 +259,7 @@ function sbSoundCloud() {
   this._playbackHistory.addListener(this);
 
   this._mediacoreManager = Cc['@songbirdnest.com/Songbird/Mediacore/Manager;1']
-    .getService(Ci.sbIMediacoreManager);
+                             .getService(Ci.sbIMediacoreManager);
   this._mediacoreManager.addListener(this);
 
   var libraryManager = Cc["@songbirdnest.com/Songbird/library/Manager;1"]
@@ -260,7 +269,6 @@ function sbSoundCloud() {
       .getService(Ci.sbILibraryFactory);
 
   var libGuid = this._prefs.getCharPref("library.guid");
-  dump("\n\n\n\nLIB GUID::::" + libGuid + "\n\n\n\n");
 
   if (libGuid == "") {
     var file = Cc["@mozilla.org/file/directory_service;1"]
@@ -432,7 +440,6 @@ function sbSoundCloud_getBaseString(message) {
 
 sbSoundCloud.prototype.getParameters =
 function sbSoundCloud_getParameters(url, mtype) {
-  var self = this;
   var accessor = { consumerSecret: CONSUMER_SECRET };
   var message = { action: url,
                   method: mtype,
@@ -447,7 +454,7 @@ function sbSoundCloud_getParameters(url, mtype) {
     message.parameters.push(['oauth_token', OAUTH_TOKEN]);
   message.parameters.push(['oauth_version', "1.0"]);
 
-  message.parameters.push(['oauth_signature', self.sign(message)]);
+  message.parameters.push(['oauth_signature', this.sign(message)]);
 
   return urlencode(message.parameters);
 }
@@ -455,16 +462,16 @@ function sbSoundCloud_getParameters(url, mtype) {
 sbSoundCloud.prototype.requestToken =
 function sbSoundCloud_requestToken(success, failure) {
   var self = this;
-  self.listeners.each(function(l) { l.onLoginBegins(); });
+  this.listeners.each(function(l) { l.onLoginBegins(); });
 
   OAUTH_TOKEN = "";
   TOKEN_SECRET = "";
 
   var url = SOCL_URL + "/oauth/request_token";
 
-  var params = self.getParameters(url, 'POST');
+  var params = this.getParameters(url, 'POST');
 
-  self._reqtoken_xhr = POST(url, params,
+  this._reqtoken_xhr = POST(url, params,
       function(xhr) {
         let response = xhr.responseText;
         if (response == "Invalid OAuth Request") {
@@ -495,8 +502,7 @@ function sbSoundCloud_requestToken(success, failure) {
 
 sbSoundCloud.prototype.authorize =
 function sbSoundCloud_authorize(success, failure) {
-  var self = this;
-  Logins.set(self.username, self.password);
+  Logins.set(this.username, this.password);
 
   var mainWindow = Cc["@mozilla.org/appshell/window-mediator;1"]
                      .getService(Ci.nsIWindowMediator)
@@ -508,12 +514,11 @@ function sbSoundCloud_authorize(success, failure) {
 
 sbSoundCloud.prototype.authCallback =
 function sbSoundCloud_authCallback() {
-  var self = this;
-  if (self.loggedIn) {
-    self.accessToken(function success() { dump("Access yes!"); },
+  if (this.loggedIn) {
+    this.accessToken(function success() { dump("Access yes!"); },
       function failure() { dump("Access fail!"); });
   } else {
-    self.listeners.each(function(l) { l.onLoggedInStateChanged(); });
+    this.listeners.each(function(l) { l.onLoggedInStateChanged(); });
   }
 }
 
@@ -523,7 +528,7 @@ function sbSoundCloud_accessToken(success, failure) {
   var url = SOCL_URL + "/oauth/access_token";
   var params = self.getParameters(url, 'POST');
 
-  self._accesstoken_xhr = POST(url, params,
+  this._accesstoken_xhr = POST(url, params,
       function(xhr) {
         let response = xhr.responseText;
         OAUTH_TOKEN = response.split('&')[0].split('=')[1];
@@ -544,7 +549,7 @@ function sbSoundCloud_accessToken(success, failure) {
 sbSoundCloud.prototype.updateProfile =
 function sbSoundCloud_updateProfile(onSuccess, onFailure) {
   var self = this;
-  self._info_xhr = this.apiCall("me", {},
+  this._info_xhr = this.apiCall("me", {},
     function response(success, json) {
       if (!success) {
         dump("updateProfile FAILED\n");
@@ -611,6 +616,19 @@ function sbSoundCloud_apiCall(type, flags, callback) {
       method = 'GET';
       url += "/tracks.json";
 
+      if (flags.offset == 0 && self._xhr != null)
+        self._xhr.abort();
+
+      callback = function(success, response) {
+        let tracks = JSON.parse(response);
+        dump("\n" + response + "\n");
+        flags.offset += tracks.length;
+        self.addItemsToLibrary(tracks);
+        if (tracks.length > 40) {
+          self._xhr = self.apiCall("tracks", flags, null);
+        }
+      };
+
       if (flags) {
         for (let flag in flags) {
           params += flag + "=" + flags[flag] + "&";
@@ -619,10 +637,6 @@ function sbSoundCloud_apiCall(type, flags, callback) {
 
       success = function(xhr) {
         let json = xhr.responseText;
-        let jsObject = JSON.parse(xhr.responseText);
-        if (jsObject.error) {
-          callback(false, json);
-        }
         callback(true, json);
       };
       failure = function(xhr) {
@@ -636,12 +650,69 @@ function sbSoundCloud_apiCall(type, flags, callback) {
   }
 
   if (authRequired) {
-    params = self.getParameters(url, method);
+    params = this.getParameters(url, method);
   } else {
     params += "consumer_key=" + CONSUMER_KEY;
   }
 
-  return GET(url, params, success, failure, authRequired);
+  this._xhr = GET(url, params, success, failure, authRequired);
+  return this._xhr;
+}
+
+sbSoundCloud.prototype.addItemsToLibrary =
+function sbSoundCloud_addItemsToLibrary(aItems) {
+  var self = this;
+  if (aItems != null) {
+    var itemArray = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
+                       .createInstance(Ci.nsIMutableArray);
+    var propertiesArray = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
+                            .createInstance(Ci.nsIMutableArray);
+
+    for (let i = 0; i < aItems.length; i++) {
+      var title = aItems[i].title;
+      var duration = aItems[i].duration * 1000;
+      var username = aItems[i].user.username;
+      var playcount = aItems[i].playback_count;
+      var favcount = aItems[i].favoritings_count;
+      var uri = aItems[i].uri;
+      var waveformURL = aItems[i].waveform_url;
+      var downloadable = aItems[i].downloadable;
+      var streamURL = aItems[i].stream_url;
+      if (streamURL == 'undefined')
+        continue;
+      streamURL += "?consumer_key=" + CONSUMER_KEY;
+
+      var properties =
+        Cc["@songbirdnest.com/Songbird/Properties/MutablePropertyArray;1"]
+          .createInstance(Ci.sbIMutablePropertyArray);
+
+      properties.appendProperty(SBProperties.trackName, title);
+      properties.appendProperty(SBProperties.duration, duration);
+      properties.appendProperty(SB_PROPERTY_USER, username);
+      properties.appendProperty(SB_PROPERTY_PLAYS, playcount);
+      properties.appendProperty(SB_PROPERTY_FAVS, favcount);
+      properties.appendProperty(SB_PROPERTY_WAVEFORM, waveformURL);
+
+      var ios = Cc["@mozilla.org/network/io-service;1"]
+                  .getService(Ci.nsIIOService);
+
+      
+      itemArray.appendElement(ios.newURI(streamURL, null, null), false);
+      propertiesArray.appendElement(properties, false);
+    }
+
+    var batchListener = {
+      onProgress: function(aIndex) {},
+      onComplete: function(aMediaItems, aResult) {
+        self.listeners.each(function(l) { l.onItemsAdded(); });
+      }
+    };
+
+    self._library.batchCreateMediaItemsAsync(batchListener,
+                                             itemArray,
+                                             propertiesArray,
+                                             false);
+  }
 }
 
 sbSoundCloud.prototype.onMediacoreEvent =
@@ -649,14 +720,14 @@ function sbSoundCloud_onMediacoreEvent(aEvent) {
   switch(aEvent.type) {
     case Ci.sbIMediacoreEvent.STREAM_END:
     case Ci.sbIMediacoreEvent.STREAM_STOP:
-      this.onStop();
+      //this.onStop();
       break;
     case Ci.sbIMediacoreEvent.VIEW_CHANGE:
       break;
     case Ci.sbIMediacoreEvent.BEFORE_TRACK_CHANGE:
       break;
     case Ci.sbIMediacoreEvent.TRACK_CHANGE:
-      this.onTrackChange(aEvent.data);
+      //this.onTrackChange(aEvent.data);
       break;
     default:
       break;
@@ -665,7 +736,6 @@ function sbSoundCloud_onMediacoreEvent(aEvent) {
 
 sbSoundCloud.prototype.onTrackChange =
 function sbSoundCloud_onTrackChange(aItem) {
-
 }
 
 sbSoundCloud.prototype.onStop = function sbSoundCloud_onStop() {

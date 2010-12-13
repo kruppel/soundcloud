@@ -46,7 +46,7 @@
   <script type="application/javascript" 
           src="chrome://songbird/content/scripts/browserUtilities.js"/>
 
-  <script type="application/javascript" src="radioProperties.js"/>
+  <script type="application/javascript" src="soundcloudProperties.js"/>
   <script type="application/javascript" src="soundcloud.js"/>
   <script type="application/javascript" src="directory.js"/>
 

@@ -22,97 +22,11 @@
  */
 
 Cu.import("resource://app/jsmodules/DOMUtils.jsm");
-
-if (typeof(gMM) == "undefined")
-  var gMM = Cc["@songbirdnest.com/Songbird/Mediacore/Manager;1"]
-              .getService(Ci.sbIMediacoreManager);
-
-if (typeof(gMetrics) == "undefined")
-  var gMetrics = Cc["@songbirdnest.com/Songbird/Metrics;1"]
-                   .createInstance(Ci.sbIMetrics);
-
-const SOCL_FAVICON_PATH = "chrome://soundcloud/skin/sc.png";
-
-const soundcloudTempLibGuid = "extensions.soundcloud.templib.guid";
+Cu.import("resource://app/jsmodules/sbProperties.jsm");
 
 // Create a namespace
 if (typeof SoundCloud == 'undefined')
   var SoundCloud = {};
-
-var mmListener = {
-  time : null,
-  playingTrack : null,
-  
-  onMediacoreEvent : function(ev) {
-    var item = ev.data;
-    
-    if (gMM.sequencer.view == null)
-      return;
-    
-    var list = gMM.sequencer.view.mediaList;
-
-    switch (ev.type) {
-      case Ci.sbIMediacoreEvent.STREAM_START:
-        // first we'll get the currently playing media item
-        var currentItem = gMM.sequencer
-	                     .view.getItemByIndex(gMM.sequencer.viewPosition);
-
-        // check to see if we have an active timer
-        if (mmListener.time) {
-          var now = Date.now()/1000;
-          var diff = now - mmListener.time;
-          gMetrics.metricsAdd("soundcloud", "stream", "time", diff);
-        }
-
-        // if our new stream we're playing isn't a soundcloud
-        // stream then cancel the timer
-        if (!currentItem.getProperty(SOCL_url)) {
-          mmListener.time = null;
-          mmListener.setPlayerState(false);
-          mmListener.playingTrack = null;
-          return;
-        }
-        // Ensure the playing buttons and SoundCloud faceplate
-        // icon are in the right state
-        mmListener.playingTrack = item;
-
-        // if we're here then we're a soundcloud stream, and we should
-        // start a timer
-        mmListener.time = Date.now()/1000;
-        break;
-
-      case Ci.sbIMediacoreEvent.BEFORE_TRACK_CHANGE:
-        mmListener.setPlayerState(false);
-        break;
-
-      case Ci.sbIMediacoreEvent.STREAM_END:
-
-      case Ci.sbIMediacoreEvent.STREAM_STOP:
-        mmListener.setPlayerState(false);
-        mmListener.playingTrack = null;
-
-        // check to see if we have an active timer
-        if (!mmListener.time) {
-          mmListener.time = null;
-          return;
-        }
-
-        var now = Date.now()/1000;
-        var diff = now - mmListener.time;
-        
-	gMetrics.metricsAdd("soundcloud", "stream", "time", diff);
-        mmListener.time = null;
-        break;
-
-      case Ci.sbIMediacoreEvent.METADATA_CHANGE:
-        var currentItem = gMM.sequencer.currentItem;
-        break;
-
-      default:
-        break;
-    }
-  }
-}
 
 /**
  *
@@ -133,7 +47,7 @@ SoundCloud.onLoad = function() {
   // initialization code
   this._strings = document.getElementById("soundcloud-strings");
 
-  this._service = Components.classes['@songbirdnest.com/soundcloud;1']
+  this._service = Components.classes["@songbirdnest.com/soundcloud;1"]
                                     .getService().wrappedJSObject;
   this._service.listeners.add(this);
 
@@ -247,9 +161,6 @@ SoundCloud.onLoad = function() {
     this._loginButton.disabled = true;
   }
 
-  // Attach our listener for media core events
-  gMM.addListener(mmListener);
-
   this.onLoggedInStateChanged();
 
   // Attach our listener to the ShowCurrentTrack event issued by the
@@ -266,71 +177,55 @@ SoundCloud.onLoad = function() {
   var pMgr = Cc["@songbirdnest.com/Songbird/Properties/PropertyManager;1"].
     getService(Ci.sbIPropertyManager);
 
-  if (!pMgr.hasProperty(SOCL_title)) {
+  if (!pMgr.hasProperty(SBProperties.trackName)) {
     var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"].
       createInstance(Ci.sbITextPropertyInfo);
-    pI.id = SOCL_title;
+    pI.id = SBProperties.trackName;
     pI.displayName = this._strings.getString("trackName");
     pI.userEditable = false;
     pI.userViewable = false;
     pMgr.addPropertyInfo(pI);
   }
 
-  if (!pMgr.hasProperty(SOCL_time)) {
+  if (!pMgr.hasProperty(SBProperties.duration)) {
     var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Number;1"].
       createInstance(Ci.sbINumberPropertyInfo);
-    pI.id = SOCL_time;
+    pI.id = SBProperties.duration;
     pI.displayName = this._strings.getString("duration");
     pI.userEditable = false;
     pI.userViewable = false;
     pMgr.addPropertyInfo(pI);
   }
 
-  if (!pMgr.hasProperty(SOCL_user)) {
+  if (!pMgr.hasProperty(SB_PROPERTY_USER)) {
     var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"].
       createInstance(Ci.sbITextPropertyInfo);
-    pI.id = SOCL_user;
+    pI.id = SB_PROPERTY_USER;
     pI.displayName = this._strings.getString("user");
     pI.userEditable = false;
     pI.userViewable = false;
     pMgr.addPropertyInfo(pI);
   }
 
-  if (!pMgr.hasProperty(SOCL_plays)) {
+  if (!pMgr.hasProperty(SB_PROPERTY_PLAYS)) {
     var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"].
       createInstance(Ci.sbITextPropertyInfo);
-    pI.id = SOCL_plays;
+    pI.id = SB_PROPERTY_PLAYS;
     pI.displayName = " ";
     pI.userEditable = false;
     pI.userViewable = false;
     pMgr.addPropertyInfo(pI);
   }
 
-  if (!pMgr.hasProperty(SOCL_favs)) {
+  if (!pMgr.hasProperty(SB_PROPERTY_FAVS)) {
     var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"].
       createInstance(Ci.sbITextPropertyInfo);
-    pI.id = SOCL_favs;
+    pI.id = SB_PROPERTY_FAVS;
     pI.displayName = " ";
     pI.userEditable = false;
     pI.userViewable = false;
     pMgr.addPropertyInfo(pI);
   }
-
-  if (!pMgr.hasProperty(SOCL_url)) {
-    var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"].
-      createInstance(Ci.sbITextPropertyInfo);
-    pI.id = SOCL_url;
-    pI.displayName = this._strings.getString("streamURL");
-    pI.userEditable = true;
-    pI.userViewable = false;
-    pMgr.addPropertyInfo(pI);
-  }
-
-  SoundCloud._prefBranch = Cc["@mozilla.org/preferences-service;1"]
-    .getService(Ci.nsIPrefService).getBranch("songbird.metadata.")
-    .QueryInterface(Ci.nsIPrefBranch2);
-
-  	
 }
 
 SoundCloud.showPanel = function() {
@@ -417,6 +312,10 @@ SoundCloud.onLoginCancelled = function SoundCloud_onLoginCancelled() {
   this.setLoginError(null);
 }
 
+SoundCloud.onItemsAdded = function SoundCloud_onItemsAdded() {
+  Cu.reportError("SOUNDCLOUD ITEMS ADDED");
+}
+
 SoundCloud.updateStatus = function SoundCloud_updateStatus() {
   if (this._service.loggedIn) {
     this.setStatusIcon(this.Icons.logged_in);
@@ -450,7 +349,6 @@ SoundCloud.setLoginError = function SoundCloud_setLoginError(aText) {
 
 SoundCloud.onUnload = function() {
   this._service.listeners.remove(this);
-  gMM.removeListener(mmListener);
 
   if (this._domEventListenerSet) {
     this._domEventListenerSet.removeAll();
@@ -459,57 +357,6 @@ SoundCloud.onUnload = function() {
 }
 
 var curTrackListener = function(e) {
-  var list;
-  var gPPS;
-
-  if (typeof(Ci.sbIMediacoreManager) != "undefined") {
-    list = gMM.sequencer.view.mediaList;
-  } else {
-    gPPS = Cc['@songbirdnest.com/Songbird/PlaylistPlayback;1'].
-      getService(Ci.sbIPlaylistPlayback);
-    list = gPPS.playingView.mediaList;
-  }
-
-  // get the list that owns this guid
-  if (list.getProperty(SBProperties.customType) == "radio_tempStreamList") {
-    var streamName;
-    if (typeof(Ci.sbIMediacoreManager) != "undefined") {
-      streamName = gMM.sequencer.view
-                                .getItemByIndex(gMM.sequencer.viewPosition)
-                                .getProperty(SOCL_title);
-    } else {
-      streamName = list.getItemByGuid(gPPS.currentGUID)
-                       .getProperty(SOCL_title);
-    }
-
-    // check to see if this tab is already loaded
-    var tabs = gBrowser.mTabs;
-    var found = -1;
-    var loadURL = "chrome://soundcloud/content/directory.xul";
-    for (var i=0; i<tabs.length; i++) {
-      var curBrowser = gBrowser.getBrowserAtIndex(i);
-      var loadingURI = curBrowser.userTypedValue;
-      var compValue;
-      if (loadingURI != null)
-        compValue = loadingURI;
-      else
-        compValue = curBrowser.currentURI.spec;
-      if (compValue == loadURL) {
-        found = i;
-        break;
-      }
-    }
-    if (found != -1) {
-      // a tab already exists, so select it
-      gBrowser.selectedTab = tabs[found];
-    } else {
-      // otherwise load a new tab
-      gBrowser.loadOneTab(loadURL);
-    }
-
-    // prevent the event from bubbling upwards
-    e.preventDefault();
-  }
 }
 
 SoundCloud._getElement = function(aWidget, aElementID) {
