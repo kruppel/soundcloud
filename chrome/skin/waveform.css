@@ -9,13 +9,6 @@ body#socl-wf-body {
       z-index: 1;
       width: 100%;
       height: 100%;
-/*      background-color: #FFF000;
-      -moz-background-size: 20%;
-      background-size: 20%;
-      background-image: url('chrome://soundcloud/skin/bg-header-soundcloud.png');
-      background-repeat: no-repeat;
-      -moz-box-shadow: rgba(255, 0, 140, 0.199219) 0px 0px 4px;
-*/
 }
 
 .playhead {

@@ -34,8 +34,8 @@
         hidechrome="true"
         buttons=","
         ondialogaccept="return false;"
-        onload="SoundCloud._open();"
-        onunload="SoundCloud._close();"
+        onload="SoundCloudAuthorize._open();"
+        onunload="SoundCloudAuthorize._close();"
         minwidth="420"
         minheight="670"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">

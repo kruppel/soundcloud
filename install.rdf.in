@@ -50,14 +50,14 @@
     <em:version>@EXTENSION_VER@</em:version>
     <em:name>SoundCloud</em:name>
     <em:creator>Kurt Ruppel (kurt@songbirdnest.com)</em:creator>
-    <em:description>Play SoundCloud in Songbird.</em:description>
+    <em:description>Listen to SoundCloud.</em:description>
 
     <em:iconURL>chrome://soundcloud/skin/sc.png</em:iconURL>
 
     <songbird:displayPane>
       <Description>
         <songbird:contentUrl>chrome://soundcloud/content/waveform.html</songbird:contentUrl>
-        <songbird:contentTitle>@EXTENSION_NAME@</songbird:contentTitle>
+        <songbird:contentTitle>Waveform</songbird:contentTitle>
         <songbird:contentIcon>chrome://soundcloud/skin/inactive.png</songbird:contentIcon>
         <songbird:defaultWidth>177</songbird:defaultWidth>
         <songbird:defaultHeight>120</songbird:defaultHeight>

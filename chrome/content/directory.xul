@@ -25,6 +25,8 @@
       </hbox>
       <spacer flex="1" />
       <hbox class="header-actions" pack="end">
+        <image id="adv-expand" src="chrome://soundcloud/skin/arrow.png" style="cursor: pointer;"
+               onclick="var adv = document.getElementById('adv-expand'); if (adv.className == '') { adv.className = 'adv-closed'; } else { adv.className = ''; }"/>
         <textbox id="soundcloud-search-textbox"
                  class="search-textbox" />
         <button id="soundcloud-search-btn" label="Search"

@@ -6,7 +6,7 @@ var Cu = Components.utils;
 Cu.import("resource://app/jsmodules/DOMUtils.jsm");
 Cu.import("resource://app/jsmodules/WindowUtils.jsm");
 
-var SoundCloudAuthorizeAuthorize = {
+var SoundCloudAuthorize = {
   _open: function SoundCloudAuthorizeAuthorize_open() {
     this._service = Cc['@songbirdnest.com/soundcloud;1']
                       .getService().wrappedJSObject;

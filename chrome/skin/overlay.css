@@ -54,6 +54,10 @@ textbox.textbox-input {
   font-size: 12px !important;
 }
 
+.adv-closed {
+  -moz-transform: rotate(180deg);
+}
+
 #soundcloud-search {
   height: 60px;
   background-image: url(chrome://soundcloud/skin/bg-header-soundcloud.png);

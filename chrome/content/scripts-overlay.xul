@@ -13,7 +13,8 @@
          xmlns:xlink="http://www.w3.org/1999/xlink">
 
   <stringbundleset id="stringbundleset"> 
-     <stringbundle id="soundcloud-strings" src="chrome://soundcloud/locale/overlay.properties"/>
+     <stringbundle id="soundcloud-strings"
+                   src="chrome://soundcloud/locale/overlay.properties"/>
   </stringbundleset>
 
   <popupset id="mainPopupSet">

@@ -116,7 +116,8 @@ CloudDirectory.onLoad = function() {
                   SBProperties.duration + " 71 " +
                   SB_PROPERTY_USER + " 150 " +
                   SB_PROPERTY_PLAYS + " 50 " +
-                  SB_PROPERTY_FAVS + " 50 ";
+                  SB_PROPERTY_FAVS + " 50 " +
+                  SBProperties.downloadButton + " 70 ";
     this._library.setProperty(SBProperties.columnSpec, colSpec);
     this._directory.clearColumns();
     this._directory.appendColumn(SBProperties.trackName, "358");
@@ -124,7 +125,7 @@ CloudDirectory.onLoad = function() {
     this._directory.appendColumn(SB_PROPERTY_USER, "150");
     this._directory.appendColumn(SB_PROPERTY_PLAYS, "50");
     this._directory.appendColumn(SB_PROPERTY_FAVS, "50");
-    //this._directory.appendColumn(SOCL_dl, "60");
+    this._directory.appendColumn(SBProperties.downloadButton, "70");
     //this._directory.appendColumn(SOCL_url, "290");  
   }
 }

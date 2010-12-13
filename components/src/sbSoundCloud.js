@@ -619,15 +619,17 @@ function sbSoundCloud_apiCall(type, flags, callback) {
       if (flags.offset == 0 && self._xhr != null)
         self._xhr.abort();
 
-      callback = function(success, response) {
-        let tracks = JSON.parse(response);
-        dump("\n" + response + "\n");
-        flags.offset += tracks.length;
-        self.addItemsToLibrary(tracks);
-        if (tracks.length > 40) {
-          self._xhr = self.apiCall("tracks", flags, null);
-        }
-      };
+      if (callback == null) {
+        callback = function(success, response) {
+          let tracks = JSON.parse(response);
+          dump("\n" + response + "\n");
+          flags.offset += tracks.length;
+          self.addItemsToLibrary(tracks);
+          if (tracks.length > 40) {
+            self._xhr = self.apiCall("tracks", flags, null);
+          }
+        };
+      }
 
       if (flags) {
         for (let flag in flags) {
@@ -677,6 +679,9 @@ function sbSoundCloud_addItemsToLibrary(aItems) {
       var uri = aItems[i].uri;
       var waveformURL = aItems[i].waveform_url;
       var downloadable = aItems[i].downloadable;
+      var downloadURL = "";
+      if (downloadable)
+        downloadURL = aItems[i].download_url;
       var streamURL = aItems[i].stream_url;
       if (streamURL == 'undefined')
         continue;
@@ -692,10 +697,14 @@ function sbSoundCloud_addItemsToLibrary(aItems) {
       properties.appendProperty(SB_PROPERTY_PLAYS, playcount);
       properties.appendProperty(SB_PROPERTY_FAVS, favcount);
       properties.appendProperty(SB_PROPERTY_WAVEFORM, waveformURL);
+      if (downloadURL) {
+        properties.appendProperty(SBProperties.originURL, downloadURL);
+        properties.appendProperty(SBProperties.enableAutoDownload, "1");
+        properties.appendProperty(SBProperties.downloadButton, "1|0|0");
+      }
 
       var ios = Cc["@mozilla.org/network/io-service;1"]
                   .getService(Ci.nsIIOService);
-
       
       itemArray.appendElement(ios.newURI(streamURL, null, null), false);
       propertiesArray.appendElement(properties, false);

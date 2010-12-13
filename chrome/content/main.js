@@ -43,12 +43,12 @@ SoundCloud.Icons = {
   logged_in: 'chrome://soundcloud/skin/sc.png'
 };
 
-SoundCloud.onLoad = function() {
+SoundCloud.onLoad = function SoundCloud_onLoad() {
   // initialization code
   this._strings = document.getElementById("soundcloud-strings");
 
-  this._service = Components.classes["@songbirdnest.com/soundcloud;1"]
-                                    .getService().wrappedJSObject;
+  this._service = Cc["@songbirdnest.com/soundcloud;1"]
+                    .getService().wrappedJSObject;
   this._service.listeners.add(this);
 
   this._statusIcon = document.getElementById('soundcloudStatusIcon');
@@ -171,15 +171,15 @@ SoundCloud.onLoad = function() {
   var sbWindow = Cc["@mozilla.org/appshell/window-mediator;1"].
     getService(Ci.nsIWindowMediator).
     getMostRecentWindow("Songbird:Main").window;
-  sbWindow.addEventListener("ShowCurrentTrack", curTrackListener, true);
+  sbWindow.addEventListener("ShowCurrentTrack", this.curTrackListener, true);
 
   // Create our properties if they don't exist
   var pMgr = Cc["@songbirdnest.com/Songbird/Properties/PropertyManager;1"].
     getService(Ci.sbIPropertyManager);
 
   if (!pMgr.hasProperty(SBProperties.trackName)) {
-    var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"].
-      createInstance(Ci.sbITextPropertyInfo);
+    var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"]
+               .createInstance(Ci.sbITextPropertyInfo);
     pI.id = SBProperties.trackName;
     pI.displayName = this._strings.getString("trackName");
     pI.userEditable = false;
@@ -188,8 +188,8 @@ SoundCloud.onLoad = function() {
   }
 
   if (!pMgr.hasProperty(SBProperties.duration)) {
-    var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Number;1"].
-      createInstance(Ci.sbINumberPropertyInfo);
+    var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Number;1"]
+               .createInstance(Ci.sbINumberPropertyInfo);
     pI.id = SBProperties.duration;
     pI.displayName = this._strings.getString("duration");
     pI.userEditable = false;
@@ -198,8 +198,8 @@ SoundCloud.onLoad = function() {
   }
 
   if (!pMgr.hasProperty(SB_PROPERTY_USER)) {
-    var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"].
-      createInstance(Ci.sbITextPropertyInfo);
+    var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"]
+               .createInstance(Ci.sbITextPropertyInfo);
     pI.id = SB_PROPERTY_USER;
     pI.displayName = this._strings.getString("user");
     pI.userEditable = false;
@@ -208,8 +208,8 @@ SoundCloud.onLoad = function() {
   }
 
   if (!pMgr.hasProperty(SB_PROPERTY_PLAYS)) {
-    var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"].
-      createInstance(Ci.sbITextPropertyInfo);
+    var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"]
+               .createInstance(Ci.sbITextPropertyInfo);
     pI.id = SB_PROPERTY_PLAYS;
     pI.displayName = " ";
     pI.userEditable = false;
@@ -218,8 +218,8 @@ SoundCloud.onLoad = function() {
   }
 
   if (!pMgr.hasProperty(SB_PROPERTY_FAVS)) {
-    var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"].
-      createInstance(Ci.sbITextPropertyInfo);
+    var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Text;1"]
+               .createInstance(Ci.sbITextPropertyInfo);
     pI.id = SB_PROPERTY_FAVS;
     pI.displayName = " ";
     pI.userEditable = false;
@@ -228,11 +228,12 @@ SoundCloud.onLoad = function() {
   }
 }
 
-SoundCloud.showPanel = function() {
+SoundCloud.showPanel = function SoundCloud_showPanel() {
   this._panel.openPopup(this._statusIcon);
 }
 
-SoundCloud._handleUIEvents = function(aEvent) {
+SoundCloud._handleUIEvents =
+function SoundCloud__handlUIEvents(aEvent) {
   switch (aEvent.type) {
     case "login-button-clicked":
       this._service.userLoggedOut = false;
@@ -347,20 +348,27 @@ SoundCloud.setLoginError = function SoundCloud_setLoginError(aText) {
   }
 }
 
-SoundCloud.onUnload = function() {
+SoundCloud.curTrackListener =
+function SoundCloud_curTrackListener(aEvent) {
+
+}
+
+SoundCloud.uninstallObserver = {
+
+}
+
+SoundCloud._getElement =
+function SoundCloud__getElement(aWidget, aElementID) {
+  return document.getAnonymousElementByAttribute(aWidget, "sbid", aElementID);
+}
+
+SoundCloud.onUnload = function SoundCloud_onUnload() {
   this._service.listeners.remove(this);
 
   if (this._domEventListenerSet) {
     this._domEventListenerSet.removeAll();
     this._domEventListenerSet = null;
   }
-}
-
-var curTrackListener = function(e) {
-}
-
-SoundCloud._getElement = function(aWidget, aElementID) {
-  return document.getAnonymousElementByAttribute(aWidget, "sbid", aElementID);
 }
 
 window.addEventListener("load",
