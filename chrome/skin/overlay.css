@@ -1,5 +1,4 @@
-treecol[bind="http://songbirdnest.com/data/1.0#user"],
-treecol[bind="http://songbirdnest.com/data/1.0#streamURL"]
+treecol[bind="http://songbirdnest.com/data/1.0#user"]
 {
  text-align: left;
 }
@@ -25,9 +24,7 @@ treecol[bind="http://songbirdnest.com/data/1.0#favcount"]
 }
 
 treecol[bind="http://songbirdnest.com/data/1.0#user"] > label,
-treecol[bind="http://songbirdnest.com/data/1.0#streamURL"] > label,
-.sb-playlist-tree > treechildren::-moz-tree-cell-text( http-songbirdnest-com-data-1-0-user ),
-.sb-playlist-tree > treechildren::-moz-tree-cell-text( http-songbirdnest-com-data-1-0-streamURL )
+.sb-playlist-tree > treechildren::-moz-tree-cell-text( http-songbirdnest-com-data-1-0-user )
 {
   padding-right: 15px;
 }
@@ -64,11 +61,12 @@ textbox.textbox-input {
 }
 
 #soundcloud-search-textbox {
+  background-color: #FFFFFF;
   height: 25px;
   border: 1px solid #EEEEEE;
   -moz-border-radius-topleft: 5px;
-  -moz-border-radius-topright: 0px;
   -moz-border-radius-bottomleft: 5px;
+  -moz-border-radius-topright: 0px;
   -moz-border-radius-bottomright: 0px;
 }
 

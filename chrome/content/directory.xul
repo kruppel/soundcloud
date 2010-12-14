@@ -23,15 +23,49 @@
           <image src="chrome://soundcloud/skin/soundcloud_new_logo.png" />
         </label>
       </hbox>
-      <spacer flex="1" />
+      <spacer flex="1" minwidth="50px" />
       <hbox class="header-actions" pack="end">
-        <image id="adv-expand" src="chrome://soundcloud/skin/arrow.png" style="cursor: pointer;"
-               onclick="var adv = document.getElementById('adv-expand'); if (adv.className == '') { adv.className = 'adv-closed'; } else { adv.className = ''; }"/>
         <textbox id="soundcloud-search-textbox"
-                 class="search-textbox" />
+                 class="search-textbox">
+          <dropmarker id="advanced-dropmarker" allowevents="true" style="padding-left:3px; padding-right:8px; cursor: pointer;"
+                      onclick="var adv = document.getElementById('advanced-search'); adv.hidden = !adv.hidden;"/>
+        </textbox>
         <button id="soundcloud-search-btn" label="Search"
                 disabled="true" />
       </hbox>
+    </hbox>
+  </vbox>
+  <vbox id="advanced-search" height="120" style="background-color:rgb(255,103,51);" hidden="true">
+    <vbox style="margin-left:25px;">
+      <spacer flex="1" />
+      <checkbox id="adv-checkbox" label="Advanced Search" checked="false" oncommand="var el = document.getElementById('search-options'); var cb = document.getElementById('adv-checkbox'); el.setAttribute('disabled', !cb.checked);" style="padding-left:3px;"/>
+      <spacer flex="2" />
+    </vbox>
+    <hbox id="search-options" style="margin-left:25px;">
+      <vbox>
+        <label value="Order" style="padding-left:5px; font-size:9px; color:#EEE; opacity: 0.6" control="search-order"/>
+        <radiogroup id="search-order" orient="horizontal" style="background-color:inherit; margin-top:-5px;">
+          <radio id="created-at" label="Created at" />
+          <radio id="hotness" label="Hotness" />
+        </radiogroup>
+        <label value="BPM" style="padding-left:5px; font-size:9px; color:#EEE; opacity: 0.6" control="search-bpm"/>
+        <hbox id="search-bpm" align="center" style="margin-top:-5px;">
+          <label value="min" style="padding-left:5px; font-size:9px; color:#EEE; opacity: 0.6" control="min-bpm"/>
+          <textbox id="min-bpm" type="number" min="0" max="300" width="40" />
+          <label value="max" style="padding-left:5px; font-size:9px; color:#EEE; opacity: 0.6" control="max-bpm"/>
+          <textbox id="max-bpm" type="number" min="0" max="300" width="40" />
+        </hbox>
+      </vbox>
+      <vbox>
+        <label value="Created" style="padding-left:5px; font-size:9px; color:#EEE; opacity: 0.6" control="search-created"/>
+        <hbox id="created-from" align="center" style="margin-top:-5px;">
+          <label value="from" style="padding-left:5px; font-size:9px; color:#EEE; opacity: 0.6" control="created-from"/>
+          <textbox value="12/14/2010" readonly="true" id="created-to" width="75" />
+          <label value="to" style="padding-left:5px; font-size:9px; color:#EEE; opacity: 0.6" control="created-to"/>
+          <textbox value="Today" readonly="true" id="max-duration" width="75" />
+        </hbox>
+      </vbox>
+      <spacer flex="1" />
     </hbox>
   </vbox>
   <sb-playlist flex="1"

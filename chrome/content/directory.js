@@ -112,21 +112,20 @@ CloudDirectory.onLoad = function() {
   // normal columns and use the soundcloud ones
   if (!Application.prefs.getValue(initialized, false)) {
     Application.prefs.setValue(initialized, true);
-    var colSpec = SBProperties.trackName + " 358 " +
-                  SBProperties.duration + " 71 " +
+    var colSpec = SBProperties.trackName + " 360 " +
+                  SBProperties.duration + " 70 " +
                   SB_PROPERTY_USER + " 150 " +
-                  SB_PROPERTY_PLAYS + " 50 " +
-                  SB_PROPERTY_FAVS + " 50 " +
+                  SB_PROPERTY_PLAYS + " 60 " +
+                  SB_PROPERTY_FAVS + " 60 " +
                   SBProperties.downloadButton + " 70 ";
     this._library.setProperty(SBProperties.columnSpec, colSpec);
     this._directory.clearColumns();
-    this._directory.appendColumn(SBProperties.trackName, "358");
-    this._directory.appendColumn(SBProperties.duration, "71");
+    this._directory.appendColumn(SBProperties.trackName, "360");
+    this._directory.appendColumn(SBProperties.duration, "70");
     this._directory.appendColumn(SB_PROPERTY_USER, "150");
-    this._directory.appendColumn(SB_PROPERTY_PLAYS, "50");
-    this._directory.appendColumn(SB_PROPERTY_FAVS, "50");
+    this._directory.appendColumn(SB_PROPERTY_PLAYS, "60");
+    this._directory.appendColumn(SB_PROPERTY_FAVS, "60");
     this._directory.appendColumn(SBProperties.downloadButton, "70");
-    //this._directory.appendColumn(SOCL_url, "290");  
   }
 }
 
