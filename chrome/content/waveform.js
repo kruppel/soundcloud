@@ -41,6 +41,9 @@ function SoundClouWaveform_onLoad() {
   this.remote_position.bindObserver(dataRemoteListener, true);
   this.remote_length = SBNewDataRemote("metadata.length", null);
   this.remote_length.bindObserver(dataRemoteListener, true);
+
+  this._idle = document.getElementById("socl-idle");
+  this._wfdisplay = document.getElementById("socl-wf-display");
 }
 
 SoundCloudWaveform.onPositionChanged =
@@ -59,8 +62,14 @@ function SoundCloudWaveform_onMediacoreEvent(aEvent) {
     case Ci.sbIMediacoreEvent.TRACK_CHANGE:
       this._currentItem = gMM.sequencer.currentItem;
       var img = this._currentItem.getProperty(SB_PROPERTY_WAVEFORM);
-      if (img != null)
+      if (img != null) {
+        this._idle.style.visibility = "hidden";
+        this._wfdisplay.style.visibility = "visible";
         this._waveform.src = img;
+      } else {
+        this._idle.style.visibility = "visible";
+        this._wfdisplay.style.visibility = "hidden";
+      }
       break;
     case Ci.sbIMediacoreEvent.SEQUENCE_CHANGE:
       dump("\nSEQUENCECHANGE\nposition: " + gMM.sequencer.viewPosition +

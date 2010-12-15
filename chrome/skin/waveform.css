@@ -4,8 +4,9 @@ body#socl-wf-body {
   background-color: rgb(94, 92, 100);
 }
 
-.socl-idle {
+#socl-idle {
   padding-right: 50px;
+  background-color: rgb(244, 258, 252) !important;
   background-image: url('chrome://soundcloud/skin/big-cloud.png');
   background-position: 95% center;
   background-repeat: no-repeat;

@@ -5,6 +5,8 @@
 <?xml-stylesheet href="chrome://songbird/skin/songbird.css" type="text/css"?>
 <?xml-stylesheet href="chrome://soundcloud/skin/overlay.css"
                  type="text/css"?>
+<?xml-stylesheet href="chrome://soundcloud/skin/directory.css"
+                 type="text/css"?>
 
 <!DOCTYPE page SYSTEM "chrome://soundcloud/locale/overlay.dtd">
 

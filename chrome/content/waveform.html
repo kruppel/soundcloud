@@ -1,5 +1,4 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <link type="text/css" rel="stylesheet" media="screen"
@@ -7,11 +6,18 @@
   <script type="text/javascript" src="soundcloudProperties.js"></script>
   <script type="text/javascript" src="waveform.js"></script>
 </head>
-
 <body id="socl-wf-body">
-  <div class="socl-idle">
+  <div id="socl-idle" style="min-width:750px; max-height: 500px;">
+    <!-- Don't forget about box-shadow and border-radius -->
+    <div id="socl-frame" style="position:absolute;top:15%;left:5%;background:#DAE8F6;padding:7px;margin: 0px auto 20px;display:block;-moz-border-radius-topleft:7px 7px;-moz-border-radius-topright:7px 7px;-moz-border-radius-bottomleft:7px 7px;-moz-border-radius-bottomright:7px 7px;">
+    <div id="socl-slogan" style="background-color:white;height:40px; width: 300px; border: 1px solid #B6CEE6; padding:10px; -moz-box-shadow:white 0px 0px 2px;text-align:center;">
+      <span style="font-family: 'Lucida Grande', Arial, Helvetica, Verdana, sans-serif; font-size: 25px; color: #06C;">
+        Visualize Your Sound      
+      </span>
+    </div>
+    </div>
   </div>
-  <div class="socl-wf-display" style="visibility: hidden;">
+  <div id="socl-wf-display" style="visibility: hidden;">
     <img id="waveform" src="chrome://soundcloud/skin/test_waveform.png" />
     <div id="wf-cursor" class="playhead" style="width: 0%; border-right: 1px solid rgb(255,85,0);" />
     <div class="seekhead" style="display: none;" >

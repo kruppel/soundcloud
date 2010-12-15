@@ -40,7 +40,7 @@ SoundCloud.URL_PASSWORD = 'https://soundcloud.com/login/forgot';
 SoundCloud.Icons = {
   busy: 'chrome://soundcloud/skin/busy.png',
   disabled: 'chrome://soundcloud/skin/disabled.png',
-  logged_in: 'chrome://soundcloud/skin/sc.png'
+  logged_in: 'chrome://soundcloud/skin/logged-in.png'
 };
 
 SoundCloud.onLoad = function SoundCloud_onLoad() {
