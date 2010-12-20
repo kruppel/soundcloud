@@ -49,6 +49,7 @@ const SB_PROPERTY_USER = SB_NS + "user";
 const SB_PROPERTY_PLAYS = SB_NS + "playcount";
 const SB_PROPERTY_FAVS = SB_NS + "favcount";
 const SB_PROPERTY_WAVEFORM = SB_NS + "waveformURL";
+const SB_PROPERTY_DOWNLOAD_URL = SB_NS + "downloadURL";
 
 const SOUNDCLOUD_LIBNAME = 'soundcloud-search.db';
 
@@ -702,6 +703,7 @@ function sbSoundCloud_addItemsToLibrary(aItems) {
         properties.appendProperty(SBProperties.originURL, downloadURL);
         properties.appendProperty(SBProperties.enableAutoDownload, "1");
         properties.appendProperty(SBProperties.downloadButton, "1|0|0");
+        properties.appendProperty(SB_PROPERTY_DOWNLOAD_URL, downloadURL);
       }
 
       var ios = Cc["@mozilla.org/network/io-service;1"]
