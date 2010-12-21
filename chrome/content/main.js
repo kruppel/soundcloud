@@ -51,6 +51,15 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
                     .getService().wrappedJSObject;
   this._service.listeners.add(this);
 
+  this.m_mgr = Cc["@songbirdnest.com/Songbird/PlaylistCommandsManager;1"]
+              .createInstance(Ci.sbIPlaylistCommandsManager);
+
+  if (!this.m_mgr.request("soundcloud-cmds@sb.com"))
+    this._initCommands();
+
+  this._downloadItems = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
+                          .getService(Ci.nsIMutableArray);;
+
   this._statusIcon = document.getElementById('soundcloudStatusIcon');
   this._panelBinding = document.getElementById('soundcloudLoginPanel');
   this._panel = this._getElement(this._panelBinding, 'loginPanel');
@@ -228,6 +237,137 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
   }
 }
 
+SoundCloud._initCommands = function SoundCloud__initCommands() {
+  var self = this;
+  var ioService = Cc["@mozilla.org/network/io-service;1"]
+                    .getService(Ci.nsIIOService);
+
+  const PlaylistCommandsBuilder = new Components.
+    Constructor("@songbirdnest.com/Songbird/PlaylistCommandsBuilder;1",
+                "sbIPlaylistCommandsBuilder", "init");
+
+  this.m_cmd_Play = new PlaylistCommandsBuilder("play-soundcloud-cmd");
+  this.m_cmd_Play.appendAction(null,
+                               "soundcloud_cmd_play",
+                               "&command.play",
+                               "&command.tooltip.play",
+                               plCmd_Play_TriggerCallback);
+  this.m_cmd_Play.setCommandShortcut(null,
+                                     "soundcloud_cmd_play",
+                                     "&command.shortcut.key.play",
+                                     "&command.shortcut.keycode.play",
+                                     "&command.shortcut.modifiers.play",
+                                     true);
+  this.m_cmd_Play.setCommandEnabledCallback(null,
+                                            "soundcloud_cmd_play",
+                                            plCmd_IsAnyTrackSelected);
+  this.m_mgr.publish("soundcloud-play@sb.com", this.m_cmd_Play);
+  this.m_cmd_Download = new PlaylistCommandsBuilder("download-soundcloud-cmd");
+  this.m_cmd_Download.appendAction(null,
+                               "soundcloud_cmd_download",
+                               "&command.soundcloud_download",
+                               "&command.tooltip.download",
+                               plCmd_Download_TriggerCallback);
+  this.m_cmd_Download.setCommandShortcut(null,
+                                     "soundcloud_cmd_download",
+                                     "&command.shortcut.key.download",
+                                     "&command.shortcut.keycode.download",
+                                     "&command.shortcut.modifiers.download",
+                                     true);
+  this.m_cmd_Download.setCommandEnabledCallback(null,
+                                            "soundcloud_cmd_download",
+                                            plCmd_IsAnyTrackSelected);
+  this.m_mgr.publish("soundcloud-download@sb.com", this.m_cmd_Download);
+  this.m_soundcloudCommands = new PlaylistCommandsBuilder("soundcloud_cmds");
+  this.m_soundcloudCommands.appendPlaylistCommands(null,
+                                                   "soundcloud_cmd_play",
+                                                   this.m_cmd_Play);
+  this.m_soundcloudCommands.appendPlaylistCommands(null,
+                                                   "soundcloud_cmd_download",
+                                                   this.m_cmd_Download);
+  this.m_soundcloudCommands.setVisibleCallback(plCmd_HideForToolbarCheck);
+  this.m_mgr.publish("soundcloud-cmds@sb.com", this.m_soundcloudCommands);
+
+  // Called when the play action is triggered
+  function plCmd_Play_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
+    // if something is selected, trigger the play event on the playlist
+    if (plCmd_IsAnyTrackSelected(aContext, aSubMenuId, aCommandId, aHost)) {
+      // Repurpose the command to act as a doubleclick
+      unwrap(aContext.playlist).sendPlayEvent();
+    }
+  }
+
+  // Called when the download action is triggered
+  function plCmd_Download_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
+    // if something is selected, trigger the download event on the playlist
+    if (plCmd_IsAnyTrackSelected(aContext, aSubMenuId, aCommandId, aHost)) {
+      var ddh = Cc["@songbirdnest.com/Songbird/DownloadDeviceHelper;1"]
+                  .getService(Ci.sbIDownloadDeviceHelper);
+      var playlist = unwrap(aContext.playlist);
+      var selectedEnum = playlist.mediaListView.selection.selectedIndexedMediaItems;
+      var library = songbird.siteLibrary;
+      if (!self._downloadList)
+        self._downloadList = library.createMediaList("simple");
+
+      while (selectedEnum.hasMoreElements()) {
+        self._downloadList.setProperty(SBProperties.customType, "download");
+        self._downloadList.setProperty(SBProperties.hidden, "1");
+
+        let curItem = selectedEnum.getNext();
+        if (curItem) {
+          let downloadURL = curItem.mediaItem.getProperty(SB_PROPERTY_DOWNLOAD_URL);
+          if (downloadURL && downloadURL != "") {
+            Cu.reportError("Are we getting here loop?");
+            let item = library.createMediaItem(downloadURL);
+            Cu.reportError("Are we getting here loop 2?");
+            item.setProperty(SBProperties.trackName,
+                             curItem.getProperty(SBProperties.trackName));
+            self._downloadList.add(item);
+            Cu.reportError("Are we getting here loop 3?");
+            self._downloadItems.appendElement(item, false);
+          }
+        }
+      }
+
+      var metadataService = Cc["@songbirdnest.com/Songbird/FileMetadataService;1"]
+                              .getService(Ci.sbIFileMetadataService);
+      metadataService.read(self._downloadItems);
+      ddh.downloadAll(self._downloadList);
+    }
+  }
+
+  function onDownloadComplete(aEvent) {
+    var item = aEvent.item;
+    var origin = item.getProperty(SBProperties.originURL);
+    var curr = item.getProperty(SBProperties.contentURL);
+    if (origin == curr) {
+      self._downloadList.removeItem(item);
+      //
+      let idx = self._downloadItems.indexOf(item);
+      if (idx != -1)
+        self._downloadItems.removeElementAt(idx);
+      //
+      if (self._downloadItems.length < 1) {
+        document.removeEventListener("downloadcomplete",
+                                     onDownloadComplete,
+                                     true);
+        self._downloadList = null;
+      }
+    }
+  }
+
+  // Returns true when at least one track is selected in the playlist
+  function plCmd_IsAnyTrackSelected(aContext, aSubMenuId, aCommandId, aHost) {
+    return (unwrap(aContext.playlist).mediaListView.selection.count != 0);
+  }
+
+  function plCmd_HideForToolbarCheck(aContext, aHost) {
+    return (aHost !== "toolbar");
+  }
+
+  document.addEventListener("downloadcomplete", onDownloadComplete, true);
+}
+
 SoundCloud.showPanel = function SoundCloud_showPanel() {
   this._panel.openPopup(this._statusIcon);
 }
@@ -364,11 +504,21 @@ function SoundCloud__getElement(aWidget, aElementID) {
 
 SoundCloud.onUnload = function SoundCloud_onUnload() {
   this._service.listeners.remove(this);
+  this.m_mgr.withdraw("soundcloud-play@sb.com", this.m_cmd_Play);
+  this.m_mgr.withdraw("soundcloud-download@sb.com", this.m_cmd_Download);
+  this.m_mgr.withdraw("soundcloud-cmds@sb.com", this.m_soundcloudCommands);
 
   if (this._domEventListenerSet) {
     this._domEventListenerSet.removeAll();
     this._domEventListenerSet = null;
   }
+}
+
+/* Helper functions */
+function unwrap(obj) {
+  if (obj && obj.wrappedJSObject)
+    obj = obj.wrappedJSObject;
+  return obj;
 }
 
 window.addEventListener("load",

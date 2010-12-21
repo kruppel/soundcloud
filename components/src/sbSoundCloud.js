@@ -680,12 +680,14 @@ function sbSoundCloud_addItemsToLibrary(aItems) {
       var favcount = aItems[i].favoritings_count;
       var uri = aItems[i].uri;
       var waveformURL = aItems[i].waveform_url;
-      var downloadable = aItems[i].downloadable;
-      var downloadURL = "";
-      if (downloadable)
-        downloadURL = aItems[i].download_url;
+      // XXX - Need to make sure this does what I want it to
+      var downloadURL = aItems[i].download_url || "";
       var streamURL = aItems[i].stream_url;
-      if (streamURL == 'undefined')
+
+      if (downloadURL.indexOf(SOCL_URL) != -1)
+        downloadURL += "?consumer_key=" + CONSUMER_KEY;
+
+      if (streamURL.indexOf(SOCL_URL) == -1)
         continue;
       streamURL += "?consumer_key=" + CONSUMER_KEY;
 
