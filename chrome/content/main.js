@@ -242,9 +242,19 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
   var ioService = Cc["@mozilla.org/network/io-service;1"]
                     .getService(Ci.nsIIOService);
 
-  const PlaylistCommandsBuilder = new Components.
-    Constructor("@songbirdnest.com/Songbird/PlaylistCommandsBuilder;1",
-                "sbIPlaylistCommandsBuilder", "init");
+  var appInfo = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo);
+  var versionChecker = Cc["@mozilla.org/xpcom/version-comparator;1"]
+                         .getService(Ci.nsIVersionComparator);
+  var PlaylistCommandsBuilder = {};
+  if (versionChecker.compare(appInfo.version, "1.10") >= 0) {
+    PlaylistCommandsBuilder = new Components.
+      Constructor("@songbirdnest.com/Songbird/PlaylistCommandsBuilder;1",
+                  "sbIPlaylistCommandsBuilder", "init");
+  } else {
+    PlaylistCommandsBuilder = new Components.
+      Constructor("@songbirdnest.com/Songbird/PlaylistCommandsBuilder;1",
+                  "sbIPlaylistCommandsBuilder");
+  }
 
   this.m_cmd_Play = new PlaylistCommandsBuilder("play-soundcloud-cmd");
   this.m_cmd_Play.appendAction(null,
@@ -264,19 +274,19 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
   this.m_mgr.publish("soundcloud-play@sb.com", this.m_cmd_Play);
   this.m_cmd_Download = new PlaylistCommandsBuilder("download-soundcloud-cmd");
   this.m_cmd_Download.appendAction(null,
-                               "soundcloud_cmd_download",
-                               "&command.soundcloud_download",
-                               "&command.tooltip.download",
-                               plCmd_Download_TriggerCallback);
+                                   "soundcloud_cmd_download",
+                                   this._strings.getString("command.soundcloud_download"),
+                                   "&command.tooltip.download",
+                                   plCmd_Download_TriggerCallback);
   this.m_cmd_Download.setCommandShortcut(null,
-                                     "soundcloud_cmd_download",
-                                     "&command.shortcut.key.download",
-                                     "&command.shortcut.keycode.download",
-                                     "&command.shortcut.modifiers.download",
-                                     true);
+                                         "soundcloud_cmd_download",
+                                         "&command.shortcut.key.download",
+                                         "&command.shortcut.keycode.download",
+                                         "&command.shortcut.modifiers.download",
+                                         true);
   this.m_cmd_Download.setCommandEnabledCallback(null,
-                                            "soundcloud_cmd_download",
-                                            plCmd_IsAnyTrackSelected);
+                                                "soundcloud_cmd_download",
+                                                plCmd_IsAnyTrackSelected);
   this.m_mgr.publish("soundcloud-download@sb.com", this.m_cmd_Download);
   this.m_soundcloudCommands = new PlaylistCommandsBuilder("soundcloud_cmds");
   this.m_soundcloudCommands.appendPlaylistCommands(null,
