@@ -51,8 +51,6 @@ const SB_PROPERTY_FAVS = SB_NS + "favcount";
 const SB_PROPERTY_WAVEFORM = SB_NS + "waveformURL";
 const SB_PROPERTY_DOWNLOAD_URL = SB_NS + "downloadURL";
 
-const SOUNDCLOUD_LIBNAME = 'soundcloud-search.db';
-
 const SOCL_URL = 'https://api.soundcloud.com';
 const AUTH_PAGE = 'chrome://soundcloud/content/soundcloudAuthorize.xul'
 const CONSUMER_SECRET = "YqGENlIGpWPnjQDJ2XCLAur2La9cTLdMYcFfWVIsnvw";
@@ -61,6 +59,25 @@ const SIG_METHOD = "HMAC-SHA1";
 
 var OAUTH_TOKEN = '';
 var TOKEN_SECRET = '';
+
+var Libraries = {
+  SEARCH: {
+    "name": "SoundCloud",
+    "guid": "search"
+  },
+  DOWNLOADS: {
+    "name": "Downloads",
+    "guid": "downloads"
+  },
+  DASHBOARD: {
+    "name": "Dashboard",
+    "guid": "dashboard"
+  },
+  FAVORITES: {
+    "name": "Favorites",
+    "guid": "favorites"
+  }
+}
 
 // object to manage login state
 var Logins = {
@@ -223,6 +240,9 @@ function sbSoundCloud() {
   });
 
   this.__defineGetter__('oauth_token', function() {
+    let pref = this.username + ".oauth_token";
+    let token = (this._prefs.prefHasUserValue(pref)) ?
+                  this._prefs.getCharPref(pref) : false;
     return this._prefs.getCharPref(this.username + ".oauth_token");
   });
 
@@ -263,32 +283,46 @@ function sbSoundCloud() {
                              .getService(Ci.sbIMediacoreManager);
   this._mediacoreManager.addListener(this);
 
-  var libraryManager = Cc["@songbirdnest.com/Songbird/library/Manager;1"]
-                         .getService(Ci.sbILibraryManager);
-  var libraryFactory =
-    Cc["@songbirdnest.com/Songbird/Library/LocalDatabase/LibraryFactory;1"]
-      .getService(Ci.sbILibraryFactory);
-
-  var libGuid = this._prefs.getCharPref("library.guid");
-
-  if (libGuid == "") {
-    var file = Cc["@mozilla.org/file/directory_service;1"]
-                 .getService(Ci.nsIProperties).get("ProfD", Ci.nsIFile);
-    file.append("db");
-    file.append(SOUNDCLOUD_LIBNAME);
-    var bag = Cc["@mozilla.org/hash-property-bag;1"]
-                .createInstance(Ci.nsIWritablePropertyBag2);
-    bag.setPropertyAsInterface("databaseFile", file);
-    this._library = libraryFactory.createLibrary(bag);
-    this._library.name = "SoundCloud Search";
-    libraryManager.registerLibrary(this._library, true);
-    this._prefs.setCharPref("library.guid", this._library.guid);
-  } else {
-    this._library = libraryManager.getLibrary(libGuid);
-    this._prefs.setCharPref("library.guid", this._library.guid);
+  this._getLibrary = function(aLibrary, aUserId) {
+    var libraryManager = Cc["@songbirdnest.com/Songbird/library/Manager;1"]
+                           .getService(Ci.sbILibraryManager);
+    var library = {};
+    var pref = aLibrary.guid + ".guid";
+    var guid = (this._prefs.prefHasUserValue(pref)) ?
+                 this._prefs.getCharPref(pref) : false;
+    if (!guid) {
+      var directory = Cc["@mozilla.org/file/directory_service;1"]
+                        .getService(Ci.nsIProperties)
+                        .get("ProfD", Ci.nsIFile);
+      directory.append("db");
+      directory.append("soundcloud");
+      var file = directory.clone();
+      // Create local (per user) or global (all users) db
+      if (aUserId) {
+        file.append(aLibrary.guid + "-" + aUserId + "@soundcloud.com.db");
+      } else {
+        file.append(aLibrary.guid + "@soundcloud.com.db");
+      }
+      var libraryFactory =
+        Cc["@songbirdnest.com/Songbird/Library/LocalDatabase/LibraryFactory;1"]
+          .getService(Ci.sbILibraryFactory);
+      var bag = Cc["@mozilla.org/hash-property-bag;1"]
+                  .createInstance(Ci.nsIWritablePropertyBag2);
+      bag.setPropertyAsInterface("databaseFile", file);
+      library = libraryFactory.createLibrary(bag);
+    } else {
+      library = libraryManager.getLibrary(guid);
+      this._prefs.setCharPref(aLibrary.guid + ".guid", library.guid);
+    }
+    return library;
   }
 
+  this._library = this._getLibrary(Libraries.SEARCH, null);
+  this._downloads = this._getLibrary(Libraries.DOWNLOADS, null);
+  this._dashboard = this._getLibrary(Libraries.DASHBOARD, null);
+
   this.__defineGetter__('library', function() { return this._library; });
+  this.__defineGetter__('downloads', function() { return this._downloads; });
 
   this._strings =
     Cc["@mozilla.org/intl/stringbundle;1"]
@@ -562,6 +596,7 @@ function sbSoundCloud_updateProfile(onSuccess, onFailure) {
 
       dump("\n" + json + "\n");
       var jsObject = JSON.parse(json);
+      self.userid = jsObject.id;
       self.realname = jsObject.username;
       self.avatar = jsObject.avatar_url;
       self.following = jsObject.followings_count;
@@ -758,46 +793,6 @@ sbSoundCloud.prototype.onStop = function sbSoundCloud_onStop() {
 
 sbSoundCloud.prototype.shutdown = function sbSoundCloud_shutdown() {
 
-}
-
-function createLibrary(databaseGuid, databaseLocation, init) {
-  if (typeof(init) == "undefined") {
-    init = true;
-  }
-
-  var directory;
-  if (databaseLocation) {
-    directory = databaseLocation.QueryInterface(Ci.nsIFileURL).file;
-  }
-  else {
-    directory = Cc["@mozilla.org/file/directory_service;1"].
-                getService(Ci.nsIProperties).
-                get("ProfD", Ci.nsIFile);
-    directory.append("db");
-  }
-
-  var file = directory.clone();
-  file.append(databaseGuid + ".db");
-
-  var libraryFactory =
-    Cc["@songbirdnest.com/Songbird/Library/LocalDatabase/LibraryFactory;1"]
-      .getService(Ci.sbILibraryFactory);
-  var hashBag = Cc["@mozilla.org/hash-property-bag;1"].
-                createInstance(Ci.nsIWritablePropertyBag2);
-  hashBag.setPropertyAsInterface("databaseFile", file);
-  var library = libraryFactory.createLibrary(hashBag);
-  try {
-    if (init) {
-      library.clear();
-    }
-  }
-  catch(e) {
-  }
-
-  if (init) {
-    loadData(databaseGuid, databaseLocation);
-  }
-  return library;
 }
 
 var components = [sbSoundCloud];

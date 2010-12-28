@@ -58,7 +58,7 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
     this._initCommands();
 
   this._downloadItems = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
-                          .getService(Ci.nsIMutableArray);;
+                          .getService(Ci.nsIMutableArray);
 
   this._statusIcon = document.getElementById('soundcloudStatusIcon');
   this._panelBinding = document.getElementById('soundcloudLoginPanel');
@@ -311,11 +311,83 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
   function plCmd_Download_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
     // if something is selected, trigger the download event on the playlist
     if (plCmd_IsAnyTrackSelected(aContext, aSubMenuId, aCommandId, aHost)) {
+      let playlist = unwrap(aContext.playlist);
+      let selectedEnum = playlist.mediaListView.selection.selectedIndexedMediaItems;
+      let library = self._service.downloads;
+      // Get the media item download service.
+      let mediaItemDownloadService =
+            Cc["@songbirdnest.com/Songbird/MediaItemDownloadService;1"]
+              .getService(Ci.sbIMediaItemDownloadService);
+      let ios = Cc["@mozilla.org/network/io-service;1"]
+                  .getService(Ci.nsIIOService);
+      while (selectedEnum.hasMoreElements()) {
+        let curItem = selectedEnum.getNext()
+                                  .QueryInterface(Ci.sbIIndexedMediaItem)
+                                  .mediaItem;
+        if (curItem) {
+          let downloadURL = curItem.getProperty(SB_PROPERTY_DOWNLOAD_URL);
+          if (downloadURL && downloadURL != "") {
+            Cu.reportError("Are we getting here loop?");
+            let item = library.createMediaItem(ios.newURI("http://robotsinheat.com/trax/WeDidItAgain.mp3", null, null));
+            //let item = library.createMediaItem(ios.newURI(downloadURL, null, null));
+            Cu.reportError("Are we getting here loop 2?");
+            item.setProperty(SBProperties.trackName,
+                             curItem.getProperty(SBProperties.trackName));
+            // Get a downloader for the media item.
+            let downloader;
+            try {
+              downloader = mediaItemDownloadService.getDownloader(item, null);
+              Cu.reportError("Got downloader: " + downloader);
+            } catch(ex) {
+              Cu.reportError("Could not get a media item downloader: " + ex);
+            }
+
+            // Get the download size.
+            let downloadSize = downloader.getDownloadSize(item, null);
+            Cu.reportError("DOWNLOAD SIZE: " + downloadSize);
+
+            // Create download job.
+            let downloadJob;
+            try {
+              downloadJob = downloader.createDownloadJob(item, null);
+            } catch(ex) {
+              Cu.reportError("Could not create media item download job: " + ex);
+            }
+
+            // Add a download job progress listener.
+            let listener = {
+              onJobProgress: function() {
+                if ((downloadJob.status == Ci.sbIJobProgress.STATUS_FAILED) ||
+                   (downloadJob.status == Ci.sbIJobProgress.STATUS_SUCCEEDED)) {
+                  Cu.reportError(downloadJob.status == Ci.sbIJobProgress.STATUS_SUCCEEDED);
+                  downloadJob.removeJobProgressListener(this);
+                }
+              }
+            };
+            downloadJob.addJobProgressListener(listener);
+
+            // Start downloading.
+            try {
+              downloadJob.start();
+            } catch(ex) {
+              Cu.reportError("Could not start media item download: " + ex);
+            }
+
+            Cu.reportError("Are we getting here loop 3?");
+            self._downloadItems.appendElement(item, false);
+          }
+        }
+      }
+
+      var metadataService = Cc["@songbirdnest.com/Songbird/FileMetadataService;1"]
+                              .getService(Ci.sbIFileMetadataService);
+      metadataService.read(self._downloadItems);
+      /*
       var ddh = Cc["@songbirdnest.com/Songbird/DownloadDeviceHelper;1"]
                   .getService(Ci.sbIDownloadDeviceHelper);
       var playlist = unwrap(aContext.playlist);
       var selectedEnum = playlist.mediaListView.selection.selectedIndexedMediaItems;
-      var library = songbird.siteLibrary;
+      var library = self._service.library;
       if (!self._downloadList)
         self._downloadList = library.createMediaList("simple");
 
@@ -323,13 +395,18 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
         self._downloadList.setProperty(SBProperties.customType, "download");
         self._downloadList.setProperty(SBProperties.hidden, "1");
 
-        let curItem = selectedEnum.getNext();
+        var ios = Cc["@mozilla.org/network/io-service;1"]
+                    .getService(Ci.nsIIOService);
+        let curItem = selectedEnum.getNext()
+                                  .QueryInterface(Ci.sbIIndexedMediaItem)
+                                  .mediaItem;
         if (curItem) {
           let downloadURL = curItem.mediaItem.getProperty(SB_PROPERTY_DOWNLOAD_URL);
           if (downloadURL && downloadURL != "") {
             Cu.reportError("Are we getting here loop?");
-            let item = library.createMediaItem(downloadURL);
+            let item = library.createMediaItem(ios.newURI(downloadURL, null, null));
             Cu.reportError("Are we getting here loop 2?");
+            Cu.reportError(curItem);
             item.setProperty(SBProperties.trackName,
                              curItem.getProperty(SBProperties.trackName));
             self._downloadList.add(item);
@@ -343,6 +420,7 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
                               .getService(Ci.sbIFileMetadataService);
       metadataService.read(self._downloadItems);
       ddh.downloadAll(self._downloadList);
+    */
     }
   }
 
@@ -351,7 +429,6 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
     var origin = item.getProperty(SBProperties.originURL);
     var curr = item.getProperty(SBProperties.contentURL);
     if (origin == curr) {
-      self._downloadList.removeItem(item);
       //
       let idx = self._downloadItems.indexOf(item);
       if (idx != -1)
@@ -359,9 +436,8 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
       //
       if (self._downloadItems.length < 1) {
         document.removeEventListener("downloadcomplete",
-                                     onDownloadComplete,
+                                     this,
                                      true);
-        self._downloadList = null;
       }
     }
   }
