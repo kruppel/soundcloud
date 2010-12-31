@@ -60,6 +60,9 @@ const SIG_METHOD = "HMAC-SHA1";
 var OAUTH_TOKEN = '';
 var TOKEN_SECRET = '';
 
+/*
+ * SoundCloud library objects.
+ */
 var Libraries = {
   SEARCH: {
     "name": "SoundCloud",
@@ -79,7 +82,9 @@ var Libraries = {
   }
 }
 
-// object to manage login state
+/*
+ * Manages SoundCloud login state.
+ */
 var Logins = {
   loginManager: Cc["@mozilla.org/login-manager;1"]
       .getService(Ci.nsILoginManager),
@@ -123,6 +128,9 @@ var Logins = {
   }
 }
 
+/*
+ * SoundCloud listeners.
+ */
 function Listeners() {
   var listeners = [];
   this.add = function Listeners_add(aListener) {
@@ -151,6 +159,9 @@ function Listeners() {
   }
 }
 
+/*
+ * Helper functions
+ */
 function urlencode(obj) {
   var params = '';
 
@@ -207,11 +218,14 @@ function POST(url, params, onload, onerror) {
 }
 
 /**
- *
+ * SoundCloud XPCOM service component
  */
 function sbSoundCloud() {
-  this.wrappedJSObject = this;
+  // Imports
+  // XXX - Deprecate by migrating base-64 fn
   Cu.import("resource://soundcloud/OAuth.jsm");
+
+  this.wrappedJSObject = this;
 
   this.log = DebugUtils.generateLogFunction("sbSoundCloud");
 
@@ -221,6 +235,198 @@ function sbSoundCloud() {
   this.username = login.username;
   this.password = login.password;
 
+  this._prefs = Cc['@mozilla.org/preferences-service;1']
+                  .getService(Ci.nsIPrefService)
+                  .getBranch("extensions.soundcloud.");
+
+  /**
+   * Private "methods"
+   */
+
+  /**
+   * \brief Gets (or creates) a SoundCloud library.
+   *
+   * \param aLibrary              SoundCloud Library object.
+   * \param aUserId               User id. If passed, user-specific library
+   *                              will be created.
+   *
+   * \return sbILibrary
+   */
+  this._getLibrary =
+  function sbSoundCloud__getLibrary(aLibrary, aUserId) {
+    var libraryManager = Cc["@songbirdnest.com/Songbird/library/Manager;1"]
+                           .getService(Ci.sbILibraryManager);
+    var library = {};
+    var pref = aLibrary.guid + ".guid";
+    var guid = (this._prefs.prefHasUserValue(pref)) ?
+                 this._prefs.getCharPref(pref) : false;
+    if (!guid) {
+      var directory = Cc["@mozilla.org/file/directory_service;1"]
+                        .getService(Ci.nsIProperties)
+                        .get("ProfD", Ci.nsIFile);
+      directory.append("db");
+      directory.append("soundcloud");
+      var file = directory.clone();
+      // Create local (per user) or global (all users) db
+      if (aUserId) {
+        file.append(aLibrary.guid + "-" + aUserId + "@soundcloud.com.db");
+      } else {
+        file.append(aLibrary.guid + "@soundcloud.com.db");
+      }
+      var libraryFactory =
+        Cc["@songbirdnest.com/Songbird/Library/LocalDatabase/LibraryFactory;1"]
+          .getService(Ci.sbILibraryFactory);
+      var bag = Cc["@mozilla.org/hash-property-bag;1"]
+                  .createInstance(Ci.nsIWritablePropertyBag2);
+      bag.setPropertyAsInterface("databaseFile", file);
+      library = libraryFactory.createLibrary(bag);
+    } else {
+      library = libraryManager.getLibrary(guid);
+      this._prefs.setCharPref(aLibrary.guid + ".guid", library.guid);
+    }
+    return library;
+  }
+
+  /**
+   * \brief Adds media items to a SoundCloud library.
+   *
+   * \param aItems                JSON object of items to add.
+   *
+   */
+  this._addItemsToLibrary =
+  function sbSoundCloud__addItemsToLibrary(aItems) {
+    var self = this;
+    if (aItems != null) {
+      var itemArray = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
+                         .createInstance(Ci.nsIMutableArray);
+      var propertiesArray = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
+                              .createInstance(Ci.nsIMutableArray);
+  
+      for (let i = 0; i < aItems.length; i++) {
+        var title = aItems[i].title;
+        var duration = aItems[i].duration * 1000;
+        var username = aItems[i].user.username;
+        var playcount = aItems[i].playback_count;
+        var favcount = aItems[i].favoritings_count;
+        var uri = aItems[i].uri;
+        var waveformURL = aItems[i].waveform_url;
+        // XXX - Need to make sure this does what I want it to
+        var downloadURL = aItems[i].download_url || "";
+        var streamURL = aItems[i].stream_url;
+  
+        if (downloadURL.indexOf(SOCL_URL) != -1)
+          downloadURL += "?consumer_key=" + CONSUMER_KEY;
+  
+        if (streamURL.indexOf(SOCL_URL) == -1)
+          continue;
+        streamURL += "?consumer_key=" + CONSUMER_KEY;
+  
+        var properties =
+          Cc["@songbirdnest.com/Songbird/Properties/MutablePropertyArray;1"]
+            .createInstance(Ci.sbIMutablePropertyArray);
+  
+        properties.appendProperty(SBProperties.trackName, title);
+        properties.appendProperty(SBProperties.duration, duration);
+        properties.appendProperty(SB_PROPERTY_USER, username);
+        properties.appendProperty(SB_PROPERTY_PLAYS, playcount);
+        properties.appendProperty(SB_PROPERTY_FAVS, favcount);
+        properties.appendProperty(SB_PROPERTY_WAVEFORM, waveformURL);
+        if (downloadURL) {
+          properties.appendProperty(SBProperties.originURL, downloadURL);
+          properties.appendProperty(SBProperties.enableAutoDownload, "1");
+          properties.appendProperty(SBProperties.downloadButton, "1|0|0");
+          properties.appendProperty(SB_PROPERTY_DOWNLOAD_URL, downloadURL);
+        }
+  
+        var ios = Cc["@mozilla.org/network/io-service;1"]
+                    .getService(Ci.nsIIOService);
+        
+        itemArray.appendElement(ios.newURI(streamURL, null, null), false);
+        propertiesArray.appendElement(properties, false);
+      }
+  
+      var batchListener = {
+        onProgress: function(aIndex) {},
+        onComplete: function(aMediaItems, aResult) {
+          self.listeners.each(function(l) { l.onItemsAdded(); });
+        }
+      };
+  
+      self._library.batchCreateMediaItemsAsync(batchListener,
+                                               itemArray,
+                                               propertiesArray,
+                                               false);
+    }
+  }
+  
+  /**
+   * \brief Creates an HMAC-SHA1 signature for an OAuth request.
+   *
+   * \param aMessage              Message to sign.
+   *
+   * \return HMAC-SHA1 signature string
+   */
+  this._sign = function sbSoundCloud__sign(aMessage) {
+    var baseString = this._getBaseString(aMessage);
+    var signature = b64_hmac_sha1(encodeURIComponent(CONSUMER_SECRET)
+                                  + "&" + encodeURIComponent(TOKEN_SECRET),
+                                  baseString);
+    return signature;
+  }
+
+  /**
+   * \brief Retrieves a base string.
+   *
+   * \param aMessage              Message to encode.
+   *
+   * \return Encoded base string
+   */
+  this._getBaseString =
+  function sbSoundCloud__getBaseString(aMessage) {
+    var params = aMessage.parameters;
+    var s = "";
+    for (let p in params) {
+      if (params[p][0] != 'oauth_signature') {
+        if (p == 0) {
+          s = params[p][0] + "=" + params[p][1];
+        } else {
+          s += "&" + params[p][0] + "=" + params[p][1];
+        }
+      }
+    }
+    return aMessage.method + '&' + encodeURIComponent(aMessage.action)
+                          + '&' + encodeURIComponent(s);
+  }
+
+  /**
+   * \brief Creates parameters for an OAuth request.
+   *
+   * \param aURL                  Request URL.
+   * \param aMethodType           Request method.
+   *
+   * \return URL encoded string of parameters
+   */
+  this._getParameters =
+  function sbSoundCloud__getParameters(aURL, aMethodType) {
+    var accessor = { consumerSecret: CONSUMER_SECRET };
+    var message = { action: aURL,
+                    method: aMethodType,
+                    parameters: []
+                  };
+
+    message.parameters.push(['oauth_consumer_key', CONSUMER_KEY]);
+    message.parameters.push(['oauth_nonce', OAuth.nonce(11)]);
+    message.parameters.push(['oauth_signature_method', SIG_METHOD]);
+    message.parameters.push(['oauth_timestamp', OAuth.timestamp()]);
+    if (OAUTH_TOKEN)
+      message.parameters.push(['oauth_token', OAUTH_TOKEN]);
+    message.parameters.push(['oauth_version', "1.0"]);
+
+    message.parameters.push(['oauth_signature', this._sign(message)]);
+
+    return urlencode(message.parameters);
+  }
+
   this._nowplaying_url = null;
   this.__defineGetter__('nowplaying_url', function() {
     return this._nowplaying_url;
@@ -228,12 +434,6 @@ function sbSoundCloud() {
   this.__defineSetter__('nowplaying_url', function(val) {
     this._nowplaying_url = val;
   });
-
-  this._prefs = Cc['@mozilla.org/preferences-service;1']
-                  .getService(Ci.nsIPrefService)
-                  .getBranch("extensions.soundcloud.");
-
-  this._retry_count = 0;
 
   this.__defineGetter__('soundcloud_url', function() {
     return SOCL_URL;
@@ -283,40 +483,6 @@ function sbSoundCloud() {
                              .getService(Ci.sbIMediacoreManager);
   this._mediacoreManager.addListener(this);
 
-  this._getLibrary = function(aLibrary, aUserId) {
-    var libraryManager = Cc["@songbirdnest.com/Songbird/library/Manager;1"]
-                           .getService(Ci.sbILibraryManager);
-    var library = {};
-    var pref = aLibrary.guid + ".guid";
-    var guid = (this._prefs.prefHasUserValue(pref)) ?
-                 this._prefs.getCharPref(pref) : false;
-    if (!guid) {
-      var directory = Cc["@mozilla.org/file/directory_service;1"]
-                        .getService(Ci.nsIProperties)
-                        .get("ProfD", Ci.nsIFile);
-      directory.append("db");
-      directory.append("soundcloud");
-      var file = directory.clone();
-      // Create local (per user) or global (all users) db
-      if (aUserId) {
-        file.append(aLibrary.guid + "-" + aUserId + "@soundcloud.com.db");
-      } else {
-        file.append(aLibrary.guid + "@soundcloud.com.db");
-      }
-      var libraryFactory =
-        Cc["@songbirdnest.com/Songbird/Library/LocalDatabase/LibraryFactory;1"]
-          .getService(Ci.sbILibraryFactory);
-      var bag = Cc["@mozilla.org/hash-property-bag;1"]
-                  .createInstance(Ci.nsIWritablePropertyBag2);
-      bag.setPropertyAsInterface("databaseFile", file);
-      library = libraryFactory.createLibrary(bag);
-    } else {
-      library = libraryManager.getLibrary(guid);
-      this._prefs.setCharPref(aLibrary.guid + ".guid", library.guid);
-    }
-    return library;
-  }
-
   this._library = this._getLibrary(Libraries.SEARCH, null);
   this._downloads = this._getLibrary(Libraries.DOWNLOADS, null);
   this._dashboard = this._getLibrary(Libraries.DASHBOARD, null);
@@ -348,7 +514,8 @@ function sbSoundCloud() {
   var soclRadio = this._servicePaneService.getNode("SB:RadioStations:SoundCloud");
   if (!soclRadio) {
     this._servicePaneNode = this._servicePaneService.createNode();
-    this._servicePaneNode.url = "chrome://soundcloud/content/directory.xul";
+    this._servicePaneNode.url =
+      "chrome://soundcloud/content/directory.xul?type=search";
     this._servicePaneNode.id = "SB:RadioStations:SoundCloud";
     this._servicePaneNode.name = "SoundCloud";
     this._servicePaneNode.image = 'chrome://soundcloud/skin/favicon.png';
@@ -358,6 +525,8 @@ function sbSoundCloud() {
   }
 
   this.updateServicePaneNodes();
+
+  this._retry_count = 0;
 }
 
 // XPCOM Voodoo
@@ -376,7 +545,8 @@ function sbSoundCloud_updateServicePaneNodes() {
     // Create following node
     // Need to do an async call to add children
     let followingNode = this._servicePaneService.createNode();
-    followingNode.url="chrome://soundcloud/content/directory.xul";
+    followingNode.url=
+      "chrome://soundcloud/content/directory.xul?type=following";
     followingNode.id = "urn:soclfollowing"
     followingNode.name = "Following";
     followingNode.tooltip = "People you follow";
@@ -392,7 +562,8 @@ function sbSoundCloud_updateServicePaneNodes() {
 
     // Create favorites node
     let favNode = this._servicePaneService.createNode();
-    favNode.url="chrome://soundcloud/content/directory.xul";
+    favNode.url=
+      "chrome://soundcloud/content/directory.xul?type=favorites";
     favNode.id = "urn:soclfavorites"
     favNode.name = "Favorites";
     favNode.tooltip = "Tracks you loved";
@@ -422,7 +593,7 @@ function sbSoundCloud_shouldAutoLogin() {
 sbSoundCloud.prototype.login =
 function sbSoundCloud_login(clearSession) {
   var self = this;
-  self.requestToken(function success() {
+  this.requestToken(function success() {
                       self.authorize(function auth_success() {
                                        dump("Authorized!");
                                      },
@@ -442,56 +613,9 @@ function sbSoundCloud_logout() {
 }
 
 sbSoundCloud.prototype.cancelLogin =
-function sbLastfm_cancelLogin() {
+function sbSoundCloud_cancelLogin() {
   this.listeners.each(function() { l.onLoginCancelled(); });
   this.logout();
-}
-
-sbSoundCloud.prototype.sign = function sbSoundCloud_sign(message) {
-  var baseString = this.getBaseString(message);
-  var signature = b64_hmac_sha1(encodeURIComponent(CONSUMER_SECRET)
-                                + "&" + encodeURIComponent(TOKEN_SECRET), 
-                                baseString);
-  return signature;
-}
-
-sbSoundCloud.prototype.getBaseString =
-function sbSoundCloud_getBaseString(message) {
-  var params = message.parameters;
-  var s = "";
-  for (var p in params) {
-    if (params[p][0] != 'oauth_signature') {
-      if (p == 0) {
-        s = params[p][0] + "=" + params[p][1];
-      } else {
-        s += "&" + params[p][0] + "=" + params[p][1];
-      }
-    }
-  }
-
-  return message.method + '&' + encodeURIComponent(message.action)
-                        + '&' + encodeURIComponent(s);
-}
-
-sbSoundCloud.prototype.getParameters =
-function sbSoundCloud_getParameters(url, mtype) {
-  var accessor = { consumerSecret: CONSUMER_SECRET };
-  var message = { action: url,
-                  method: mtype,
-                  parameters: []
-                };
-
-  message.parameters.push(['oauth_consumer_key', CONSUMER_KEY]);
-  message.parameters.push(['oauth_nonce', OAuth.nonce(11)]);
-  message.parameters.push(['oauth_signature_method', SIG_METHOD]);
-  message.parameters.push(['oauth_timestamp', OAuth.timestamp()]);
-  if (OAUTH_TOKEN)
-    message.parameters.push(['oauth_token', OAUTH_TOKEN]);
-  message.parameters.push(['oauth_version', "1.0"]);
-
-  message.parameters.push(['oauth_signature', this.sign(message)]);
-
-  return urlencode(message.parameters);
 }
 
 sbSoundCloud.prototype.requestToken =
@@ -504,7 +628,7 @@ function sbSoundCloud_requestToken(success, failure) {
 
   var url = SOCL_URL + "/oauth/request_token";
 
-  var params = this.getParameters(url, 'POST');
+  var params = this._getParameters(url, 'POST');
 
   this._reqtoken_xhr = POST(url, params,
       function(xhr) {
@@ -521,7 +645,6 @@ function sbSoundCloud_requestToken(success, failure) {
           dump("\n" + response + "\n");
           OAUTH_TOKEN = response.split('&')[0].split('=')[1];
           TOKEN_SECRET = response.split('&')[1].split('=')[1];
-
           self._prefs.setCharPref(self.username + ".oauth_token",
                                   OAUTH_TOKEN);
 
@@ -562,7 +685,7 @@ sbSoundCloud.prototype.accessToken =
 function sbSoundCloud_accessToken(success, failure) {
   var self = this;
   var url = SOCL_URL + "/oauth/access_token";
-  var params = self.getParameters(url, 'POST');
+  var params = self._getParameters(url, 'POST');
 
   this._accesstoken_xhr = POST(url, params,
       function(xhr) {
@@ -661,7 +784,7 @@ function sbSoundCloud_apiCall(type, flags, callback) {
           let tracks = JSON.parse(response);
           dump("\n" + response + "\n");
           flags.offset += tracks.length;
-          self.addItemsToLibrary(tracks);
+          self._addItemsToLibrary(tracks);
           if (tracks.length > 40) {
             self._xhr = self.apiCall("tracks", flags, null);
           }
@@ -689,79 +812,13 @@ function sbSoundCloud_apiCall(type, flags, callback) {
   }
 
   if (authRequired) {
-    params = this.getParameters(url, method);
+    params = this._getParameters(url, method);
   } else {
     params += "consumer_key=" + CONSUMER_KEY;
   }
 
   this._xhr = GET(url, params, success, failure, authRequired);
   return this._xhr;
-}
-
-sbSoundCloud.prototype.addItemsToLibrary =
-function sbSoundCloud_addItemsToLibrary(aItems) {
-  var self = this;
-  if (aItems != null) {
-    var itemArray = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
-                       .createInstance(Ci.nsIMutableArray);
-    var propertiesArray = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
-                            .createInstance(Ci.nsIMutableArray);
-
-    for (let i = 0; i < aItems.length; i++) {
-      var title = aItems[i].title;
-      var duration = aItems[i].duration * 1000;
-      var username = aItems[i].user.username;
-      var playcount = aItems[i].playback_count;
-      var favcount = aItems[i].favoritings_count;
-      var uri = aItems[i].uri;
-      var waveformURL = aItems[i].waveform_url;
-      // XXX - Need to make sure this does what I want it to
-      var downloadURL = aItems[i].download_url || "";
-      var streamURL = aItems[i].stream_url;
-
-      if (downloadURL.indexOf(SOCL_URL) != -1)
-        downloadURL += "?consumer_key=" + CONSUMER_KEY;
-
-      if (streamURL.indexOf(SOCL_URL) == -1)
-        continue;
-      streamURL += "?consumer_key=" + CONSUMER_KEY;
-
-      var properties =
-        Cc["@songbirdnest.com/Songbird/Properties/MutablePropertyArray;1"]
-          .createInstance(Ci.sbIMutablePropertyArray);
-
-      properties.appendProperty(SBProperties.trackName, title);
-      properties.appendProperty(SBProperties.duration, duration);
-      properties.appendProperty(SB_PROPERTY_USER, username);
-      properties.appendProperty(SB_PROPERTY_PLAYS, playcount);
-      properties.appendProperty(SB_PROPERTY_FAVS, favcount);
-      properties.appendProperty(SB_PROPERTY_WAVEFORM, waveformURL);
-      if (downloadURL) {
-        properties.appendProperty(SBProperties.originURL, downloadURL);
-        properties.appendProperty(SBProperties.enableAutoDownload, "1");
-        properties.appendProperty(SBProperties.downloadButton, "1|0|0");
-        properties.appendProperty(SB_PROPERTY_DOWNLOAD_URL, downloadURL);
-      }
-
-      var ios = Cc["@mozilla.org/network/io-service;1"]
-                  .getService(Ci.nsIIOService);
-      
-      itemArray.appendElement(ios.newURI(streamURL, null, null), false);
-      propertiesArray.appendElement(properties, false);
-    }
-
-    var batchListener = {
-      onProgress: function(aIndex) {},
-      onComplete: function(aMediaItems, aResult) {
-        self.listeners.each(function(l) { l.onItemsAdded(); });
-      }
-    };
-
-    self._library.batchCreateMediaItemsAsync(batchListener,
-                                             itemArray,
-                                             propertiesArray,
-                                             false);
-  }
 }
 
 sbSoundCloud.prototype.onMediacoreEvent =
