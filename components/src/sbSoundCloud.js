@@ -2,7 +2,7 @@
  *
  * This file is part of the Songbird web player.
  *
- * Copyright(c) 2005-2010 POTI, Inc.
+ * Copyright(c) 2005-2011 POTI, Inc.
  * http://www.songbirdnest.com
  *
  * This file may be licensed under the terms of of the
@@ -49,6 +49,7 @@ const SB_PROPERTY_USER = SB_NS + "user";
 const SB_PROPERTY_PLAYS = SB_NS + "playcount";
 const SB_PROPERTY_FAVS = SB_NS + "favcount";
 const SB_PROPERTY_WAVEFORM = SB_NS + "waveformURL";
+const SB_PROPERTY_DOWNLOAD_IMAGE = SB_NS + "downloadImage";
 const SB_PROPERTY_DOWNLOAD_URL = SB_NS + "downloadURL";
 
 const SOCL_URL = 'https://api.soundcloud.com';
@@ -291,10 +292,11 @@ function sbSoundCloud() {
    * \brief Adds media items to a SoundCloud library.
    *
    * \param aItems                JSON object of items to add.
+   * \param aLibrary              Target library for added items.
    *
    */
   this._addItemsToLibrary =
-  function sbSoundCloud__addItemsToLibrary(aItems) {
+  function sbSoundCloud__addItemsToLibrary(aItems, aLibrary) {
     var self = this;
     if (aItems != null) {
       var itemArray = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
@@ -317,7 +319,7 @@ function sbSoundCloud() {
         if (downloadURL.indexOf(SOCL_URL) != -1)
           downloadURL += "?consumer_key=" + CONSUMER_KEY;
   
-        if (streamURL.indexOf(SOCL_URL) == -1)
+        if (!streamURL || streamURL.indexOf(SOCL_URL) == -1)
           continue;
         streamURL += "?consumer_key=" + CONSUMER_KEY;
   
@@ -332,12 +334,9 @@ function sbSoundCloud() {
         properties.appendProperty(SB_PROPERTY_FAVS, favcount);
         properties.appendProperty(SB_PROPERTY_WAVEFORM, waveformURL);
         if (downloadURL) {
-          properties.appendProperty(SBProperties.originURL, downloadURL);
-          properties.appendProperty(SBProperties.enableAutoDownload, "1");
-          properties.appendProperty(SBProperties.downloadButton, "1|0|0");
           properties.appendProperty(SB_PROPERTY_DOWNLOAD_URL, downloadURL);
         }
-  
+ 
         var ios = Cc["@mozilla.org/network/io-service;1"]
                     .getService(Ci.nsIIOService);
         
@@ -352,10 +351,10 @@ function sbSoundCloud() {
         }
       };
   
-      self._library.batchCreateMediaItemsAsync(batchListener,
-                                               itemArray,
-                                               propertiesArray,
-                                               false);
+      aLibrary.batchCreateMediaItemsAsync(batchListener,
+                                          itemArray,
+                                          propertiesArray,
+                                          false);
     }
   }
   
@@ -485,9 +484,16 @@ function sbSoundCloud() {
 
   this._library = this._getLibrary(Libraries.SEARCH, null);
   this._downloads = this._getLibrary(Libraries.DOWNLOADS, null);
-  this._dashboard = this._getLibrary(Libraries.DASHBOARD, null);
 
   this.__defineGetter__('library', function() { return this._library; });
+  this.__defineGetter__('dashboard', function() {
+    let dashLib = (this._dashboard) ? this._dashboard : false;
+    return dashLib;
+  });
+  this.__defineGetter__('favorites', function() {
+    let favLib = (this._favorites) ? this._favorites : false;
+    return favLib;
+  });
   this.__defineGetter__('downloads', function() { return this._downloads; });
 
   this._strings =
@@ -496,7 +502,7 @@ function sbSoundCloud() {
       .createBundle("chrome://soundcloud/locale/overlay.properties");
 
   this._servicePaneService = Cc['@songbirdnest.com/servicepane/service;1']
-    .getService(Ci.sbIServicePaneService);
+                               .getService(Ci.sbIServicePaneService);
 
   // find a radio folder if it already exists
   var radioFolder = this._servicePaneService.getNode("SB:RadioStations");
@@ -544,37 +550,70 @@ function sbSoundCloud_updateServicePaneNodes() {
   if (this.loggedIn) {
     // Create following node
     // Need to do an async call to add children
-    let followingNode = this._servicePaneService.createNode();
-    followingNode.url=
-      "chrome://soundcloud/content/directory.xul?type=following";
-    followingNode.id = "urn:soclfollowing"
-    followingNode.name = "Following";
-    followingNode.tooltip = "People you follow";
-    followingNode.editable = false;
-    followingNode.setAttributeNS(SP_NS, "Weight", 10);
-    soclNode.appendChild(followingNode);
-    followingNode.hidden = false;
+    /*
+    var followingNode = this._servicePaneService
+                            .getNode("urn:soclfollowing");
+    if (!followingNode) {
+      followingNode = this._servicePaneService.createNode();
+      followingNode.url=
+        "chrome://soundcloud/content/directory.xul?type=following";
+      followingNode.id = "urn:soclfollowing"
+      followingNode.name = "Following";
+      followingNode.tooltip = "People you follow";
+      followingNode.editable = false;
+      followingNode.setAttributeNS(SP_NS, "Weight", 10);
+      soclNode.appendChild(followingNode);
+      followingNode.hidden = false;
+    }
 
-    let followingBadge = ServicePaneHelper.getBadge(followingNode,
+    var followingBadge = ServicePaneHelper.getBadge(followingNode,
                                                     "soclfollowingcount");
-    followingBadge.label = this.following;
+    followingBadge.label = this.followingCount;
     followingBadge.visible = true;
+    */
 
+    // Create dashboard node
+    var dashNode = this._servicePaneService
+                      .getNode("urn:soclfavorites");
+    if (!dashNode) {
+      dashNode = this._servicePaneService.createNode();
+      dashNode.url=
+        "chrome://soundcloud/content/directory.xul?type=dashboard";
+      dashNode.id = "urn:socldashboard"
+      dashNode.name = "Dashboard";
+      dashNode.tooltip = "Your dashboard";
+      dashNode.editable = false;
+      dashNode.setAttributeNS(SP_NS, "Weight", 5);
+      soclNode.appendChild(dashNode);
+      dashNode.hidden = false;
+    }
+
+    var dashBadge = ServicePaneHelper.getBadge(dashNode, "socldashboard");
+    dashBadge.label = this.incomingCount;
+    dashBadge.visible = true;
+ 
     // Create favorites node
-    let favNode = this._servicePaneService.createNode();
-    favNode.url=
-      "chrome://soundcloud/content/directory.xul?type=favorites";
-    favNode.id = "urn:soclfavorites"
-    favNode.name = "Favorites";
-    favNode.tooltip = "Tracks you loved";
-    favNode.editable = false;
-    favNode.setAttributeNS(SP_NS, "Weight", 20);
-    soclNode.appendChild(favNode);
-    favNode.hidden = false;
+    var favNode = this._servicePaneService
+                      .getNode("urn:soclfavorites");
+    if (!favNode) {
+      favNode = this._servicePaneService.createNode();
+      favNode.url=
+        "chrome://soundcloud/content/directory.xul?type=favorites";
+      favNode.id = "urn:soclfavorites"
+      favNode.name = "Favorites";
+      favNode.tooltip = "Tracks you loved";
+      favNode.editable = false;
+      favNode.setAttributeNS(SP_NS, "Weight", 20);
+      soclNode.appendChild(favNode);
+      favNode.hidden = false;
+    }
 
-    let favBadge = ServicePaneHelper.getBadge(favNode, "soclfavcount");
-    favBadge.label = this.favorites;
+    var favBadge = ServicePaneHelper.getBadge(favNode, "soclfavcount");
+    favBadge.label = this.favCount;
     favBadge.visible = true;
+ 
+    this._dashboard = this._getLibrary(Libraries.DASHBOARD, null);
+    this._favorites = this._getLibrary(Libraries.FAVORITES, this.userid);
   } else {
     while (soclNode.firstChild) {
       soclNode.removeChild(soclNode.firstChild);
@@ -722,8 +761,8 @@ function sbSoundCloud_updateProfile(onSuccess, onFailure) {
       self.userid = jsObject.id;
       self.realname = jsObject.username;
       self.avatar = jsObject.avatar_url;
-      self.following = jsObject.followings_count;
-      self.favorites = jsObject.public_favorites_count;
+      self.followingCount = jsObject.followings_count;
+      self.favCount = jsObject.public_favorites_count;
       self.city = jsObject.city;
       self.country = jsObject.country;
       self.profileurl = jsObject.permalink_url;
@@ -734,6 +773,68 @@ function sbSoundCloud_updateProfile(onSuccess, onFailure) {
       if (typeof(onSuccess) == "function")
         onSuccess();
     });
+}
+
+sbSoundCloud.prototype.getDashboard =
+function sbSoundCLoud_getDashboard() {
+  var self = this;
+  if (!this.loggedIn)
+    return false;
+
+  var url = SOCL_URL + "/me/followings/tracks.json";
+  var success = function(xhr) {
+    let json = xhr.responseText;
+    let feed = JSON.parse(xhr.responseText);
+    if (feed.error) {
+      if (self._retry_count < 5) {
+        dump("\n" + json + "\n");
+        self._retry_count++;
+        self.getDashboard();
+      } else {
+        Cu.reportError("Unable to retrieve incoming tracks: " + feed.error);
+        return false;
+      }
+    }
+
+    self.incomingCount = feed.length;
+    self._addItemsToLibrary(feed, self._dashboard);
+  }
+
+  var params = this._getParameters(url, "GET");
+  dump(url + "?" + params);
+  this._xhr = GET(url, params, success, null, true);
+
+  return this._xhr;
+}
+
+sbSoundCloud.prototype.getFavorites =
+function sbSoundCLoud_getFavorites() {
+  var self = this;
+  if (!this.loggedIn)
+    return false;
+
+  var url = SOCL_URL + "/me/favorites.json";
+  var success = function(xhr) {
+    let json = xhr.responseText;
+    let favorites = JSON.parse(xhr.responseText);
+    if (favorites.error) {
+      if (self._retry_count < 5) {
+        self._retry_count++;
+        self.getFavorites();
+      } else {
+        Cu.reportError("Unable to retrieve favorites: " + favorites.error);
+        return false;
+      }
+    }
+
+    self.favCount = favorites.length;
+    self._addItemsToLibrary(favorites, self._favorites);
+  }
+
+  var params = this._getParameters(url, "GET");
+  this._xhr = GET(url, params, success, null, true);
+
+  return this._xhr;
 }
 
 sbSoundCloud.prototype.apiCall =
@@ -784,7 +885,7 @@ function sbSoundCloud_apiCall(type, flags, callback) {
           let tracks = JSON.parse(response);
           dump("\n" + response + "\n");
           flags.offset += tracks.length;
-          self._addItemsToLibrary(tracks);
+          self._addItemsToLibrary(tracks, self._library);
           if (tracks.length > 40) {
             self._xhr = self.apiCall("tracks", flags, null);
           }

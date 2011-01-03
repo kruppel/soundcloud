@@ -88,6 +88,8 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
   this._image = this._getElement(this._panelBinding, 'image');
   this._realname = this._getElement(this._panelBinding, 'realname');
   this._citycountry = this._getElement(this._panelBinding, 'profileDescription');
+  this._profileCheckbox = this._getElement(this._panelBinding, 'profileCheckbox');
+  this._profileCheckbox.hidden = true;
   this._profileAutoLogin = this._getElement(this._panelBinding,
                                             'profileAutoLogin');
 
@@ -235,6 +237,24 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
     pI.userViewable = false;
     pMgr.addPropertyInfo(pI);
   }
+
+  if (!pMgr.hasProperty(SB_PROPERTY_DOWNLOAD_IMAGE)) {
+    var builder = Cc["@songbirdnest.com/Songbird/Properties/Builder/Image;1"]
+                    .createInstance(Ci.sbIImagePropertyBuilder);
+    builder.propertyID = SB_PROPERTY_DOWNLOAD_IMAGE;
+    builder.displayName = " ";
+    builder.userEditable = false;
+    builder.userViewable = false;
+    var pI = builder.get();
+    pMgr.addPropertyInfo(pI);
+  }
+
+  // XXX - Source image needs to be updated
+  // Should file a bug to get this property column centered instead of left
+  // justified.
+  var pI = pMgr.getPropertyInfo(SBProperties.trackType)
+               .QueryInterface(Ci.sbIImageLabelLinkPropertyInfo);
+  pI.addImage("soundcloud", "chrome://soundcloud/skin/inactive.png");
 }
 
 SoundCloud._initCommands = function SoundCloud__initCommands() {
@@ -256,22 +276,6 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
                   "sbIPlaylistCommandsBuilder");
   }
 
-  this.m_cmd_Play = new PlaylistCommandsBuilder("play-soundcloud-cmd");
-  this.m_cmd_Play.appendAction(null,
-                               "soundcloud_cmd_play",
-                               "&command.play",
-                               "&command.tooltip.play",
-                               plCmd_Play_TriggerCallback);
-  this.m_cmd_Play.setCommandShortcut(null,
-                                     "soundcloud_cmd_play",
-                                     "&command.shortcut.key.play",
-                                     "&command.shortcut.keycode.play",
-                                     "&command.shortcut.modifiers.play",
-                                     true);
-  this.m_cmd_Play.setCommandEnabledCallback(null,
-                                            "soundcloud_cmd_play",
-                                            plCmd_IsAnyTrackSelected);
-  this.m_mgr.publish("soundcloud-play@sb.com", this.m_cmd_Play);
   this.m_cmd_Download = new PlaylistCommandsBuilder("download-soundcloud-cmd");
   this.m_cmd_Download.appendAction(null,
                                    "soundcloud_cmd_download",
@@ -286,159 +290,76 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
                                          true);
   this.m_cmd_Download.setCommandEnabledCallback(null,
                                                 "soundcloud_cmd_download",
-                                                plCmd_IsAnyTrackSelected);
+                                                plCmd_IsSelectionDownloadable);
   this.m_mgr.publish("soundcloud-download@sb.com", this.m_cmd_Download);
   this.m_soundcloudCommands = new PlaylistCommandsBuilder("soundcloud_cmds");
-  this.m_soundcloudCommands.appendPlaylistCommands(null,
-                                                   "soundcloud_cmd_play",
-                                                   this.m_cmd_Play);
   this.m_soundcloudCommands.appendPlaylistCommands(null,
                                                    "soundcloud_cmd_download",
                                                    this.m_cmd_Download);
   this.m_soundcloudCommands.setVisibleCallback(plCmd_HideForToolbarCheck);
   this.m_mgr.publish("soundcloud-cmds@sb.com", this.m_soundcloudCommands);
 
-  // Called when the play action is triggered
-  function plCmd_Play_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
-    // if something is selected, trigger the play event on the playlist
-    if (plCmd_IsAnyTrackSelected(aContext, aSubMenuId, aCommandId, aHost)) {
-      // Repurpose the command to act as a doubleclick
-      unwrap(aContext.playlist).sendPlayEvent();
-    }
-  }
-
   // Called when the download action is triggered
   function plCmd_Download_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
     // if something is selected, trigger the download event on the playlist
     if (plCmd_IsAnyTrackSelected(aContext, aSubMenuId, aCommandId, aHost)) {
-      let playlist = unwrap(aContext.playlist);
-      let selectedEnum = playlist.mediaListView.selection.selectedIndexedMediaItems;
-      let library = self._service.downloads;
-      // Get the media item download service.
-      let mediaItemDownloadService =
-            Cc["@songbirdnest.com/Songbird/MediaItemDownloadService;1"]
-              .getService(Ci.sbIMediaItemDownloadService);
-      let ios = Cc["@mozilla.org/network/io-service;1"]
-                  .getService(Ci.nsIIOService);
-      while (selectedEnum.hasMoreElements()) {
-        let curItem = selectedEnum.getNext()
-                                  .QueryInterface(Ci.sbIIndexedMediaItem)
-                                  .mediaItem;
-        if (curItem) {
-          let downloadURL = curItem.getProperty(SB_PROPERTY_DOWNLOAD_URL);
-          if (downloadURL && downloadURL != "") {
-            Cu.reportError("Are we getting here loop?");
-            let item = library.createMediaItem(ios.newURI("http://robotsinheat.com/trax/WeDidItAgain.mp3", null, null));
-            //let item = library.createMediaItem(ios.newURI(downloadURL, null, null));
-            Cu.reportError("Are we getting here loop 2?");
-            item.setProperty(SBProperties.trackName,
-                             curItem.getProperty(SBProperties.trackName));
-            // Get a downloader for the media item.
-            let downloader;
-            try {
-              downloader = mediaItemDownloadService.getDownloader(item, null);
-              Cu.reportError("Got downloader: " + downloader);
-            } catch(ex) {
-              Cu.reportError("Could not get a media item downloader: " + ex);
-            }
-
-            // Get the download size.
-            let downloadSize = downloader.getDownloadSize(item, null);
-            Cu.reportError("DOWNLOAD SIZE: " + downloadSize);
-
-            // Create download job.
-            let downloadJob;
-            try {
-              downloadJob = downloader.createDownloadJob(item, null);
-            } catch(ex) {
-              Cu.reportError("Could not create media item download job: " + ex);
-            }
-
-            // Add a download job progress listener.
-            let listener = {
-              onJobProgress: function() {
-                if ((downloadJob.status == Ci.sbIJobProgress.STATUS_FAILED) ||
-                   (downloadJob.status == Ci.sbIJobProgress.STATUS_SUCCEEDED)) {
-                  Cu.reportError(downloadJob.status == Ci.sbIJobProgress.STATUS_SUCCEEDED);
-                  downloadJob.removeJobProgressListener(this);
-                }
-              }
-            };
-            downloadJob.addJobProgressListener(listener);
-
-            // Start downloading.
-            try {
-              downloadJob.start();
-            } catch(ex) {
-              Cu.reportError("Could not start media item download: " + ex);
-            }
-
-            Cu.reportError("Are we getting here loop 3?");
-            self._downloadItems.appendElement(item, false);
-          }
-        }
-      }
-
-      var metadataService = Cc["@songbirdnest.com/Songbird/FileMetadataService;1"]
-                              .getService(Ci.sbIFileMetadataService);
-      metadataService.read(self._downloadItems);
-      /*
       var ddh = Cc["@songbirdnest.com/Songbird/DownloadDeviceHelper;1"]
                   .getService(Ci.sbIDownloadDeviceHelper);
       var playlist = unwrap(aContext.playlist);
-      var selectedEnum = playlist.mediaListView.selection.selectedIndexedMediaItems;
-      var library = self._service.library;
-      if (!self._downloadList)
-        self._downloadList = library.createMediaList("simple");
+      var selectedEnum = playlist.mediaListView.selection.selectedMediaItems;
+      var library = self._service.downloads;
+      var downloadItems = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
+                            .getService(Ci.nsIMutableArray);
+      var downloadList = library.createMediaList("simple");
+      downloadList.setProperty(SBProperties.customType, "download");
 
       while (selectedEnum.hasMoreElements()) {
-        self._downloadList.setProperty(SBProperties.customType, "download");
-        self._downloadList.setProperty(SBProperties.hidden, "1");
-
         var ios = Cc["@mozilla.org/network/io-service;1"]
                     .getService(Ci.nsIIOService);
         let curItem = selectedEnum.getNext()
-                                  .QueryInterface(Ci.sbIIndexedMediaItem)
-                                  .mediaItem;
+                                  .QueryInterface(Ci.sbIMediaItem)
         if (curItem) {
-          let downloadURL = curItem.mediaItem.getProperty(SB_PROPERTY_DOWNLOAD_URL);
+          let downloadURL = curItem.getProperty(SB_PROPERTY_DOWNLOAD_URL);
           if (downloadURL && downloadURL != "") {
-            Cu.reportError("Are we getting here loop?");
-            let item = library.createMediaItem(ios.newURI(downloadURL, null, null));
-            Cu.reportError("Are we getting here loop 2?");
-            Cu.reportError(curItem);
-            item.setProperty(SBProperties.trackName,
-                             curItem.getProperty(SBProperties.trackName));
-            self._downloadList.add(item);
-            Cu.reportError("Are we getting here loop 3?");
-            self._downloadItems.appendElement(item, false);
+            let properties = {};
+            properties[SBProperties.trackName] =
+                curItem.getProperty(SBProperties.trackName);
+            properties[SBProperties.trackType] = "soundcloud";
+            let propertyArray = SBProperties.createArray(properties);
+            let item = library.createMediaItem(ios.newURI(downloadURL, null, null),
+                                               propertyArray);
+            downloadList.add(item);
+            downloadItems.appendElement(item, false);
           }
         }
       }
 
       var metadataService = Cc["@songbirdnest.com/Songbird/FileMetadataService;1"]
                               .getService(Ci.sbIFileMetadataService);
-      metadataService.read(self._downloadItems);
-      ddh.downloadAll(self._downloadList);
-    */
+      metadataService.read(downloadItems);
+      ddh.downloadAll(downloadList);
+      library.remove(downloadList);
     }
   }
 
-  function onDownloadComplete(aEvent) {
-    var item = aEvent.item;
-    var origin = item.getProperty(SBProperties.originURL);
-    var curr = item.getProperty(SBProperties.contentURL);
-    if (origin == curr) {
-      //
-      let idx = self._downloadItems.indexOf(item);
-      if (idx != -1)
-        self._downloadItems.removeElementAt(idx);
-      //
-      if (self._downloadItems.length < 1) {
-        document.removeEventListener("downloadcomplete",
-                                     this,
-                                     true);
+  function plCmd_IsSelectionDownloadable(aContext, aSubMenuId, aCommandId, aHost) {
+    if (!plCmd_IsAnyTrackSelected(aContext, aSubMenuId, aCommandId, aHost))
+      return false;
+
+    var itemEnum = unwrap(aContext.playlist).mediaListView
+                                            .selection
+                                            .selectedMediaItems;
+    try {
+      while (itemEnum.hasMoreElements()) {
+        let item = itemEnum.getNext().QueryInterface(Ci.sbIMediaItem);
+        if (!item.getProperty(SB_PROPERTY_DOWNLOAD_URL))
+          return false;
       }
+
+      return true;
+    } catch (ex) {
+      Cu.reportError(ex);
+      return false;
     }
   }
 
@@ -450,8 +371,6 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
   function plCmd_HideForToolbarCheck(aContext, aHost) {
     return (aHost !== "toolbar");
   }
-
-  document.addEventListener("downloadcomplete", onDownloadComplete, true);
 }
 
 SoundCloud.showPanel = function SoundCloud_showPanel() {

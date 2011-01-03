@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2010, Pioneers of the Inevitable, Inc.
+Copyright (c) 2011, Pioneers of the Inevitable, Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -101,9 +101,31 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
                                 false,
                                 false);
 
-  // Setup library
-  this._library = this._service.library;
   this._directory = document.getElementById("soundcloud-directory");
+  var search = document.getElementById("soundcloud-box");
+
+  // Setup library
+  var uri = gBrowser.currentURI.spec;
+  var idx = uri.indexOf("type");
+  if (idx != -1) {
+    var type = uri.slice(idx + 5);
+    switch(type) {
+      case "dashboard":
+        this._service.getDashboard();
+        this._library = this._service.dashboard;
+        search.hidden = true;
+        break;
+      case "favorites":
+        this._service.getFavorites();
+        this._library = this._service.favorites;
+        search.hidden = true;
+        break;
+      default:
+        this._library = this._service.library;
+    }
+  } else {
+    this._library = this._service.library;
+  }
 
   // Get playlist commands
   var mgr = Cc["@songbirdnest.com/Songbird/PlaylistCommandsManager;1"]
@@ -112,25 +134,20 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
   // Bind the playlist widget to our library
   this._directory.bind(this._library.createView(), cmds);
 
-  // If this is the first time we've loaded the playlist, clear the 
-  // normal columns and use the soundcloud ones
-  if (!Application.prefs.getValue(initialized, false)) {
-    Application.prefs.setValue(initialized, true);
-    var colSpec = SBProperties.trackName + " 360 " +
-                  SBProperties.duration + " 70 " +
-                  SB_PROPERTY_USER + " 150 " +
-                  SB_PROPERTY_PLAYS + " 60 " +
-                  SB_PROPERTY_FAVS + " 60 " +
-                  SBProperties.downloadButton + " 70 ";
-    this._library.setProperty(SBProperties.columnSpec, colSpec);
-    this._directory.clearColumns();
-    this._directory.appendColumn(SBProperties.trackName, "360");
-    this._directory.appendColumn(SBProperties.duration, "70");
-    this._directory.appendColumn(SB_PROPERTY_USER, "150");
-    this._directory.appendColumn(SB_PROPERTY_PLAYS, "60");
-    this._directory.appendColumn(SB_PROPERTY_FAVS, "60");
-    this._directory.appendColumn(SBProperties.downloadButton, "70");
-  }
+  var colSpec = SBProperties.trackName + " 360 " +
+                SBProperties.duration + " 70 " +
+                SB_PROPERTY_USER + " 150 " +
+                SB_PROPERTY_PLAYS + " 60 " +
+                SB_PROPERTY_FAVS + " 60 " +
+                SB_PROPERTY_DOWNLOAD_IMAGE + " 60 ";
+  this._library.setProperty(SBProperties.columnSpec, colSpec);
+  this._directory.clearColumns();
+  this._directory.appendColumn(SBProperties.trackName, "360");
+  this._directory.appendColumn(SBProperties.duration, "70");
+  this._directory.appendColumn(SB_PROPERTY_USER, "150");
+  this._directory.appendColumn(SB_PROPERTY_PLAYS, "60");
+  this._directory.appendColumn(SB_PROPERTY_FAVS, "60");
+  this._directory.appendColumn(SB_PROPERTY_DOWNLOAD_IMAGE, "60");
 }
 
 CloudDirectory.triggerSearch = function CloudDirectory_triggerSearch(event) {

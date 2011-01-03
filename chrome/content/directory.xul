@@ -78,14 +78,11 @@
                editable="false" />
 
   <script type="application/javascript" 
-          src="chrome://songbird/content/scripts/songbirdInterfaces.js"/>
-  <script type="application/javascript" 
           src="chrome://songbird/content/scripts/windowUtils.js"/>
   <script type="application/javascript" 
           src="chrome://songbird/content/scripts/browserUtilities.js"/>
 
   <script type="application/javascript" src="soundcloudProperties.js"/>
-  <script type="application/javascript" src="soundcloud.js"/>
   <script type="application/javascript" src="directory.js"/>
 
 </page>

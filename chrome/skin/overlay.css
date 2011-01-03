@@ -4,7 +4,8 @@ treecol[bind="http://songbirdnest.com/data/1.0#user"]
 }
 
 treecol[bind="http://songbirdnest.com/data/1.0#playcount"],
-treecol[bind="http://songbirdnest.com/data/1.0#favcount"]
+treecol[bind="http://songbirdnest.com/data/1.0#favcount"],
+treecol[bind="http://songbirdnest.com/data/1.0#downloadImage"]
 {
  background-image: url("chrome://soundcloud/skin/elements.png");
  background-repeat: no-repeat;
@@ -21,6 +22,11 @@ treecol[bind="http://songbirdnest.com/data/1.0#playcount"]
 treecol[bind="http://songbirdnest.com/data/1.0#favcount"]
 {
  background-position: 105% -43px;
+}
+
+treecol[bind="http://songbirdnest.com/data/1.0#downloadImage"]
+{
+ background-position: 105% -68px;
 }
 
 treecol[bind="http://songbirdnest.com/data/1.0#user"] > label,
