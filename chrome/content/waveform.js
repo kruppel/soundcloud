@@ -21,6 +21,8 @@ function SoundClouWaveform_onLoad() {
   var self = this;
   gMM.addListener(this);
 
+  this._idle = document.getElementById("socl-idle");
+  this._wfdisplay = document.getElementById("socl-wf-display");
   this._cursor = document.getElementById("wf-cursor");
   this._waveform = document.getElementById("waveform");
 
@@ -29,6 +31,8 @@ function SoundClouWaveform_onLoad() {
     var img = this._currentItem.getProperty(SB_PROPERTY_WAVEFORM);
     if (img != null)
       this._waveform.src = img;
+      this._idle.style.visibility = "hidden";
+      this._wfdisplay.style.visibility = "visible";
   }
 
   var dataRemoteListener = {
@@ -41,9 +45,6 @@ function SoundClouWaveform_onLoad() {
   this.remote_position.bindObserver(dataRemoteListener, true);
   this.remote_length = SBNewDataRemote("metadata.length", null);
   this.remote_length.bindObserver(dataRemoteListener, true);
-
-  this._idle = document.getElementById("socl-idle");
-  this._wfdisplay = document.getElementById("socl-wf-display");
 }
 
 SoundCloudWaveform.onPositionChanged =

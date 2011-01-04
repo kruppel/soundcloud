@@ -58,6 +58,8 @@ const CONSUMER_SECRET = "YqGENlIGpWPnjQDJ2XCLAur2La9cTLdMYcFfWVIsnvw";
 const CONSUMER_KEY = "eJ2Mqrpr2P4TdO62XXJ3A";
 const SIG_METHOD = "HMAC-SHA1";
 
+const MAX_RETRIES = 5;
+
 var OAUTH_TOKEN = '';
 var TOKEN_SECRET = '';
 
@@ -307,12 +309,12 @@ function sbSoundCloud() {
       for (let i = 0; i < aItems.length; i++) {
         var title = aItems[i].title;
         var duration = aItems[i].duration * 1000;
+        var artwork = aItems[i].artwork_url;
         var username = aItems[i].user.username;
         var playcount = aItems[i].playback_count;
         var favcount = aItems[i].favoritings_count;
         var uri = aItems[i].uri;
         var waveformURL = aItems[i].waveform_url;
-        // XXX - Need to make sure this does what I want it to
         var downloadURL = aItems[i].download_url || "";
         var streamURL = aItems[i].stream_url;
   
@@ -329,6 +331,7 @@ function sbSoundCloud() {
   
         properties.appendProperty(SBProperties.trackName, title);
         properties.appendProperty(SBProperties.duration, duration);
+        properties.appendProperty(SBProperties.primaryImageURL, artwork);
         properties.appendProperty(SB_PROPERTY_USER, username);
         properties.appendProperty(SB_PROPERTY_PLAYS, playcount);
         properties.appendProperty(SB_PROPERTY_FAVS, favcount);
@@ -424,6 +427,70 @@ function sbSoundCloud() {
     message.parameters.push(['oauth_signature', this._sign(message)]);
 
     return urlencode(message.parameters);
+  }
+
+  /**
+   * \brief Requests OAuth token.
+   *
+   * \param aSuccess              Action to take on success.
+   * \param aFailure              Action to take on failure.
+   *
+   */
+  this._requestToken =
+  function sbSoundCloud__requestToken(aSuccess, aFailure) {
+    var self = this;
+    this.listeners.each(function(l) { l.onLoginBegins(); });
+
+    OAUTH_TOKEN = "";
+    TOKEN_SECRET = "";
+
+    var url = SOCL_URL + "/oauth/request_token";
+
+    var params = this._getParameters(url, 'POST');
+
+    this._reqtoken_xhr = POST(url, params,
+        function(xhr) {
+          let response = xhr.responseText;
+          if (response == "Invalid OAuth Request") {
+            if (self._retry_count < MAX_RETRIES) {
+              dump("OAuth Request #" + ++self._retry_count);
+              self.requestToken(aSuccess, aFailure);
+            } else {
+              self._retry_count = 0;
+              aFailure();
+              Cu.reportError(response);
+            }
+          } else {
+            dump("\n" + response + "\n");
+            OAUTH_TOKEN = response.split('&')[0].split('=')[1];
+            TOKEN_SECRET = response.split('&')[1].split('=')[1];
+            self._prefs.setCharPref(self.username + ".oauth_token",
+                                    OAUTH_TOKEN);
+
+            self._retry_count = 0;
+            aSuccess();
+          }
+        },
+        function(xhr) {
+          self._retry_count = 0;
+          dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
+        });
+  }
+
+  /**
+   * \brief Opens SoundCloud authorization dialog.
+   *
+   */
+  this._authorize =
+  function sbSoundCloud__authorize() {
+    Logins.set(this.username, this.password);
+
+    var mainWindow = Cc["@mozilla.org/appshell/window-mediator;1"]
+                       .getService(Ci.nsIWindowMediator)
+                       .getMostRecentWindow('Songbird:Main');
+    var features = "modal=yes,dependent=yes,resizable=yes,titlebar=no";
+    mainWindow.openDialog(AUTH_PAGE,
+                          "soundcloud_authorize", features);
   }
 
   this._nowplaying_url = null;
@@ -632,16 +699,11 @@ function sbSoundCloud_shouldAutoLogin() {
 sbSoundCloud.prototype.login =
 function sbSoundCloud_login(clearSession) {
   var self = this;
-  this.requestToken(function success() {
-                      self.authorize(function auth_success() {
-                                       dump("Authorized!");
-                                     },
-                                     function auth_failure() {
-                                       dump("Token fail!");
-                                     });
-                      }, function failure() {
-                           dump("Request token fail!");
-                         });
+  this._requestToken(function success() {
+                       self._authorize();
+                     }, function failure() {
+                          dump("Request token fail!");
+                        });
   return;
 }
 
@@ -655,59 +717,6 @@ sbSoundCloud.prototype.cancelLogin =
 function sbSoundCloud_cancelLogin() {
   this.listeners.each(function() { l.onLoginCancelled(); });
   this.logout();
-}
-
-sbSoundCloud.prototype.requestToken =
-function sbSoundCloud_requestToken(success, failure) {
-  var self = this;
-  this.listeners.each(function(l) { l.onLoginBegins(); });
-
-  OAUTH_TOKEN = "";
-  TOKEN_SECRET = "";
-
-  var url = SOCL_URL + "/oauth/request_token";
-
-  var params = this._getParameters(url, 'POST');
-
-  this._reqtoken_xhr = POST(url, params,
-      function(xhr) {
-        let response = xhr.responseText;
-        if (response == "Invalid OAuth Request") {
-          if (self._retry_count < 5) {
-            dump("OAuth Request #" + ++self._retry_count);
-            self.requestToken(success, failure);
-          } else {
-            self._retry_count = 0;
-            Cu.reportError(response);
-          }
-        } else {
-          dump("\n" + response + "\n");
-          OAUTH_TOKEN = response.split('&')[0].split('=')[1];
-          TOKEN_SECRET = response.split('&')[1].split('=')[1];
-          self._prefs.setCharPref(self.username + ".oauth_token",
-                                  OAUTH_TOKEN);
-
-          self._retry_count = 0;
-          self.authorize(function success() { dump("Authorized!"); },
-                         function failure() { dump("Token fail!"); });
-        }
-      },
-      function(xhr) {
-        self._retry_count = 0;
-        dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
-      });
-}
-
-sbSoundCloud.prototype.authorize =
-function sbSoundCloud_authorize(success, failure) {
-  Logins.set(this.username, this.password);
-
-  var mainWindow = Cc["@mozilla.org/appshell/window-mediator;1"]
-                     .getService(Ci.nsIWindowMediator)
-                     .getMostRecentWindow('Songbird:Main');
-  var features = "modal=yes,dependent=yes,resizable=yes,titlebar=no";
-  mainWindow.openDialog(AUTH_PAGE,
-                        "soundcloud_authorize", features);
 }
 
 sbSoundCloud.prototype.authCallback =
@@ -786,12 +795,12 @@ function sbSoundCLoud_getDashboard() {
     let json = xhr.responseText;
     let feed = JSON.parse(xhr.responseText);
     if (feed.error) {
-      if (self._retry_count < 5) {
+      if (self._retry_count < MAX_RETRIES) {
         dump("\n" + json + "\n");
         self._retry_count++;
         self.getDashboard();
       } else {
-        Cu.reportError("Unable to retrieve incoming tracks: " + feed.error);
+        Cu.reportError("Unable to retrieve incoming tracks: " + json);
         return false;
       }
     }
@@ -801,10 +810,10 @@ function sbSoundCLoud_getDashboard() {
   }
 
   var params = this._getParameters(url, "GET");
-  dump(url + "?" + params);
-  this._xhr = GET(url, params, success, null, true);
+  dump("\n" + url + "?" + params + "\n");
+  //this._xhr = GET(url, params, success, null, true);
 
-  return this._xhr;
+  //return this._xhr;
 }
 
 sbSoundCloud.prototype.getFavorites =
@@ -818,7 +827,7 @@ function sbSoundCLoud_getFavorites() {
     let json = xhr.responseText;
     let favorites = JSON.parse(xhr.responseText);
     if (favorites.error) {
-      if (self._retry_count < 5) {
+      if (self._retry_count < MAX_RETRIES) {
         self._retry_count++;
         self.getFavorites();
       } else {

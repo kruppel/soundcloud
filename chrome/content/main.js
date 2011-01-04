@@ -509,7 +509,6 @@ function SoundCloud__getElement(aWidget, aElementID) {
 
 SoundCloud.onUnload = function SoundCloud_onUnload() {
   this._service.listeners.remove(this);
-  this.m_mgr.withdraw("soundcloud-play@sb.com", this.m_cmd_Play);
   this.m_mgr.withdraw("soundcloud-download@sb.com", this.m_cmd_Download);
   this.m_mgr.withdraw("soundcloud-cmds@sb.com", this.m_soundcloudCommands);
 

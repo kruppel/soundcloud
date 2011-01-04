@@ -111,13 +111,15 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
     var type = uri.slice(idx + 5);
     switch(type) {
       case "dashboard":
-        this._service.getDashboard();
         this._library = this._service.dashboard;
+        this._library.clear();
+        this._service.getDashboard();
         search.hidden = true;
         break;
       case "favorites":
-        this._service.getFavorites();
         this._library = this._service.favorites;
+        this._library.clear();
+        this._service.getFavorites();
         search.hidden = true;
         break;
       default:
