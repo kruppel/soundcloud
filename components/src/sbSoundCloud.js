@@ -454,7 +454,7 @@ function sbSoundCloud() {
           if (response == "Invalid OAuth Request") {
             if (self._retry_count < MAX_RETRIES) {
               dump("OAuth Request #" + ++self._retry_count);
-              self.requestToken(aSuccess, aFailure);
+              self._requestToken(aSuccess, aFailure);
             } else {
               self._retry_count = 0;
               aFailure();
@@ -790,7 +790,7 @@ function sbSoundCLoud_getDashboard() {
   if (!this.loggedIn)
     return false;
 
-  var url = SOCL_URL + "/me/followings/tracks.json";
+  var url = SOCL_URL + "/me/followings/tracks";
   var success = function(xhr) {
     let json = xhr.responseText;
     let feed = JSON.parse(xhr.responseText);
