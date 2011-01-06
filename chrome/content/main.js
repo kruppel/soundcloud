@@ -123,7 +123,7 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
     function(event) {
     // Only the left button
       if (event.button != 0) return;
-      SoundCloud.showPanel();
+      self._showPanel();
     }, false);
 
   // wire up the signup link
@@ -143,6 +143,18 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
   this._domEventListenerSet.add(this._forgotpass,
                                 'click',
                                 onForgotpass,
+                                false,
+                                false);
+
+  var onAutoLoginToggled = function(event) { self._toggleAutoLogin(); };
+  this._domEventListenerSet.add(this._loginAutoLogin,
+                                'command',
+                                onAutoLoginToggled,
+                                false,
+                                false);
+  this._domEventListenerSet.add(this._profileAutoLogin,
+                                'command',
+                                onAutoLoginToggled,
                                 false,
                                 false);
 
@@ -172,7 +184,17 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
     this._loginButton.disabled = true;
   }
 
+  // clear the login error message
+  this.setLoginError(null);
+  // update the ui with the should-auto-login state
+  this.onAutoLoginChanged(this._service.autoLogin);
+  // update the ui with the logged-in state
   this.onLoggedInStateChanged();
+
+  // if we have a username & password then try to log in
+  if (this._service.shouldAutoLogin()) {
+    this._service.login(false);
+  }
 
   // Attach our listener to the ShowCurrentTrack event issued by the
   // faceplate
@@ -334,6 +356,7 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
         }
       }
 
+      // XXX - Need to verify that this actually works
       var metadataService = Cc["@songbirdnest.com/Songbird/FileMetadataService;1"]
                               .getService(Ci.sbIFileMetadataService);
       metadataService.read(downloadItems);
@@ -373,7 +396,12 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
   }
 }
 
-SoundCloud.showPanel = function SoundCloud_showPanel() {
+SoundCloud.loadURI = function SoundCloud_loadURI(uri, event) {
+  gBrowser.loadURI(uri, null, null, event, '_blank');
+  this._panel.hidePopup();
+}
+
+SoundCloud._showPanel = function SoundCloud__showPanel() {
   this._panel.openPopup(this._statusIcon);
 }
 
@@ -381,59 +409,48 @@ SoundCloud._handleUIEvents =
 function SoundCloud__handlUIEvents(aEvent) {
   switch (aEvent.type) {
     case "login-button-clicked":
-      this._service.userLoggedOut = false;
       this._service.username = this._username.value;
       this._service.password = this._password.value;
-      // call login, telling the service to ignore any saved sessions
-      this._service.login(true);
+      this._service.login(false);
       break;
     case "cancel-button-clicked":
       this._service.cancelLogin();
-      this._service.userLoggedOut = true;
       break;
     case "logout-button-clicked":
-      this.onLogoutClick(aEvent);
+      this._service.logout();
       break;
     default:
       break;
   }
+}
 
-  if (this._service.userLoggedOut) {
-    this._newAccountGroupbox.removeAttribute('loggedOut');
-  } else {
-    this._newAccountGroupbox.setAttribute('loggedOut', 'false');
-  }
+SoundCloud._toggleAutoLogin = function SoundCloud__toggleAutoLogin() {
+  this._service.autoLogin = !this._service.autoLogin;
 }
 
 SoundCloud.onProfileUpdated = function SoundCloud_onProfileUpdated() {
-  var avatar = 'chrome://soundcloud/skin/default-avatar.png';
+  var avatar = "chrome://soundcloud/skin/default-avatar.png";
   if (this._service.avatar) {
     avatar = this._service.avatar;
   }
-  this._image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', avatar);
+  this._image.setAttributeNS("http://www.w3.org/1999/xlink", "href", avatar);
   if (this._service.realname && this._service.realname.length) {
     this._realname.textContent = this._service.realname;
   } else {
-    this._realName.textContent = this._username;
+    this._realName.textContent = this._username.value;
   }
   this._citycountry.textContent = this._service.city + ", " +
                                   this._service.country;
 }
 
-SoundCloud.onCancelClick = function SoundCloud_onCancelClick(event) {
-  this._deck.selectedPanel = this._login;
-}
-
-SoundCloud.onLogoutClick = function SoundCloud_onLogoutClick(event) {
-  this._service.userLoggedOut = true;
-  this._service.logout();
-  this.setLoginError(null);
-  this.updateStatus();
-}
-
-SoundCloud.loadURI = function SoundCloud_loadURI(uri, event) {
-  gBrowser.loadURI(uri, null, null, event, '_blank');
-  this._panel.hidePopup();
+SoundCloud.onAutoLoginChanged = function SoundCloud_onAutoLoginChanged(val) {
+  if (val) {
+    this._loginAutoLogin.setAttribute('checked', 'true');
+    this._profileAutoLogin.setAttribute('checked', 'true');
+  } else {
+    this._loginAutoLogin.removeAttribute('checked');
+    this._profileAutoLogin.removeAttribute('checked');
+  }
 }
 
 // SoundCloud event handlers for login events
@@ -441,34 +458,24 @@ SoundCloud.onLoggedInStateChanged =
 function SoundCloud_onLoggedInStateChanged() {
   if (this._service.loggedIn) {
     this._deck.selectedPanel = this._profile;
+    this._newAccountGroupbox.setAttribute("loggedOut", "false");
+    this.setStatusIcon(this.Icons.logged_in);
   } else {
+    this.setLoginError(null);
     this._deck.selectedPanel = this._login;
+    this._newAccountGroupbox.removeAttribute("loggedOut");
+    this.setStatusIcon(this.Icons.disabled);
   }
-
-  this.updateStatus();
 }
 
 SoundCloud.onLoginBegins = function SoundCloud_onLoginBegins() {
   this._deck.selectedPanel = this._loggingIn;
+  this._newAccountGroupbox.setAttribute("loggedOut", "false");
   this.setStatusIcon(this.Icons.busy);
   //this.setStatusTextId('soundcloud.state.logging_in');
 }
 
-SoundCloud.onLoginCancelled = function SoundCloud_onLoginCancelled() {
-  this.setLoginError(null);
-}
-
 SoundCloud.onItemsAdded = function SoundCloud_onItemsAdded() {
-  Cu.reportError("SOUNDCLOUD ITEMS ADDED");
-}
-
-SoundCloud.updateStatus = function SoundCloud_updateStatus() {
-  if (this._service.loggedIn) {
-    this.setStatusIcon(this.Icons.logged_in);
-    //this.setStatusTextId('soundcloud.state'+stateName);
-  } else {
-    this.setStatusIcon(this.Icons.disabled);
-  }
 }
 
 SoundCloud.setStatusIcon = function SoundCloud_setStatusIcon(aIcon) {

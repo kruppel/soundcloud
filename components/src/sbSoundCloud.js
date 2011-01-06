@@ -60,9 +60,6 @@ const SIG_METHOD = "HMAC-SHA1";
 
 const MAX_RETRIES = 5;
 
-var OAUTH_TOKEN = '';
-var TOKEN_SECRET = '';
-
 /*
  * SoundCloud library objects.
  */
@@ -371,7 +368,8 @@ function sbSoundCloud() {
   this._sign = function sbSoundCloud__sign(aMessage) {
     var baseString = this._getBaseString(aMessage);
     var signature = b64_hmac_sha1(encodeURIComponent(CONSUMER_SECRET)
-                                  + "&" + encodeURIComponent(TOKEN_SECRET),
+                                  + "&" 
+                                  + encodeURIComponent(this._token_secret),
                                   baseString);
     return signature;
   }
@@ -420,8 +418,8 @@ function sbSoundCloud() {
     message.parameters.push(['oauth_nonce', OAuth.nonce(11)]);
     message.parameters.push(['oauth_signature_method', SIG_METHOD]);
     message.parameters.push(['oauth_timestamp', OAuth.timestamp()]);
-    if (OAUTH_TOKEN)
-      message.parameters.push(['oauth_token', OAUTH_TOKEN]);
+    if (this._oauth_token)
+      message.parameters.push(['oauth_token', this._oauth_token]);
     message.parameters.push(['oauth_version', "1.0"]);
 
     message.parameters.push(['oauth_signature', this._sign(message)]);
@@ -439,42 +437,50 @@ function sbSoundCloud() {
   this._requestToken =
   function sbSoundCloud__requestToken(aSuccess, aFailure) {
     var self = this;
-    this.listeners.each(function(l) { l.onLoginBegins(); });
 
-    OAUTH_TOKEN = "";
-    TOKEN_SECRET = "";
+    this._oauth_token = "";
+    this._token_secret = "";
 
     var url = SOCL_URL + "/oauth/request_token";
-
     var params = this._getParameters(url, 'POST');
 
-    this._reqtoken_xhr = POST(url, params,
-        function(xhr) {
-          let response = xhr.responseText;
-          if (response == "Invalid OAuth Request") {
-            if (self._retry_count < MAX_RETRIES) {
-              dump("OAuth Request #" + ++self._retry_count);
-              self._requestToken(aSuccess, aFailure);
-            } else {
-              self._retry_count = 0;
-              aFailure();
-              Cu.reportError(response);
-            }
-          } else {
-            dump("\n" + response + "\n");
-            OAUTH_TOKEN = response.split('&')[0].split('=')[1];
-            TOKEN_SECRET = response.split('&')[1].split('=')[1];
-            self._prefs.setCharPref(self.username + ".oauth_token",
-                                    OAUTH_TOKEN);
+    if (!this._oauth_retries)
+      this._oauth_retries = 0;
 
-            self._retry_count = 0;
-            aSuccess();
-          }
-        },
-        function(xhr) {
-          self._retry_count = 0;
-          dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
-        });
+    var reqTokenSuccess = function reqTokenSuccess(xhr) {
+      let response = xhr.responseText;
+      if (response == "Invalid OAuth Request") {
+        if (self._oauth_retries < MAX_RETRIES) {
+          dump("\nOAuth request token #" + ++self._oauth_retries);
+          self._requestToken(aSuccess, aFailure);
+        } else {
+          self._oauth_retries = null;
+          aFailure(xhr);
+        }
+      } else {
+        let tokenized = response.split("&")
+        self._oauth_token = tokenized[0].split("=")[1];
+        self._token_secret = tokenized[1].split("=")[1];
+
+        self._prefs.setCharPref(self.username + ".oauth_token",
+                                self._oauth_token);
+        self._oauth_retries = null;
+
+        aSuccess();
+      }
+    }
+
+    var reqTokenFailure = function reqTokenFailure(xhr) {
+      self._oauth_retries = null;
+      aFailure(xhr);
+      dump("\nStatus: " + xhr.status + "\n" + xhr.getAllResponseHeaders());
+    }
+
+    this._reqtoken_xhr = POST(url,
+                              params,
+                              reqTokenSuccess,
+                              reqTokenFailure);
+    return this._reqtoken_xhr;
   }
 
   /**
@@ -493,6 +499,59 @@ function sbSoundCloud() {
                           "soundcloud_authorize", features);
   }
 
+  /**
+   * \brief Requests OAuth access token.
+   *
+   * \param aSuccess              Action to take on success.
+   * \param aFailure              Action to take on failure.
+   *
+   */
+  this._accessToken =
+  function sbSoundCloud__accessToken(aSuccess, aFailure) {
+    var self = this;
+
+    var url = SOCL_URL + "/oauth/access_token";
+    var params = self._getParameters(url, 'POST');
+
+    if (!this._oauth_retries)
+      this._oauth_retries = 0;
+
+    var accessTokenSuccess = function accessTokenSuccess(xhr) {
+      let response = xhr.responseText;
+      if (response == "Invalid OAuth Request") {
+        if (self._oauth_retries < MAX_RETRIES) {
+          dump("\nOAuth access token #" + ++self._oauth_retries);
+          self._accessToken(aSuccess, aFailure);
+        } else {
+          self._oauth_retries = null;
+          aFailure(xhr);
+        }
+      } else {
+        let tokenized = response.split("&")
+
+        self._oauth_token = tokenized[0].split("=")[1];
+        self._token_secret = tokenized[1].split("=")[1];
+        aSuccess(xhr);
+
+        self._oauth_retries = null;
+
+        self.updateProfile();
+      }
+    }
+
+    var accessTokenFailure = function accessTokenFailure(xhr) {
+      self._oauth_retries = null;
+      aFailure(xhr);
+      dump("\nStatus: " + xhr.status + "\n" + xhr.getAllResponseHeaders());
+    }
+
+    this._accesstoken_xhr = POST(url,
+                                 params,
+                                 accessTokenSuccess,
+                                 accessTokenFailure);
+    return this._accesstoken_xhr;
+  }
+
   this._nowplaying_url = null;
   this.__defineGetter__('nowplaying_url', function() {
     return this._nowplaying_url;
@@ -507,20 +566,20 @@ function sbSoundCloud() {
 
   this.__defineGetter__('oauth_token', function() {
     let pref = this.username + ".oauth_token";
-    let token = (this._prefs.prefHasUserValue(pref)) ?
-                  this._prefs.getCharPref(pref) : false;
-    return this._prefs.getCharPref(this.username + ".oauth_token");
+    this._oauth_token = (this._prefs.prefHasUserValue(pref)) ?
+                         this._prefs.getCharPref(pref) : null;
+    return this._oauth_token;
   });
 
-  /*
   this.__defineGetter__('autoLogin', function() {
-    return prefsService.getBoolPref('extensions.soundcloud.autologin');
+    let autologin = (this._prefs.prefHasUserValue('autologin')) ?
+                      this._prefs.getBoolPref('autologin') : false;
+    return autologin;
   });
   this.__defineSetter__('autoLogin', function(val) {
-    prefsService.setBoolPref('extensions.soundcloud.autologin', val);
+    this._prefs.setBoolPref('autologin', val);
     this.listeners.each(function(l) { l.onAutoLoginChanged(val); });
   });
-  */
 
   // user-logged-out pref
   this.__defineGetter__('userLoggedOut', function() {
@@ -528,6 +587,12 @@ function sbSoundCloud() {
   });
   this.__defineSetter__('userLoggedOut', function(val) {
     this._prefs.setBoolPref('loggedOut', val);
+  });
+
+  this._authorized = false;
+  this.__defineGetter__('authorized', function() { return this._authorized; });
+  this.__defineSetter__('authorized', function(aAuthorized){
+    this._authorized = aAuthorized;
   });
 
   // the loggedIn state
@@ -697,76 +762,89 @@ function sbSoundCloud_shouldAutoLogin() {
 }
 
 sbSoundCloud.prototype.login =
-function sbSoundCloud_login(clearSession) {
+function sbSoundCloud_login(aClearSession) {
   var self = this;
-  this._requestToken(function success() {
-                       self._authorize();
-                     }, function failure() {
-                          dump("Request token fail!");
-                        });
-  return;
+
+  this.listeners.each(function(l) { l.onLoginBegins(); });
+
+  this.userLoggedOut = false;
+
+  var secretPref = this.username + ".token_secret";
+  this._token_secret = (this._prefs.prefHasUserValue(secretPref)) ?
+                        this._prefs.getCharPref(secretPref) : null;
+
+  if ((this.oauth_token && this._token_secret) &&
+      !aClearSession) {
+    return this.updateProfile();
+  }
+ 
+  var success = function success(xhr) {
+    self._authorize();
+  }
+
+  var failure = function failure(xhr) {
+    dump("\nRequest token failed: " + xhr.responseText);
+  }
+
+  return this._requestToken(success, failure);
 }
 
 sbSoundCloud.prototype.logout =
 function sbSoundCloud_logout() {
+  this.userLoggedOut = true;
   this.loggedIn = false;
   this.updateServicePaneNodes();
 }
 
 sbSoundCloud.prototype.cancelLogin =
 function sbSoundCloud_cancelLogin() {
-  this.listeners.each(function() { l.onLoginCancelled(); });
   this.logout();
 }
 
 sbSoundCloud.prototype.authCallback =
 function sbSoundCloud_authCallback() {
-  if (this.loggedIn) {
-    this.accessToken(function success() { dump("Access yes!"); },
-      function failure() { dump("Access fail!"); });
+  var self = this;
+  if (this.authorized) {
+    var success = function success(xhr) {
+      self._prefs.setCharPref(self.username + ".oauth_token",
+                              self._oauth_token);
+      self._prefs.setCharPref(self.username + ".token_secret",
+                              self._token_secret);
+    }
+
+    var failure = function failure(xhr) {
+      dump("\nAccess token failed; " + xhr.responseText);
+    }
+
+    this._accessToken(success, failure);
   } else {
     this.listeners.each(function(l) { l.onLoggedInStateChanged(); });
   }
 }
 
-sbSoundCloud.prototype.accessToken =
-function sbSoundCloud_accessToken(success, failure) {
-  var self = this;
-  var url = SOCL_URL + "/oauth/access_token";
-  var params = self._getParameters(url, 'POST');
-
-  this._accesstoken_xhr = POST(url, params,
-      function(xhr) {
-        let response = xhr.responseText;
-        OAUTH_TOKEN = response.split('&')[0].split('=')[1];
-        TOKEN_SECRET = response.split('&')[1].split('=')[1];
-
-        self._prefs.setCharPref(self.username + ".oauth_token",
-                                OAUTH_TOKEN);
-
-        self.listeners.each(function(l) { l.onLoggedInStateChanged(); });
-        self.updateProfile(function success() { dump("Access yes!"); },
-                           function failure() { dump("My profile no!"); });
-      },
-      function(xhr) {
-        dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
-      });
-}
-
 sbSoundCloud.prototype.updateProfile =
-function sbSoundCloud_updateProfile(onSuccess, onFailure) {
+function sbSoundCloud_updateProfile() {
   var self = this;
-  this._info_xhr = this.apiCall("me", {},
-    function response(success, json) {
-      if (!success) {
-        dump("updateProfile FAILED\n");
-        if (typeof(onFailure) == "function")
-          onFailure();
-        return;
-      }
 
-      dump("\n" + json + "\n");
-      var jsObject = JSON.parse(json);
+  if (!this._info_retries)
+    this._info_retries = 0;
+
+  var url = SOCL_URL + "/me.json";
+  var params = this._getParameters(url, 'GET');
+
+  var profileSuccess = function(xhr) {
+    let json = xhr.responseText;
+    let jsObject = JSON.parse(json);
+    if (jsObject.error) {
+      if (self._info_retries < MAX_RETRIES) {
+        dump("\nProfile Request #" + ++self._info_retries);
+        self.updateProfile();
+      } else {
+        return profileFailure(xhr);
+      }
+    } else {
+      self._info_retries = null;
+
       self.userid = jsObject.id;
       self.realname = jsObject.username;
       self.avatar = jsObject.avatar_url;
@@ -775,13 +853,25 @@ function sbSoundCloud_updateProfile(onSuccess, onFailure) {
       self.city = jsObject.city;
       self.country = jsObject.country;
       self.profileurl = jsObject.permalink_url;
+
       self.listeners.each(function(l) { l.onProfileUpdated(); });
 
+      self.loggedIn = true;
       self.updateServicePaneNodes();
+    }
+  }
 
-      if (typeof(onSuccess) == "function")
-        onSuccess();
-    });
+  var profileFailure = function(xhr) {
+    dump("\nUnable to retrieve profile. Falling back to logged out state.");
+    dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
+    self._info_retries = null;
+    self.loggedIn = false;
+    return false;
+  }
+
+  this._info_xhr = GET(url, params, profileSuccess, profileFailure, true);
+
+  return this._info_xhr;
 }
 
 sbSoundCloud.prototype.getDashboard =
@@ -796,7 +886,6 @@ function sbSoundCLoud_getDashboard() {
     let feed = JSON.parse(xhr.responseText);
     if (feed.error) {
       if (self._retry_count < MAX_RETRIES) {
-        dump("\n" + json + "\n");
         self._retry_count++;
         self.getDashboard();
       } else {
@@ -862,25 +951,6 @@ function sbSoundCloud_apiCall(type, flags, callback) {
       method = 'GET';
       url += "/oauth/test_request";
       authRequired = true;
-      break;
-    case "me":
-      method = 'GET';
-      url += "/me.json";
-      authRequired = true;
-      success = function(xhr) {
-        let json = xhr.responseText;
-        let jsObject = JSON.parse(xhr.responseText);
-        if (jsObject.error) {
-          callback(false, json);
-        }
-        self._prefs.setCharPref(self.username + ".oauth_token",
-                                OAUTH_TOKEN);
-        callback(true, json);
-      };
-      failure = function(xhr) {
-        dump("\nStatus is " + xhr.status + "\n"
-                            + xhr.getAllResponseHeaders());
-      };
       break;
     case "tracks":
       method = 'GET';

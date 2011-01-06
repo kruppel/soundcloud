@@ -53,9 +53,6 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
                     .getService(Ci.nsIStringBundleService)
                     .createBundle("chrome://soundcloud/locale/overlay.properties");
 
-  // Set the tab title
-  document.title = this._strings.GetStringFromName("radioTabTitle");
-
   this._service = Cc['@songbirdnest.com/soundcloud;1']
                     .getService().wrappedJSObject;
 
@@ -114,19 +111,26 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
         this._library = this._service.dashboard;
         this._library.clear();
         this._service.getDashboard();
+        document.title =
+          this._strings.GetStringFromName("soundcloud.dashboard.title");
         search.hidden = true;
         break;
       case "favorites":
         this._library = this._service.favorites;
         this._library.clear();
         this._service.getFavorites();
+        document.title =
+          this._strings.GetStringFromName("soundcloud.favorites.title");
         search.hidden = true;
         break;
       default:
         this._library = this._service.library;
+        document.title =
+          this._strings.GetStringFromName("soundcloud.search.title");
     }
   } else {
     this._library = this._service.library;
+    document.title = this._strings.GetStringFromName("soundcloud.search.title");
   }
 
   // Get playlist commands
