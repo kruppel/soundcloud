@@ -45,6 +45,7 @@ function SoundClouWaveform_onLoad() {
   this.remote_position.bindObserver(dataRemoteListener, true);
   this.remote_length = SBNewDataRemote("metadata.length", null);
   this.remote_length.bindObserver(dataRemoteListener, true);
+  this.onPositionChanged();
 }
 
 SoundCloudWaveform.onPositionChanged =
