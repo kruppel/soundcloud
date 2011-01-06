@@ -662,8 +662,6 @@ function sbSoundCloud() {
     radioFolder.appendChild(this._servicePaneNode);
   }
 
-  this.updateServicePaneNodes();
-
   this._retry_count = 0;
 }
 
@@ -720,9 +718,9 @@ function sbSoundCloud_updateServicePaneNodes() {
       dashNode.hidden = false;
     }
 
-    var dashBadge = ServicePaneHelper.getBadge(dashNode, "socldashboard");
-    dashBadge.label = this.incomingCount;
-    dashBadge.visible = true;
+    //var dashBadge = ServicePaneHelper.getBadge(dashNode, "socldashboard");
+    //dashBadge.label = this.incomingCount;
+    //dashBadge.visible = true;
  
     // Create favorites node
     var favNode = this._servicePaneService
@@ -751,6 +749,8 @@ function sbSoundCloud_updateServicePaneNodes() {
       soclNode.removeChild(soclNode.firstChild);
     }
   }
+
+  // XXX - Need to switch the active node if it's any of the above
 }
 
 sbSoundCloud.prototype.shouldAutoLogin =
