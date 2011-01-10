@@ -7,3 +7,4 @@ const SB_PROPERTY_WAVEFORM = SB_NS + "waveformURL";
 const SB_PROPERTY_DOWNLOAD_IMAGE = SB_NS + "downloadImage";
 const SB_PROPERTY_DOWNLOAD_URL = SB_NS + "downloadURL";
 const SB_PROPERTY_URL = SB_NS + "streamURL";
+const SB_PROPERTY_CREATION_DATE = SB_NS + "creationDate";

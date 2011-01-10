@@ -51,6 +51,7 @@ const SB_PROPERTY_FAVS = SB_NS + "favcount";
 const SB_PROPERTY_WAVEFORM = SB_NS + "waveformURL";
 const SB_PROPERTY_DOWNLOAD_IMAGE = SB_NS + "downloadImage";
 const SB_PROPERTY_DOWNLOAD_URL = SB_NS + "downloadURL";
+const SB_PROPERTY_CREATION_DATE = SB_NS + "creationDate";
 
 const SOCL_URL = 'https://api.soundcloud.com';
 const AUTH_PAGE = 'chrome://soundcloud/content/soundcloudAuthorize.xul'
@@ -159,6 +160,53 @@ function Listeners() {
   }
 }
 
+function sbSoundCloudSearchService() {
+  this.createDatabase =
+    function sbSoundCloudSearchService_createDatabase() {
+      if (!this._dbq)
+        this._initQuery();
+
+      this._dbq.addQuery("CREATE TABLE IF NOT EXISTS search_history"
+                         + "(timestamp INTEGER PRIMARY KEY, url TEXT,"
+                         + "terms TEXT)");
+      this._dbq.execute();
+      this._dbq.resetQuery();
+    }
+
+  this.logSearch =
+    function sbSoundCloudSearchService_logSearch(aUrl, aTerms) {
+      if (!this._dbq)
+        this._initQuery();
+
+      this._dbq.addQuery("INSERT INTO search_history VALUES (" + Date.now()
+                         + ", '" + aUrl + "', '" + aTerms + "')");
+      this._dbq.execute();
+      this._dbq.resetQuery();
+    }
+
+  this._initQuery =
+    function sbSoundCloudSearchService__initQuery() {
+      try {
+        var ios = Cc["@mozilla.org/network/io-service;1"]
+                    .createInstance(Ci.nsIIOService);
+        var dir = Cc["@mozilla.org/file/directory_service;1"]
+                    .getService(Ci.nsIProperties)
+                    .get("ProfD", Ci.nsIFile);
+        dir.append("db");
+        dir.append("soundcloud");
+        var uri = ios.newFileURI(dir);
+        this._dbq = Cc["@songbirdnest.com/Songbird/DatabaseQuery;1"]
+                      .createInstance(Ci.sbIDatabaseQuery);
+        this._dbq.databaseLocation = uri;
+        this._dbq.setDatabaseGUID("search-history@soundcloud.com");
+        this._dbq.setAsyncQuery(false);
+        this._dbq.resetQuery();
+      } catch(ex) {
+        Cu.reportError(ex);
+      }
+    }
+}
+
 /*
  * Helper functions
  */
@@ -235,6 +283,9 @@ function sbSoundCloud() {
   this.username = login.username;
   this.password = login.password;
 
+  this._searchService = new sbSoundCloudSearchService();
+  this._searchService.createDatabase();
+
   this._prefs = Cc['@mozilla.org/preferences-service;1']
                   .getService(Ci.nsIPrefService)
                   .getBranch("extensions.soundcloud.");
@@ -304,6 +355,9 @@ function sbSoundCloud() {
                               .createInstance(Ci.nsIMutableArray);
   
       for (let i = 0; i < aItems.length; i++) {
+        // While PRTime stores times in microseconds since epoch, JavaScript
+        // date objects store times in milliseconds since epoch.
+        var createdAt = new Date(aItems[i].created_at).getTime();
         var title = aItems[i].title;
         var duration = aItems[i].duration * 1000;
         var artwork = aItems[i].artwork_url;
@@ -326,6 +380,7 @@ function sbSoundCloud() {
           Cc["@songbirdnest.com/Songbird/Properties/MutablePropertyArray;1"]
             .createInstance(Ci.sbIMutablePropertyArray);
   
+        properties.appendProperty(SB_PROPERTY_CREATION_DATE, createdAt);
         properties.appendProperty(SBProperties.trackName, title);
         properties.appendProperty(SBProperties.duration, duration);
         properties.appendProperty(SBProperties.primaryImageURL, artwork);
@@ -334,6 +389,8 @@ function sbSoundCloud() {
         properties.appendProperty(SB_PROPERTY_FAVS, favcount);
         properties.appendProperty(SB_PROPERTY_WAVEFORM, waveformURL);
         if (downloadURL) {
+          properties.appendProperty(SB_PROPERTY_DOWNLOAD_IMAGE,
+                                    "chrome://soundcloud/skin/download.png");
           properties.appendProperty(SB_PROPERTY_DOWNLOAD_URL, downloadURL);
         }
  
@@ -715,7 +772,7 @@ function sbSoundCloud_updateServicePaneNodes() {
       dashNode.editable = false;
       dashNode.setAttributeNS(SP_NS, "Weight", 5);
       soclNode.appendChild(dashNode);
-      dashNode.hidden = false;
+      dashNode.hidden = true;
     }
 
     //var dashBadge = ServicePaneHelper.getBadge(dashNode, "socldashboard");
@@ -731,6 +788,7 @@ function sbSoundCloud_updateServicePaneNodes() {
         "chrome://soundcloud/content/directory.xul?type=favorites";
       favNode.id = "urn:soclfavorites"
       favNode.name = "Favorites";
+      favNode.image = "chrome://soundcloud/skin/favorites.png";
       favNode.tooltip = "Tracks you loved";
       favNode.editable = false;
       favNode.setAttributeNS(SP_NS, "Weight", 20);
@@ -880,9 +938,12 @@ function sbSoundCLoud_getDashboard() {
   if (!this.loggedIn)
     return false;
 
-  var url = SOCL_URL + "/me/followings/tracks";
+  var url = SOCL_URL + "/me/followings/tracks?order=created_at";
   var success = function(xhr) {
-    let json = xhr.responseText;
+    let xml = xhr.responseText;
+    dump("\n" + xml);
+    //dump("\nSUCCESS\n" + xml.documentElement.getElementsByTagName("track")[0].innerHTML + "\nSUCCESS\n");
+    /*let json = xhr.responseText;
     let feed = JSON.parse(xhr.responseText);
     if (feed.error) {
       if (self._retry_count < MAX_RETRIES) {
@@ -895,14 +956,18 @@ function sbSoundCLoud_getDashboard() {
     }
 
     self.incomingCount = feed.length;
-    self._addItemsToLibrary(feed, self._dashboard);
+    self._addItemsToLibrary(feed, self._dashboard);*/
+  }
+  var failure = function(xhr) {
+    let xml = xhr.responseXML;
+    dump("\nFAIL\n" + xml.documentElement.getElementsByTagName("track")[0].innerHTML + "\nFAIL\n");
   }
 
   var params = this._getParameters(url, "GET");
   dump("\n" + url + "?" + params + "\n");
-  //this._xhr = GET(url, params, success, null, true);
+  this._xhr = GET(url, params, success, null, true);
 
-  //return this._xhr;
+  return this._xhr;
 }
 
 sbSoundCloud.prototype.getFavorites =
@@ -945,6 +1010,7 @@ function sbSoundCloud_apiCall(type, flags, callback) {
   var params = "";
   var success = {};
   var failure = {};
+  var query = "";
 
   switch (type) {
     case "test":
@@ -972,10 +1038,14 @@ function sbSoundCloud_apiCall(type, flags, callback) {
       }
 
       if (flags) {
-        for (let flag in flags) {
+        for (var flag in flags) {
+          if (flag == "q")
+            query = flags[flag];
           params += flag + "=" + flags[flag] + "&";
         }
       }
+
+      this._searchService.logSearch(url + "?" + params, query); 
 
       success = function(xhr) {
         let json = xhr.responseText;

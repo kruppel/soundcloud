@@ -271,6 +271,17 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
     pMgr.addPropertyInfo(pI);
   }
 
+  if (!pMgr.hasProperty(SB_PROPERTY_CREATION_DATE)) {
+    var pI = Cc["@songbirdnest.com/Songbird/Properties/Info/Datetime;1"]
+               .createInstance(Ci.sbIDatetimePropertyInfo);
+    pI.id = SB_PROPERTY_CREATION_DATE;
+    pI.timeType = Ci.sbIDatetimePropertyInfo.TIMETYPE_DATETIME
+    pI.displayName = "Created At";
+    pI.userEditable = false;
+    pI.userViewable = false;
+    pMgr.addPropertyInfo(pI);
+  }
+
   // XXX - Source image needs to be updated
   // Should file a bug to get this property column centered instead of left
   // justified.

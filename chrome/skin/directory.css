@@ -1,32 +1,43 @@
 treecol[bind="http://songbirdnest.com/data/1.0#user"]
 {
- text-align: left;
+  text-align: left;
 }
 
 treecol[bind="http://songbirdnest.com/data/1.0#playcount"],
-treecol[bind="http://songbirdnest.com/data/1.0#favcount"]
+treecol[bind="http://songbirdnest.com/data/1.0#favcount"],
+treecol[bind="http://songbirdnest.com/data/1.0#downloadImage"]
 {
- background-image: url("chrome://soundcloud/skin/elements.png");
- background-repeat: no-repeat;
- max-width: 45px;
- min-width: 45px;
- text-align: right;
+  background-image: url("chrome://soundcloud/skin/elements.png");
+  background-repeat: no-repeat;
+  max-width: 45px;
+  min-width: 45px;
 }
 
 treecol[bind="http://songbirdnest.com/data/1.0#playcount"]
 {
- background-position: 105% 1px;
+  background-position: 105% 1px;
 }
 
 treecol[bind="http://songbirdnest.com/data/1.0#favcount"]
 {
- background-position: 105% -43px;
+  background-position: 105% -43px;
+}
+
+treecol[bind="http://songbirdnest.com/data/1.0#downloadImage"]
+{
+  background-position: 105% -68px;
+  text-align: center;
 }
 
 treecol[bind="http://songbirdnest.com/data/1.0#user"] > label,
 .sb-playlist-tree > treechildren::-moz-tree-cell-text( http-songbirdnest-com-data-1-0-user )
 {
   padding-right: 15px;
+}
+
+.sb-playlist-tree > treechildren::-moz-tree-image( http-songbirdnest-com-data-1-0-downloadImage )
+{
+  cursor: pointer;
 }
 
 .header-actions {
@@ -40,11 +51,6 @@ treecol[bind="http://songbirdnest.com/data/1.0#user"] > label,
   margin-top: 0px;
 }
 
-textbox.textbox-input {
-  font-family: "Lucida Grande", Arial !important;
-  font-size: 12px !important;
-}
-
 .adv-closed {
   -moz-transform: rotate(180deg);
 }
@@ -54,17 +60,9 @@ textbox.textbox-input {
   background-image: url(chrome://soundcloud/skin/bg-header-soundcloud.png);
 }
 
-textbox {
-  background-color: #FFFFFF;
-  height: 25px;
-  border: 1px solid #EEEEEE;
-  -moz-border-radius-topleft: 5px;
-  -moz-border-radius-bottomleft: 5px;
-  -moz-border-radius-topright: 5px;
-  -moz-border-radius-bottomright: 5px;
-}
-
 #soundcloud-search-textbox {
+  font-family: "Lucida Grande", Arial !important;
+  font-size: 12px !important;
   background-color: #FFFFFF;
   height: 25px;
   border: 1px solid #EEEEEE;
@@ -87,15 +85,15 @@ textbox {
 }
 
 #soundcloud-search-btn:hover, #soundcloud-search-btn:focus {
- background-position:0 -5px;
- cursor:pointer;
- color:#111;
- outline: none;
+  background-position:0 -5px;
+  cursor:pointer;
+  color:#111;
+  outline: none;
 }
 
 #soundcloud-search-btn:active {
- background-color: #bbb;
- background-image:none;
+  background-color: #bbb;
+  background-image:none;
 }
 
 #soundcloud-search-btn > .button-box > label.button-text {

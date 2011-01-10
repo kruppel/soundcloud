@@ -154,6 +154,7 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
   this._directory.appendColumn(SB_PROPERTY_PLAYS, "60");
   this._directory.appendColumn(SB_PROPERTY_FAVS, "60");
   this._directory.appendColumn(SB_PROPERTY_DOWNLOAD_IMAGE, "60");
+  this._directory.appendColumn(SB_PROPERTY_CREATION_DATE, "90");
 }
 
 CloudDirectory.triggerSearch = function CloudDirectory_triggerSearch(event) {
