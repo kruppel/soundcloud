@@ -70,6 +70,10 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
   this._searchBox = document.getElementById("soundcloud-search-textbox");
   this._searchBtn = document.getElementById("soundcloud-search-btn");
 
+  this._searchBox.value = decodeURIComponent(this._service.lastSearch);
+  if (this._searchBox.value.length > 0)
+    this._searchBtn.disabled = false;
+
   var onSearchInput = function(aEvent) {
     self._searchBtn.disabled = aEvent.target.value.length == 0;
   };
@@ -140,26 +144,32 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
   // Bind the playlist widget to our library
   this._directory.bind(this._library.createView(), cmds);
 
-  var colSpec = SBProperties.trackName + " 360 " +
+  var colSpec = SBProperties.trackName + " 300 " +
                 SBProperties.duration + " 70 " +
                 SB_PROPERTY_USER + " 150 " +
                 SB_PROPERTY_PLAYS + " 60 " +
                 SB_PROPERTY_FAVS + " 60 " +
-                SB_PROPERTY_DOWNLOAD_IMAGE + " 60 ";
+                SB_PROPERTY_DOWNLOAD_IMAGE + " 60 " +
+                SB_PROPERTY_CREATION_DATE + " 120 ";
   this._library.setProperty(SBProperties.columnSpec, colSpec);
   this._directory.clearColumns();
-  this._directory.appendColumn(SBProperties.trackName, "360");
+  this._directory.appendColumn(SBProperties.trackName, "300");
   this._directory.appendColumn(SBProperties.duration, "70");
   this._directory.appendColumn(SB_PROPERTY_USER, "150");
   this._directory.appendColumn(SB_PROPERTY_PLAYS, "60");
   this._directory.appendColumn(SB_PROPERTY_FAVS, "60");
   this._directory.appendColumn(SB_PROPERTY_DOWNLOAD_IMAGE, "60");
-  this._directory.appendColumn(SB_PROPERTY_CREATION_DATE, "90");
+  this._directory.appendColumn(SB_PROPERTY_CREATION_DATE, "120");
+
+  // Add listener for playlist "Download" clicks
+  if ((typeof(gBrowser) != "undefined") && gBrowser) {
+    this._directory.addEventListener("PlaylistCellClick", function(e) {
+      return self.downloadClick(e);
+    }, false);
+  }
 }
 
-CloudDirectory.triggerSearch = function CloudDirectory_triggerSearch(event) {
-  var self = this;
-
+CloudDirectory.triggerSearch = function CloudDirectory_triggerSearch(aEvent) {
   // Reset the library
   this._library.clear();
 
@@ -172,6 +182,32 @@ CloudDirectory.triggerSearch = function CloudDirectory_triggerSearch(event) {
   };
 
   this._service.apiCall("tracks", flags, null);
+}
+
+CloudDirectory.downloadClick = function CloudDirectory_downloadClick(aEvent) {
+  var prop = aEvent.getData("property");
+  var item = aEvent.getData("item");
+
+  if (item.getProperty(prop) != "" && prop == SB_PROPERTY_DOWNLOAD_IMAGE) {
+    var ddh = Cc["@songbirdnest.com/Songbird/DownloadDeviceHelper;1"]
+                .getService(Ci.sbIDownloadDeviceHelper);
+    var ios = Cc["@mozilla.org/network/io-service;1"]
+                .getService(Ci.nsIIOService);
+    var downloads = this._service.downloads;
+
+    var url = item.getProperty(SB_PROPERTY_DOWNLOAD_URL);
+    var properties = {};
+    properties[SBProperties.trackName] =
+        item.getProperty(SBProperties.trackName);
+    properties[SBProperties.trackType] = "soundcloud";
+    var propertyArray = SBProperties.createArray(properties);
+    var downloadItem =
+        downloads.createMediaItem(ios.newURI(url, null, null),
+                                  propertyArray);
+    downloadItem.setProperty(SB_PROPERTY_WAVEFORM,
+                             item.getProperty(SB_PROPERTY_WAVEFORM));
+    ddh.downloadItem(downloadItem);
+  }
 }
 
 CloudDirectory.onUnload = function CloudDirectory_onUnload() {

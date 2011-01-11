@@ -357,6 +357,8 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
             let properties = {};
             properties[SBProperties.trackName] =
                 curItem.getProperty(SBProperties.trackName);
+            properties[SB_PROPERTY_WAVEFORM_URL] =
+                curItem.getProperty(SB_PROPERTY_WAVEFORM_URL);
             properties[SBProperties.trackType] = "soundcloud";
             let propertyArray = SBProperties.createArray(properties);
             let item = library.createMediaItem(ios.newURI(downloadURL, null, null),

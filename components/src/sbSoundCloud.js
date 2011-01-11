@@ -161,28 +161,43 @@ function Listeners() {
 }
 
 function sbSoundCloudSearchService() {
-  this.createDatabase =
-    function sbSoundCloudSearchService_createDatabase() {
+  this.createTable =
+    function sbSoundCloudSearchService_createTable() {
       if (!this._dbq)
         this._initQuery();
 
       this._dbq.addQuery("CREATE TABLE IF NOT EXISTS search_history"
-                         + "(timestamp INTEGER PRIMARY KEY, url TEXT,"
+                         + "(id INTEGER PRIMARY KEY,"
+                         + "timestamp INTEGER, url TEXT,"
                          + "terms TEXT)");
       this._dbq.execute();
       this._dbq.resetQuery();
     }
 
-  this.logSearch =
-    function sbSoundCloudSearchService_logSearch(aUrl, aTerms) {
+  this.insertSearch =
+    function sbSoundCloudSearchService_insertSearch(aUrl, aTerms) {
       if (!this._dbq)
         this._initQuery();
 
-      this._dbq.addQuery("INSERT INTO search_history VALUES (" + Date.now()
-                         + ", '" + aUrl + "', '" + aTerms + "')");
+      this._dbq.addQuery("INSERT INTO search_history VALUES (NULL, "
+                         + Date.now() + ", '" + aUrl + "', '" + aTerms
+                         + "')");
       this._dbq.execute();
       this._dbq.resetQuery();
     }
+
+  this.getLastSearch =
+    function sbSoundCloudSearchService_getLastSearch() {
+      if (!this._dbq)
+        this._initQuery();
+
+      this._dbq.addQuery("SELECT * FROM search_history "
+                         + "ORDER BY id DESC LIMIT 1");
+      this._dbq.execute();
+      this._dbq.waitForCompletion();
+      var rs = this._dbq.getResultObject();
+      return rs.getRowCell(0, 3);
+  }
 
   this._initQuery =
     function sbSoundCloudSearchService__initQuery() {
@@ -201,8 +216,8 @@ function sbSoundCloudSearchService() {
         this._dbq.setDatabaseGUID("search-history@soundcloud.com");
         this._dbq.setAsyncQuery(false);
         this._dbq.resetQuery();
-      } catch(ex) {
-        Cu.reportError(ex);
+      } catch(e) {
+        Cu.reportError(e);
       }
     }
 }
@@ -284,7 +299,7 @@ function sbSoundCloud() {
   this.password = login.password;
 
   this._searchService = new sbSoundCloudSearchService();
-  this._searchService.createDatabase();
+  this._searchService.createTable();
 
   this._prefs = Cc['@mozilla.org/preferences-service;1']
                   .getService(Ci.nsIPrefService)
@@ -685,6 +700,21 @@ function sbSoundCloud() {
   });
   this.__defineGetter__('downloads', function() { return this._downloads; });
 
+  this.__defineGetter__('lastSearch', function() {
+      if (!this._searchService)
+        return;
+
+      let term = "";
+
+      try {
+        term = this._searchService.getLastSearch();
+      } catch(ex) {
+        Cu.reportError(ex);
+      }
+
+      return term;
+    });
+
   this._strings =
     Cc["@mozilla.org/intl/stringbundle;1"]
       .getService(Ci.nsIStringBundleService)
@@ -1045,7 +1075,7 @@ function sbSoundCloud_apiCall(type, flags, callback) {
         }
       }
 
-      this._searchService.logSearch(url + "?" + params, query); 
+      this._searchService.insertSearch(url + "?" + params, query); 
 
       success = function(xhr) {
         let json = xhr.responseText;
