@@ -1,0 +1,85 @@
+--- components/public/sbISoundCloudService.idl
++++ components/public/sbISoundCloudService.idl
+@@ -4,20 +4,78 @@
+ #include "nsISupports.idl"
+ 
+ interface sbILibrary;
++//interface sbISoundCloudListener; 
+ 
+ /*
+  *
+  */
+-[scriptable, uuid(32067828-1dd2-11b2-8c5b-ec25e8be3bc2)]
++[scriptable, uuid(47ebecdc-1dd2-11b2-9dbf-b45ba0cec585)]
+ interface sbISoundCloudService : nsISupports 
+ {	
+-
+   attribute AString nowplaying_url;
++
+   readonly attribute AString soundcloud_url;
++
+   readonly attribute AString oauth_token;
++
++  attribute boolean autoLogin;
++
+   attribute PRBool userLoggedOut;
++
++  attribute PRBool authorized;
++
++  attribute PRBool loggedIn;
++
+   readonly attribute sbILibrary library;
+-  //attribute boolean autoLogin;
+-  //attribute boolean loggedIn;
+ 
++  readonly attribute sbILibrary dashboard;
++
++  readonly attribute sbILibrary favorites;
++
++  readonly attribute sbILibrary downloads;
++
++  readonly attribute AString lastSearch;
++
++  void updateServicePaneNodes();
++
++  void shouldAutoLogin();
++
++  void login(in AString aClearSession);
++
++  void logout();
++
++  void authCallback();
++
++  void updateProfile();
++
++  void getFavorites();
++
++  void getTracks(in AString aQuery,
++                 in AString aFlags,
++                 in PRint32 aOffset);
++
++  //void addListener(in sbISoundCloudListener aListener);
++
++  //void removeListener(in sbISoundCloudListener aListener);
++
++  //void notifyListeners(in AString aEventTrigger);
++
++  void shutdown();
++};
++
++/*
++ *
++[scriptable, uuid(fffa0b42-1dd1-11b2-adac-dafeb6301ae1)]
++interface sbISoundCloudListener : nsISupports 
++{
++  void onAutoLoginChanged();
++
++  void onLoginBegins();
++
++  void onLoggedInStateChanged();
++
++  void onProfileUpdated();
++
++  void onItemsAdded();
+ };
++*/

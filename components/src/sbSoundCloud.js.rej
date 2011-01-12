@@ -1,0 +1,1334 @@
+--- components/src/sbSoundCloud.js
++++ components/src/sbSoundCloud.js
+@@ -40,9 +40,9 @@
+ var Application = Cc["@mozilla.org/fuel/application;1"]
+                     .getService(Ci.fuelIApplication);
+ 
+-const NS = 'http://songbirdnest.com/soundcloud#';
+-const SB_NS = 'http://songbirdnest.com/data/1.0#';
+-const SP_NS = 'http://songbirdnest.com/rdf/servicepane#';
++const NS = "http://songbirdnest.com/soundcloud#";
++const SB_NS = "http://songbirdnest.com/data/1.0#";
++const SP_NS = "http://songbirdnest.com/rdf/servicepane#";
+ 
+ // SoundCloud property constants
+ const SB_PROPERTY_USER = SB_NS + "user";
+@@ -53,8 +53,8 @@
+ const SB_PROPERTY_DOWNLOAD_URL = SB_NS + "downloadURL";
+ const SB_PROPERTY_CREATION_DATE = SB_NS + "creationDate";
+ 
+-const SOCL_URL = 'https://api.soundcloud.com';
+-const AUTH_PAGE = 'chrome://soundcloud/content/soundcloudAuthorize.xul'
++const SOCL_URL = "https://api.soundcloud.com";
++const AUTH_PAGE = "chrome://soundcloud/content/soundcloudAuthorize.xul"
+ const CONSUMER_SECRET = "YqGENlIGpWPnjQDJ2XCLAur2La9cTLdMYcFfWVIsnvw";
+ const CONSUMER_KEY = "eJ2Mqrpr2P4TdO62XXJ3A";
+ const SIG_METHOD = "HMAC-SHA1";
+@@ -67,7 +67,7 @@
+ var Libraries = {
+   SEARCH: {
+     "name": "SoundCloud",
+-    "guid": "search"
++    "guid": "main"
+   },
+   DOWNLOADS: {
+     "name": "Downloads",
+@@ -90,14 +90,14 @@
+   loginManager: Cc["@mozilla.org/login-manager;1"]
+       .getService(Ci.nsILoginManager),
+ 
+-  LOGIN_HOSTNAME: 'http://soundcloud.com',
+-  LOGIN_FIELD_USERNAME: 'username',
+-  LOGIN_FIELD_PASSWORD: 'password',
++  LOGIN_HOSTNAME: "http://soundcloud.com",
++  LOGIN_FIELD_USERNAME: "username",
++  LOGIN_FIELD_PASSWORD: "password",
+ 
+   get: function() {
+     // username & password
+-    var username = '';
+-    var password = '';
++    var username = "";
++    var password = "";
+     // lets ask the login manager
+     var logins = this.loginManager.findLogins({}, this.LOGIN_HOSTNAME,
+                                               '', null);
+@@ -129,37 +129,69 @@
+   }
+ }
+ 
++
+ /*
+- * SoundCloud listeners.
++ * Helper functions
+  */
+-function Listeners() {
+-  var listeners = [];
+-  this.add = function Listeners_add(aListener) {
+-    listeners.push(aListener);
+-  }
+-  this.remove = function Listeners_remove(aListener) {
+-    for(;;) {
+-      // find our listener in the array
+-      let i = listeners.indexOf(aListener);
+-      if (i >= 0) {
+-        // remove it
+-        listeners.splice(i, 1);
+-      } else {
+-        return;
+-      }
++function urlencode(obj) {
++  var params = '';
++
++  for (let p in obj) {
++    if (p == 0) {
++      params += obj[p][0] + "=" + obj[p][1];
++    } else {
++      params += "&" + obj[p][0] + "=" + obj[p][1];
+     }
+   }
+-  this.each = function Listeners_each(aCallback) {
+-    for (var i=0; i<listeners.length; i++) {
+-      try {
+-        aCallback(listeners[i]);
+-      } catch(e) {
+-        Cu.reportError(e);
+-      }
+-    }
++
++  return params;
++}
++
++function GET(url, params, onload, onerror, oauth) {
++  var xhr = null;
++
++  dump("\n\n" + url + "?" + params + "\n\n");
++  try {
++    xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance();
++    xhr.mozBackgroundRequest = true;
++    xhr.onload = function(event) { onload(xhr); }
++    xhr.onerror = function(event) { onerror(xhr); }
++    xhr.open('GET', url + "?" + params, true);
++    if (oauth)
++      xhr.setRequestHeader('Authorization', 'OAuth');
++    xhr.setRequestHeader('Content-Type', 'application/json');
++    xhr.send();
++  } catch(e) {
++    Cu.reportError(e);
++    onerror(xhr);
+   }
++  return xhr;
+ }
+ 
++function POST(url, params, onload, onerror) {
++  var xhr = null;
++
++  try {
++    xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance();
++    xhr.mozBackgroundRequest = true;
++    xhr.onload = function(event) { onload(xhr); }
++    xhr.onerror = function(event) { onerror(xhr); }
++    xhr.open('POST', url, true);
++    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
++    xhr.setRequestHeader('Content-length', params.length);
++    xhr.setRequestHeader('Connection', 'close');
++    xhr.send(params);
++  } catch(e) {
++    Cu.reportError(e);
++    onerror(xhr);
++  }
++  return xhr;
++}
++
++
++/*
++ *
++ */
+ function sbSoundCloudSearchService() {
+   this.createTable =
+     function sbSoundCloudSearchService_createTable() {
+@@ -222,77 +254,17 @@
+     }
+ }
+ 
+-/*
+- * Helper functions
+- */
+-function urlencode(obj) {
+-  var params = '';
+-
+-  for (let p in obj) {
+-    if (p == 0) {
+-      params += obj[p][0] + "=" + obj[p][1];
+-    } else {
+-      params += "&" + obj[p][0] + "=" + obj[p][1];
+-    }
+-  }
+-
+-  return params;
+-}
+-
+-function GET(url, params, onload, onerror, oauth) {
+-  var xhr = null;
+-
+-  dump("\n\n" + url + "?" + params + "\n\n");
+-  try {
+-    xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance();
+-    xhr.mozBackgroundRequest = true;
+-    xhr.onload = function(event) { onload(xhr); }
+-    xhr.onerror = function(event) { onerror(xhr); }
+-    xhr.open('GET', url + "?" + params, true);
+-    if (oauth)
+-      xhr.setRequestHeader('Authorization', 'OAuth');
+-    xhr.setRequestHeader('Content-Type', 'application/json');
+-    xhr.send();
+-  } catch(e) {
+-    Cu.reportError(e);
+-    onerror(xhr);
+-  }
+-  return xhr;
+-}
+-
+-function POST(url, params, onload, onerror) {
+-  var xhr = null;
+-
+-  try {
+-    xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance();
+-    xhr.mozBackgroundRequest = true;
+-    xhr.onload = function(event) { onload(xhr); }
+-    xhr.onerror = function(event) { onerror(xhr); }
+-    xhr.open('POST', url, true);
+-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+-    xhr.setRequestHeader('Content-length', params.length);
+-    xhr.setRequestHeader('Connection', 'close');
+-    xhr.send(params);
+-  } catch(e) {
+-    Cu.reportError(e);
+-    onerror(xhr);
+-  }
+-  return xhr;
+-}
+ 
+ /**
+  * SoundCloud XPCOM service component
+  */
+ function sbSoundCloud() {
+   // Imports
+-  // XXX - Deprecate by migrating base-64 fn
+   Cu.import("resource://soundcloud/OAuth.jsm");
+ 
+-  this.wrappedJSObject = this;
+-
+   this.log = DebugUtils.generateLogFunction("sbSoundCloud");
+ 
+-  this.listeners = new Listeners();
++  this._listeners = [];
+ 
+   var login = Logins.get();
+   this.username = login.username;
+@@ -305,379 +277,60 @@
+                   .getService(Ci.nsIPrefService)
+                   .getBranch("extensions.soundcloud.");
+ 
+-  /**
+-   * Private "methods"
+-   */
+-
+-  /**
+-   * \brief Gets (or creates) a SoundCloud library.
+-   *
+-   * \param aLibrary              SoundCloud Library object.
+-   * \param aUserId               User id. If passed, user-specific library
+-   *                              will be created.
+-   *
+-   * \return sbILibrary
+-   */
+-  this._getLibrary =
+-  function sbSoundCloud__getLibrary(aLibrary, aUserId) {
+-    var libraryManager = Cc["@songbirdnest.com/Songbird/library/Manager;1"]
+-                           .getService(Ci.sbILibraryManager);
+-    var library = {};
+-    var pref = aLibrary.guid + ".guid";
+-    var guid = (this._prefs.prefHasUserValue(pref)) ?
+-                 this._prefs.getCharPref(pref) : false;
+-    if (!guid) {
+-      var directory = Cc["@mozilla.org/file/directory_service;1"]
+-                        .getService(Ci.nsIProperties)
+-                        .get("ProfD", Ci.nsIFile);
+-      directory.append("db");
+-      directory.append("soundcloud");
+-      var file = directory.clone();
+-      // Create local (per user) or global (all users) db
+-      if (aUserId) {
+-        file.append(aLibrary.guid + "-" + aUserId + "@soundcloud.com.db");
+-      } else {
+-        file.append(aLibrary.guid + "@soundcloud.com.db");
+-      }
+-      var libraryFactory =
+-        Cc["@songbirdnest.com/Songbird/Library/LocalDatabase/LibraryFactory;1"]
+-          .getService(Ci.sbILibraryFactory);
+-      var bag = Cc["@mozilla.org/hash-property-bag;1"]
+-                  .createInstance(Ci.nsIWritablePropertyBag2);
+-      bag.setPropertyAsInterface("databaseFile", file);
+-      library = libraryFactory.createLibrary(bag);
+-    } else {
+-      library = libraryManager.getLibrary(guid);
+-      this._prefs.setCharPref(aLibrary.guid + ".guid", library.guid);
+-    }
+-    return library;
+-  }
+-
+-  /**
+-   * \brief Adds media items to a SoundCloud library.
+-   *
+-   * \param aItems                JSON object of items to add.
+-   * \param aLibrary              Target library for added items.
+-   *
+-   */
+-  this._addItemsToLibrary =
+-  function sbSoundCloud__addItemsToLibrary(aItems, aLibrary) {
+-    var self = this;
+-    if (aItems != null) {
+-      var itemArray = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
+-                         .createInstance(Ci.nsIMutableArray);
+-      var propertiesArray = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
+-                              .createInstance(Ci.nsIMutableArray);
+-  
+-      for (let i = 0; i < aItems.length; i++) {
+-        // While PRTime stores times in microseconds since epoch, JavaScript
+-        // date objects store times in milliseconds since epoch.
+-        var createdAt = new Date(aItems[i].created_at).getTime();
+-        var title = aItems[i].title;
+-        var duration = aItems[i].duration * 1000;
+-        var artwork = aItems[i].artwork_url;
+-        var username = aItems[i].user.username;
+-        var playcount = aItems[i].playback_count;
+-        var favcount = aItems[i].favoritings_count;
+-        var uri = aItems[i].uri;
+-        var waveformURL = aItems[i].waveform_url;
+-        var downloadURL = aItems[i].download_url || "";
+-        var streamURL = aItems[i].stream_url;
+-  
+-        if (downloadURL.indexOf(SOCL_URL) != -1)
+-          downloadURL += "?consumer_key=" + CONSUMER_KEY;
+-  
+-        if (!streamURL || streamURL.indexOf(SOCL_URL) == -1)
+-          continue;
+-        streamURL += "?consumer_key=" + CONSUMER_KEY;
+-  
+-        var properties =
+-          Cc["@songbirdnest.com/Songbird/Properties/MutablePropertyArray;1"]
+-            .createInstance(Ci.sbIMutablePropertyArray);
+-  
+-        properties.appendProperty(SB_PROPERTY_CREATION_DATE, createdAt);
+-        properties.appendProperty(SBProperties.trackName, title);
+-        properties.appendProperty(SBProperties.duration, duration);
+-        properties.appendProperty(SBProperties.primaryImageURL, artwork);
+-        properties.appendProperty(SB_PROPERTY_USER, username);
+-        properties.appendProperty(SB_PROPERTY_PLAYS, playcount);
+-        properties.appendProperty(SB_PROPERTY_FAVS, favcount);
+-        properties.appendProperty(SB_PROPERTY_WAVEFORM, waveformURL);
+-        if (downloadURL) {
+-          properties.appendProperty(SB_PROPERTY_DOWNLOAD_IMAGE,
+-                                    "chrome://soundcloud/skin/download.png");
+-          properties.appendProperty(SB_PROPERTY_DOWNLOAD_URL, downloadURL);
+-        }
+- 
+-        var ios = Cc["@mozilla.org/network/io-service;1"]
+-                    .getService(Ci.nsIIOService);
+-        
+-        itemArray.appendElement(ios.newURI(streamURL, null, null), false);
+-        propertiesArray.appendElement(properties, false);
+-      }
+-  
+-      var batchListener = {
+-        onProgress: function(aIndex) {},
+-        onComplete: function(aMediaItems, aResult) {
+-          self.listeners.each(function(l) { l.onItemsAdded(); });
+-        }
+-      };
+-  
+-      aLibrary.batchCreateMediaItemsAsync(batchListener,
+-                                          itemArray,
+-                                          propertiesArray,
+-                                          false);
+-    }
+-  }
+-  
+-  /**
+-   * \brief Creates an HMAC-SHA1 signature for an OAuth request.
+-   *
+-   * \param aMessage              Message to sign.
+-   *
+-   * \return HMAC-SHA1 signature string
+-   */
+-  this._sign = function sbSoundCloud__sign(aMessage) {
+-    var baseString = this._getBaseString(aMessage);
+-    var signature = b64_hmac_sha1(encodeURIComponent(CONSUMER_SECRET)
+-                                  + "&" 
+-                                  + encodeURIComponent(this._token_secret),
+-                                  baseString);
+-    return signature;
+-  }
+-
+-  /**
+-   * \brief Retrieves a base string.
+-   *
+-   * \param aMessage              Message to encode.
+-   *
+-   * \return Encoded base string
+-   */
+-  this._getBaseString =
+-  function sbSoundCloud__getBaseString(aMessage) {
+-    var params = aMessage.parameters;
+-    var s = "";
+-    for (let p in params) {
+-      if (params[p][0] != 'oauth_signature') {
+-        if (p == 0) {
+-          s = params[p][0] + "=" + params[p][1];
+-        } else {
+-          s += "&" + params[p][0] + "=" + params[p][1];
+-        }
+-      }
+-    }
+-    return aMessage.method + '&' + encodeURIComponent(aMessage.action)
+-                          + '&' + encodeURIComponent(s);
+-  }
+-
+-  /**
+-   * \brief Creates parameters for an OAuth request.
+-   *
+-   * \param aURL                  Request URL.
+-   * \param aMethodType           Request method.
+-   *
+-   * \return URL encoded string of parameters
+-   */
+-  this._getParameters =
+-  function sbSoundCloud__getParameters(aURL, aMethodType) {
+-    var accessor = { consumerSecret: CONSUMER_SECRET };
+-    var message = { action: aURL,
+-                    method: aMethodType,
+-                    parameters: []
+-                  };
+-
+-    message.parameters.push(['oauth_consumer_key', CONSUMER_KEY]);
+-    message.parameters.push(['oauth_nonce', OAuth.nonce(11)]);
+-    message.parameters.push(['oauth_signature_method', SIG_METHOD]);
+-    message.parameters.push(['oauth_timestamp', OAuth.timestamp()]);
+-    if (this._oauth_token)
+-      message.parameters.push(['oauth_token', this._oauth_token]);
+-    message.parameters.push(['oauth_version', "1.0"]);
+-
+-    message.parameters.push(['oauth_signature', this._sign(message)]);
+-
+-    return urlencode(message.parameters);
+-  }
+-
+-  /**
+-   * \brief Requests OAuth token.
+-   *
+-   * \param aSuccess              Action to take on success.
+-   * \param aFailure              Action to take on failure.
+-   *
+-   */
+-  this._requestToken =
+-  function sbSoundCloud__requestToken(aSuccess, aFailure) {
+-    var self = this;
+-
+-    this._oauth_token = "";
+-    this._token_secret = "";
+-
+-    var url = SOCL_URL + "/oauth/request_token";
+-    var params = this._getParameters(url, 'POST');
+-
+-    if (!this._oauth_retries)
+-      this._oauth_retries = 0;
+-
+-    var reqTokenSuccess = function reqTokenSuccess(xhr) {
+-      let response = xhr.responseText;
+-      if (response == "Invalid OAuth Request") {
+-        if (self._oauth_retries < MAX_RETRIES) {
+-          dump("\nOAuth request token #" + ++self._oauth_retries);
+-          self._requestToken(aSuccess, aFailure);
+-        } else {
+-          self._oauth_retries = null;
+-          aFailure(xhr);
+-        }
+-      } else {
+-        let tokenized = response.split("&")
+-        self._oauth_token = tokenized[0].split("=")[1];
+-        self._token_secret = tokenized[1].split("=")[1];
+-
+-        self._prefs.setCharPref(self.username + ".oauth_token",
+-                                self._oauth_token);
+-        self._oauth_retries = null;
+-
+-        aSuccess();
+-      }
+-    }
+-
+-    var reqTokenFailure = function reqTokenFailure(xhr) {
+-      self._oauth_retries = null;
+-      aFailure(xhr);
+-      dump("\nStatus: " + xhr.status + "\n" + xhr.getAllResponseHeaders());
+-    }
+-
+-    this._reqtoken_xhr = POST(url,
+-                              params,
+-                              reqTokenSuccess,
+-                              reqTokenFailure);
+-    return this._reqtoken_xhr;
+-  }
+-
+-  /**
+-   * \brief Opens SoundCloud authorization dialog.
+-   *
+-   */
+-  this._authorize =
+-  function sbSoundCloud__authorize() {
+-    Logins.set(this.username, this.password);
+-
+-    var mainWindow = Cc["@mozilla.org/appshell/window-mediator;1"]
+-                       .getService(Ci.nsIWindowMediator)
+-                       .getMostRecentWindow('Songbird:Main');
+-    var features = "modal=yes,dependent=yes,resizable=yes,titlebar=no";
+-    mainWindow.openDialog(AUTH_PAGE,
+-                          "soundcloud_authorize", features);
+-  }
+-
+-  /**
+-   * \brief Requests OAuth access token.
+-   *
+-   * \param aSuccess              Action to take on success.
+-   * \param aFailure              Action to take on failure.
+-   *
+-   */
+-  this._accessToken =
+-  function sbSoundCloud__accessToken(aSuccess, aFailure) {
+-    var self = this;
+-
+-    var url = SOCL_URL + "/oauth/access_token";
+-    var params = self._getParameters(url, 'POST');
+-
+-    if (!this._oauth_retries)
+-      this._oauth_retries = 0;
+-
+-    var accessTokenSuccess = function accessTokenSuccess(xhr) {
+-      let response = xhr.responseText;
+-      if (response == "Invalid OAuth Request") {
+-        if (self._oauth_retries < MAX_RETRIES) {
+-          dump("\nOAuth access token #" + ++self._oauth_retries);
+-          self._accessToken(aSuccess, aFailure);
+-        } else {
+-          self._oauth_retries = null;
+-          aFailure(xhr);
+-        }
+-      } else {
+-        let tokenized = response.split("&")
+-
+-        self._oauth_token = tokenized[0].split("=")[1];
+-        self._token_secret = tokenized[1].split("=")[1];
+-        aSuccess(xhr);
+-
+-        self._oauth_retries = null;
+-
+-        self.updateProfile();
+-      }
+-    }
+-
+-    var accessTokenFailure = function accessTokenFailure(xhr) {
+-      self._oauth_retries = null;
+-      aFailure(xhr);
+-      dump("\nStatus: " + xhr.status + "\n" + xhr.getAllResponseHeaders());
+-    }
+-
+-    this._accesstoken_xhr = POST(url,
+-                                 params,
+-                                 accessTokenSuccess,
+-                                 accessTokenFailure);
+-    return this._accesstoken_xhr;
+-  }
+-
+   this._nowplaying_url = null;
+-  this.__defineGetter__('nowplaying_url', function() {
++  this.__defineGetter__("nowplaying_url", function() {
+     return this._nowplaying_url;
+   });
+-  this.__defineSetter__('nowplaying_url', function(val) {
++  this.__defineSetter__("nowplaying_url", function(val) {
+     this._nowplaying_url = val;
+   });
+ 
+-  this.__defineGetter__('soundcloud_url', function() {
++  this.__defineGetter__("soundcloud_url", function() {
+     return SOCL_URL;
+   });
+ 
+-  this.__defineGetter__('oauth_token', function() {
++  this.__defineGetter__("oauth_token", function() {
+     let pref = this.username + ".oauth_token";
+     this._oauth_token = (this._prefs.prefHasUserValue(pref)) ?
+                          this._prefs.getCharPref(pref) : null;
+     return this._oauth_token;
+   });
+ 
+-  this.__defineGetter__('autoLogin', function() {
+-    let autologin = (this._prefs.prefHasUserValue('autologin')) ?
+-                      this._prefs.getBoolPref('autologin') : false;
++  this.__defineGetter__("autoLogin", function() {
++    let autologin = (this._prefs.prefHasUserValue("autologin")) ?
++                      this._prefs.getBoolPref("autologin") : false;
+     return autologin;
+   });
+-  this.__defineSetter__('autoLogin', function(val) {
+-    this._prefs.setBoolPref('autologin', val);
+-    this.listeners.each(function(l) { l.onAutoLoginChanged(val); });
++  this.__defineSetter__("autoLogin", function(val) {
++    this._prefs.setBoolPref("autologin", val);
++    ////this.notifyListeners("onAutoLoginChanged");
+   });
+ 
+   // user-logged-out pref
+-  this.__defineGetter__('userLoggedOut', function() {
+-    return this._prefs.getBoolPref('loggedOut');
++  this.__defineGetter__("userLoggedOut", function() {
++    return this._prefs.getBoolPref("loggedOut");
+   });
+-  this.__defineSetter__('userLoggedOut', function(val) {
+-    this._prefs.setBoolPref('loggedOut', val);
++  this.__defineSetter__("userLoggedOut", function(val) {
++    this._prefs.setBoolPref("loggedOut", val);
+   });
+ 
+   this._authorized = false;
+-  this.__defineGetter__('authorized', function() { return this._authorized; });
+-  this.__defineSetter__('authorized', function(aAuthorized){
++  this.__defineGetter__("authorized", function() { return this._authorized; });
++  this.__defineSetter__("authorized", function(aAuthorized){
+     this._authorized = aAuthorized;
+   });
+ 
+   // the loggedIn state
+   this._loggedIn = false;
+-  this.__defineGetter__('loggedIn', function() { return this._loggedIn; });
+-  this.__defineSetter__('loggedIn', function(aLoggedIn){
++  this.__defineGetter__("loggedIn", function() { return this._loggedIn; });
++  this.__defineSetter__("loggedIn", function(aLoggedIn){
+     this._loggedIn = aLoggedIn;
+-    this.listeners.each(function(l) { l.onLoggedInStateChanged(); });
++    //this.notifyListeners("onLoggedInStateChanged");
+   });
+ 
+   // get the playback history service
+   this._playbackHistory =
+-      Cc['@songbirdnest.com/Songbird/PlaybackHistoryService;1']
++      Cc["@songbirdnest.com/Songbird/PlaybackHistoryService;1"]
+         .getService(Ci.sbIPlaybackHistoryService);
+   // add ourselves as a playlist history listener
+   this._playbackHistory.addListener(this);
+@@ -689,18 +342,18 @@
+   this._library = this._getLibrary(Libraries.SEARCH, null);
+   this._downloads = this._getLibrary(Libraries.DOWNLOADS, null);
+ 
+-  this.__defineGetter__('library', function() { return this._library; });
+-  this.__defineGetter__('dashboard', function() {
++  this.__defineGetter__("library", function() { return this._library; });
++  this.__defineGetter__("dashboard", function() {
+     let dashLib = (this._dashboard) ? this._dashboard : false;
+     return dashLib;
+   });
+-  this.__defineGetter__('favorites', function() {
++  this.__defineGetter__("favorites", function() {
+     let favLib = (this._favorites) ? this._favorites : false;
+     return favLib;
+   });
+-  this.__defineGetter__('downloads', function() { return this._downloads; });
++  this.__defineGetter__("downloads", function() { return this._downloads; });
+ 
+-  this.__defineGetter__('lastSearch', function() {
++  this.__defineGetter__("lastSearch", function() {
+       if (!this._searchService)
+         return;
+ 
+@@ -740,7 +393,7 @@
+   if (!soclRadio) {
+     this._servicePaneNode = this._servicePaneService.createNode();
+     this._servicePaneNode.url =
+-      "chrome://soundcloud/content/directory.xul?type=search";
++      "chrome://soundcloud/content/directory.xul?type=main";
+     this._servicePaneNode.id = "SB:RadioStations:SoundCloud";
+     this._servicePaneNode.name = "SoundCloud";
+     this._servicePaneNode.image = 'chrome://soundcloud/skin/favicon.png';
+@@ -749,14 +402,326 @@
+     radioFolder.appendChild(this._servicePaneNode);
+   }
+ 
+-  this._retry_count = 0;
++/**
++ * \brief Gets (or creates) a SoundCloud library.
++ *
++ * \param aLibrary              SoundCloud Library object.
++ * \param aUserId               User id. If passed, user-specific library
++ *                              will be created.
++ *
++ * \return sbILibrary
++ */
++this._getLibrary =
++function sbSoundCloud__getLibrary(aLibrary, aUserId) {
++  var libraryManager = Cc["@songbirdnest.com/Songbird/library/Manager;1"]
++                         .getService(Ci.sbILibraryManager);
++  var library = {};
++  var pref = aLibrary.guid + ".guid";
++  var guid = (this._prefs.prefHasUserValue(pref)) ?
++               this._prefs.getCharPref(pref) : false;
++  if (!guid) {
++    var directory = Cc["@mozilla.org/file/directory_service;1"]
++                      .getService(Ci.nsIProperties)
++                      .get("ProfD", Ci.nsIFile);
++    directory.append("db");
++    directory.append("soundcloud");
++    var file = directory.clone();
++    // Create local (per user) or global (all users) db
++    if (aUserId) {
++      file.append(aLibrary.guid + "-" + aUserId + "@soundcloud.com.db");
++    } else {
++      file.append(aLibrary.guid + "@soundcloud.com.db");
++    }
++    var libraryFactory =
++      Cc["@songbirdnest.com/Songbird/Library/LocalDatabase/LibraryFactory;1"]
++        .getService(Ci.sbILibraryFactory);
++    var bag = Cc["@mozilla.org/hash-property-bag;1"]
++                .createInstance(Ci.nsIWritablePropertyBag2);
++    bag.setPropertyAsInterface("databaseFile", file);
++    library = libraryFactory.createLibrary(bag);
++  } else {
++    library = libraryManager.getLibrary(guid);
++    this._prefs.setCharPref(aLibrary.guid + ".guid", library.guid);
++  }
++  return library;
++}
++
++/**
++ * \brief Adds media items to a SoundCloud library.
++ *
++ * \param aItems                JSON object of items to add.
++ * \param aLibrary              Target library for added items.
++ *
++ */
++this._addItemsToLibrary =
++function sbSoundCloud__addItemsToLibrary(aItems, aLibrary) {
++  var self = this;
++  if (aItems != null) {
++    var itemArray = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
++                       .createInstance(Ci.nsIMutableArray);
++    var propertiesArray = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
++                            .createInstance(Ci.nsIMutableArray);
++
++    for (let i = 0; i < aItems.length; i++) {
++      var createdAt = new Date(aItems[i].created_at).getTime();
++      var title = aItems[i].title;
++      var duration = aItems[i].duration * 1000;
++      var artwork = aItems[i].artwork_url;
++      var username = aItems[i].user.username;
++      var playcount = aItems[i].playback_count;
++      var favcount = aItems[i].favoritings_count;
++      var uri = aItems[i].uri;
++      var waveformURL = aItems[i].waveform_url;
++      var downloadURL = aItems[i].download_url || "";
++      var streamURL = aItems[i].stream_url;
++
++      if (downloadURL.indexOf(SOCL_URL) != -1)
++        downloadURL += "?consumer_key=" + CONSUMER_KEY;
++
++      if (!streamURL || streamURL.indexOf(SOCL_URL) == -1)
++        continue;
++      streamURL += "?consumer_key=" + CONSUMER_KEY;
++
++      var properties =
++        Cc["@songbirdnest.com/Songbird/Properties/MutablePropertyArray;1"]
++          .createInstance(Ci.sbIMutablePropertyArray);
++
++      properties.appendProperty(SB_PROPERTY_CREATION_DATE, createdAt);
++      properties.appendProperty(SBProperties.trackName, title);
++      properties.appendProperty(SBProperties.duration, duration);
++      properties.appendProperty(SBProperties.primaryImageURL, artwork);
++      properties.appendProperty(SB_PROPERTY_USER, username);
++      properties.appendProperty(SB_PROPERTY_PLAYS, playcount);
++      properties.appendProperty(SB_PROPERTY_FAVS, favcount);
++      properties.appendProperty(SB_PROPERTY_WAVEFORM, waveformURL);
++      if (downloadURL) {
++        properties.appendProperty(SB_PROPERTY_DOWNLOAD_IMAGE,
++                                  "chrome://soundcloud/skin/download.png");
++        properties.appendProperty(SB_PROPERTY_DOWNLOAD_URL, downloadURL);
++      }
++ 
++      var ios = Cc["@mozilla.org/network/io-service;1"]
++                  .getService(Ci.nsIIOService);
++      
++      itemArray.appendElement(ios.newURI(streamURL, null, null), false);
++      propertiesArray.appendElement(properties, false);
++    }
++
++    var batchListener = {
++      onProgress: function(aIndex) {},
++      onComplete: function(aMediaItems, aResult) {
++        self.notifyListeners("onItemsAdded");
++      }
++    };
++
++    aLibrary.batchCreateMediaItemsAsync(batchListener,
++                                        itemArray,
++                                        propertiesArray,
++                                        false);
++  }
++}
++
++/**
++ * \brief Creates an HMAC-SHA1 signature for an OAuth request.
++ *
++ * \param aMessage              Message to sign.
++ *
++ * \return HMAC-SHA1 signature string
++ */
++this._sign = function sbSoundCloud__sign(aMessage) {
++  var baseString = this._getBaseString(aMessage);
++  var signature = b64_hmac_sha1(encodeURIComponent(CONSUMER_SECRET)
++                                + "&" 
++                                + encodeURIComponent(this._token_secret),
++                                baseString);
++  return signature;
++}
++
++/**
++ * \brief Retrieves a base string.
++ *
++ * \param aMessage              Message to encode.
++ *
++ * \return Encoded base string
++ */
++this._getBaseString =
++function sbSoundCloud__getBaseString(aMessage) {
++  var params = aMessage.parameters;
++  var s = "";
++  for (let p in params) {
++    if (params[p][0] != 'oauth_signature') {
++      if (p == 0) {
++        s = params[p][0] + "=" + params[p][1];
++      } else {
++        s += "&" + params[p][0] + "=" + params[p][1];
++      }
++    }
++  }
++  return aMessage.method + '&' + encodeURIComponent(aMessage.action)
++                        + '&' + encodeURIComponent(s);
++}
++
++/**
++ * \brief Creates parameters for an OAuth request.
++ *
++ * \param aURL                  Request URL.
++ * \param aMethodType           Request method.
++ *
++ * \return URL encoded string of parameters
++ */
++this._getParameters =
++function sbSoundCloud__getParameters(aURL, aMethodType) {
++  var accessor = { consumerSecret: CONSUMER_SECRET };
++  var message = { action: aURL,
++                  method: aMethodType,
++                  parameters: []
++                };
++
++  message.parameters.push(['oauth_consumer_key', CONSUMER_KEY]);
++  message.parameters.push(['oauth_nonce', OAuth.nonce(11)]);
++  message.parameters.push(['oauth_signature_method', SIG_METHOD]);
++  message.parameters.push(['oauth_timestamp', OAuth.timestamp()]);
++  if (this._oauth_token)
++    message.parameters.push(['oauth_token', this._oauth_token]);
++  message.parameters.push(['oauth_version', "1.0"]);
++
++  message.parameters.push(['oauth_signature', this._sign(message)]);
++
++  return urlencode(message.parameters);
++}
++
++/**
++ * \brief Requests OAuth token.
++ *
++ * \param aSuccess              Action to take on success.
++ * \param aFailure              Action to take on failure.
++ *
++ */
++this._requestToken =
++function sbSoundCloud__requestToken(aSuccess, aFailure) {
++  var self = this;
++
++  this._oauth_token = "";
++  this._token_secret = "";
++
++  var url = SOCL_URL + "/oauth/request_token";
++  var params = this._getParameters(url, 'POST');
++
++  if (!this._oauth_retries)
++    this._oauth_retries = 0;
++
++  var reqTokenSuccess = function reqTokenSuccess(xhr) {
++    let response = xhr.responseText;
++    if (response == "Invalid OAuth Request") {
++      if (self._oauth_retries < MAX_RETRIES) {
++        dump("\nOAuth request token #" + ++self._oauth_retries);
++        self._requestToken(aSuccess, aFailure);
++      } else {
++        self._oauth_retries = null;
++        aFailure(xhr);
++      }
++    } else {
++      let tokenized = response.split("&")
++      self._oauth_token = tokenized[0].split("=")[1];
++      self._token_secret = tokenized[1].split("=")[1];
++
++      self._prefs.setCharPref(self.username + ".oauth_token",
++                              self._oauth_token);
++      self._oauth_retries = null;
++
++      aSuccess();
++    }
++  }
++
++  var reqTokenFailure = function reqTokenFailure(xhr) {
++    self._oauth_retries = null;
++    aFailure(xhr);
++    dump("\nStatus: " + xhr.status + "\n" + xhr.getAllResponseHeaders());
++  }
++
++  this._reqtoken_xhr = POST(url,
++                            params,
++                            reqTokenSuccess,
++                            reqTokenFailure);
++  return this._reqtoken_xhr;
++}
++
++/**
++ * \brief Opens SoundCloud authorization dialog.
++ *
++ */
++this._authorize =
++function sbSoundCloud__authorize() {
++  Logins.set(this.username, this.password);
++
++  var mainWindow = Cc["@mozilla.org/appshell/window-mediator;1"]
++                     .getService(Ci.nsIWindowMediator)
++                     .getMostRecentWindow('Songbird:Main');
++  var features = "modal=yes,dependent=yes,resizable=yes,titlebar=no";
++  mainWindow.openDialog(AUTH_PAGE,
++                        "soundcloud_authorize", features);
++}
++
++/**
++ * \brief Requests OAuth access token.
++ *
++ * \param aSuccess              Action to take on success.
++ * \param aFailure              Action to take on failure.
++ *
++ */
++this._accessToken =
++function sbSoundCloud__accessToken(aSuccess, aFailure) {
++  var self = this;
++
++  var url = SOCL_URL + "/oauth/access_token";
++  var params = self._getParameters(url, 'POST');
++
++  if (!this._oauth_retries)
++    this._oauth_retries = 0;
++
++  var accessTokenSuccess = function accessTokenSuccess(xhr) {
++    let response = xhr.responseText;
++    if (response == "Invalid OAuth Request") {
++      if (self._oauth_retries < MAX_RETRIES) {
++        dump("\nOAuth access token #" + ++self._oauth_retries);
++        self._accessToken(aSuccess, aFailure);
++      } else {
++        self._oauth_retries = null;
++        aFailure(xhr);
++      }
++    } else {
++      let tokenized = response.split("&")
++
++      self._oauth_token = tokenized[0].split("=")[1];
++      self._token_secret = tokenized[1].split("=")[1];
++      aSuccess(xhr);
++
++      self._oauth_retries = null;
++
++      self.updateProfile();
++    }
++  }
++
++  var accessTokenFailure = function accessTokenFailure(xhr) {
++    self._oauth_retries = null;
++    aFailure(xhr);
++    dump("\nStatus: " + xhr.status + "\n" + xhr.getAllResponseHeaders());
++  }
++
++  this._accesstoken_xhr = POST(url,
++                               params,
++                               accessTokenSuccess,
++                               accessTokenFailure);
++  return this._accesstoken_xhr;
++}
++
+ }
+ 
+ // XPCOM Voodoo
+-sbSoundCloud.prototype.classDescription = 'Songbird SoundCloud Service';
+-sbSoundCloud.prototype.contractID = '@songbirdnest.com/soundcloud;1';
++sbSoundCloud.prototype.classDescription = "Songbird SoundCloud Service";
++sbSoundCloud.prototype.contractID = "@songbirdnest.com/soundcloud;1";
+ sbSoundCloud.prototype.classID =
+-    Components.ID('{dfa0469c-1dd1-11b2-a34d-aea86aafaf52}');
++    Components.ID("{dfa0469c-1dd1-11b2-a34d-aea86aafaf52}");
+ sbSoundCloud.prototype.QueryInterface =
+     XPCOMUtils.generateQI([Ci.sbISoundCloudService]);
+ 
+@@ -765,8 +730,6 @@
+   var soclNode = this._servicePaneService
+                      .getNode("SB:RadioStations:SoundCloud");
+   if (this.loggedIn) {
+-    // Create following node
+-    // Need to do an async call to add children
+     /*
+     var followingNode = this._servicePaneService
+                             .getNode("urn:soclfollowing");
+@@ -789,8 +752,7 @@
+     followingBadge.visible = true;
+     */
+ 
+-    // Create dashboard node
+-    var dashNode = this._servicePaneService
++    /*var dashNode = this._servicePaneService
+                       .getNode("urn:soclfavorites");
+     if (!dashNode) {
+       dashNode = this._servicePaneService.createNode();
+@@ -805,10 +767,11 @@
+       dashNode.hidden = true;
+     }
+ 
+-    //var dashBadge = ServicePaneHelper.getBadge(dashNode, "socldashboard");
+-    //dashBadge.label = this.incomingCount;
+-    //dashBadge.visible = true;
+- 
++    var dashBadge = ServicePaneHelper.getBadge(dashNode, "socldashboard");
++    dashBadge.label = this.incomingCount;
++    dashBadge.visible = true;
++    */
++
+     // Create favorites node
+     var favNode = this._servicePaneService
+                       .getNode("urn:soclfavorites");
+@@ -853,7 +816,7 @@
+ function sbSoundCloud_login(aClearSession) {
+   var self = this;
+ 
+-  this.listeners.each(function(l) { l.onLoginBegins(); });
++  //this.notifyListeners("onLoginBegins");
+ 
+   this.userLoggedOut = false;
+ 
+@@ -906,7 +869,7 @@
+ 
+     this._accessToken(success, failure);
+   } else {
+-    this.listeners.each(function(l) { l.onLoggedInStateChanged(); });
++    //this.notifyListeners("onLoggedInStateChanged");
+   }
+ }
+ 
+@@ -920,7 +883,7 @@
+   var url = SOCL_URL + "/me.json";
+   var params = this._getParameters(url, 'GET');
+ 
+-  var profileSuccess = function(xhr) {
++  var success = function(xhr) {
+     let json = xhr.responseText;
+     let jsObject = JSON.parse(json);
+     if (jsObject.error) {
+@@ -928,7 +891,7 @@
+         dump("\nProfile Request #" + ++self._info_retries);
+         self.updateProfile();
+       } else {
+-        return profileFailure(xhr);
++        return failure(xhr);
+       }
+     } else {
+       self._info_retries = null;
+@@ -942,14 +905,14 @@
+       self.country = jsObject.country;
+       self.profileurl = jsObject.permalink_url;
+ 
+-      self.listeners.each(function(l) { l.onProfileUpdated(); });
++      self.notifyListeners("onProfileUpdated");
+ 
+       self.loggedIn = true;
+       self.updateServicePaneNodes();
+     }
+   }
+ 
+-  var profileFailure = function(xhr) {
++  var failure = function(xhr) {
+     dump("\nUnable to retrieve profile. Falling back to logged out state.");
+     dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
+     self._info_retries = null;
+@@ -957,47 +920,7 @@
+     return false;
+   }
+ 
+-  this._info_xhr = GET(url, params, profileSuccess, profileFailure, true);
+-
+-  return this._info_xhr;
+-}
+-
+-sbSoundCloud.prototype.getDashboard =
+-function sbSoundCLoud_getDashboard() {
+-  var self = this;
+-  if (!this.loggedIn)
+-    return false;
+-
+-  var url = SOCL_URL + "/me/followings/tracks?order=created_at";
+-  var success = function(xhr) {
+-    let xml = xhr.responseText;
+-    dump("\n" + xml);
+-    //dump("\nSUCCESS\n" + xml.documentElement.getElementsByTagName("track")[0].innerHTML + "\nSUCCESS\n");
+-    /*let json = xhr.responseText;
+-    let feed = JSON.parse(xhr.responseText);
+-    if (feed.error) {
+-      if (self._retry_count < MAX_RETRIES) {
+-        self._retry_count++;
+-        self.getDashboard();
+-      } else {
+-        Cu.reportError("Unable to retrieve incoming tracks: " + json);
+-        return false;
+-      }
+-    }
+-
+-    self.incomingCount = feed.length;
+-    self._addItemsToLibrary(feed, self._dashboard);*/
+-  }
+-  var failure = function(xhr) {
+-    let xml = xhr.responseXML;
+-    dump("\nFAIL\n" + xml.documentElement.getElementsByTagName("track")[0].innerHTML + "\nFAIL\n");
+-  }
+-
+-  var params = this._getParameters(url, "GET");
+-  dump("\n" + url + "?" + params + "\n");
+-  this._xhr = GET(url, params, success, null, true);
+-
+-  return this._xhr;
++  this._info_xhr = GET(url, params, success, failure, true);
+ }
+ 
+ sbSoundCloud.prototype.getFavorites =
+@@ -1006,13 +929,16 @@
+   if (!this.loggedIn)
+     return false;
+ 
++  if (!this._fav_retries)
++    this._fav_retries = 0;
++
+   var url = SOCL_URL + "/me/favorites.json";
+   var success = function(xhr) {
+     let json = xhr.responseText;
+-    let favorites = JSON.parse(xhr.responseText);
++    let favorites = JSON.parse(json);
+     if (favorites.error) {
+-      if (self._retry_count < MAX_RETRIES) {
+-        self._retry_count++;
++      if (self._fav_retries < MAX_RETRIES) {
++        self._fav_retries++;
+         self.getFavorites();
+       } else {
+         Cu.reportError("Unable to retrieve favorites: " + favorites.error);
+@@ -1024,112 +950,98 @@
+     self._addItemsToLibrary(favorites, self._favorites);
+   }
+ 
+-  var params = this._getParameters(url, "GET");
+-  this._xhr = GET(url, params, success, null, true);
++  var failure = function(xhr) {
++    dump("\nUnable to retrieve favorites.");
++    dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
++    self._fav_retries = null;
++    return false;
++  }
+ 
+-  return this._xhr;
++  var params = this._getParameters(url, "GET");
++  this._fav_xhr = GET(url, params, success, null, true);
+ }
+ 
+-sbSoundCloud.prototype.apiCall =
+-function sbSoundCloud_apiCall(type, flags, callback) {
++sbSoundCloud.prototype.getTracks =
++function sbSoundCloud_getTracks(aQuery, aFlags, aOffset) {
+   var self = this;
+-  var authRequired = false;
+-  var url = SOCL_URL;
+-
+-  var method = "";
+-  var params = "";
+-  var success = {};
+-  var failure = {};
+-  var query = "";
+-
+-  switch (type) {
+-    case "test":
+-      method = 'GET';
+-      url += "/oauth/test_request";
+-      authRequired = true;
+-      break;
+-    case "tracks":
+-      method = 'GET';
+-      url += "/tracks.json";
+-
+-      if (flags.offset == 0 && self._xhr != null)
+-        self._xhr.abort();
+-
+-      if (callback == null) {
+-        callback = function(success, response) {
+-          let tracks = JSON.parse(response);
+-          dump("\n" + response + "\n");
+-          flags.offset += tracks.length;
+-          self._addItemsToLibrary(tracks, self._library);
+-          if (tracks.length > 40) {
+-            self._xhr = self.apiCall("tracks", flags, null);
+-          }
+-        };
+-      }
++  if (!this.loggedIn)
++    return false;
+ 
+-      if (flags) {
+-        for (var flag in flags) {
+-          if (flag == "q")
+-            query = flags[flag];
+-          params += flag + "=" + flags[flag] + "&";
+-        }
+-      }
++  if (aOffset == 0) {
++    if (self._track_xhr)
++      this._xhr.abort();
+ 
+-      this._searchService.insertSearch(url + "?" + params, query); 
++    this._searchService.insertSearch(url + "?" + aFlags, aQuery); 
++  }
+ 
+-      success = function(xhr) {
+-        let json = xhr.responseText;
+-        callback(true, json);
+-      };
+-      failure = function(xhr) {
+-        dump("\nStatus is " + xhr.status + "\n"
+-                            + xhr.getAllResponseHeaders());
+-      };
+-      
+-      break;
+-    default:
+-      break;
++  if (!this._track_retries)
++    this._track_retries = 0;
++
++  var url = SOCL_URL + "/tracks.json";
++  var success = function(xhr) {
++    let json = xhr.responseText;
++    let tracks = JSON.parse(xhr.responseText);
++    if (tracks.error) {
++      if (self._track_retries < MAX_RETRIES) {
++        self._track_retries++;
++        self.getTracks();
++      } else {
++        Cu.reportError("Unable to retrieve tracks: " + tracks.error);
++        return false;
++      }
++    }
++
++    if (tracks.length > 40) {
++      aOffset += tracks.length
++      self._addItemsToLibrary(tracks, self._library);
++      self._track_xhr = self.getTracks(aQuery, aFlags, aOffset);
++    }
+   }
+ 
+-  if (authRequired) {
+-    params = this._getParameters(url, method);
+-  } else {
+-    params += "consumer_key=" + CONSUMER_KEY;
++  var failure = function() {
++    dump("\nUnable to retrieve tracks.");
++    dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
++    self._track_retries = null;
++    return false;
+   }
+ 
+-  this._xhr = GET(url, params, success, failure, authRequired);
+-  return this._xhr;
++  url += "q=" + aQuery + aFlags + "&offset=" + aOffset;
++  url += "&consumer_key=" + CONSUMER_KEY;
++  this._track_xhr = GET(url, null, success, null, false);
+ }
+ 
+-sbSoundCloud.prototype.onMediacoreEvent =
+-function sbSoundCloud_onMediacoreEvent(aEvent) {
+-  switch(aEvent.type) {
+-    case Ci.sbIMediacoreEvent.STREAM_END:
+-    case Ci.sbIMediacoreEvent.STREAM_STOP:
+-      //this.onStop();
+-      break;
+-    case Ci.sbIMediacoreEvent.VIEW_CHANGE:
+-      break;
+-    case Ci.sbIMediacoreEvent.BEFORE_TRACK_CHANGE:
+-      break;
+-    case Ci.sbIMediacoreEvent.TRACK_CHANGE:
+-      //this.onTrackChange(aEvent.data);
+-      break;
+-    default:
+-      break;
+-  }
++/*
++sbSoundCloud.prototype.addListener =
++function sbSoundCloud_addListener(aListener) {
++  this._listeners.push(aListener);
+ }
+ 
+-sbSoundCloud.prototype.onTrackChange =
+-function sbSoundCloud_onTrackChange(aItem) {
++sbSoundCloud.prototype.removeListener =
++function sbSoundCloud_removeListener(aListener) {
++  // find our listener in the array
++  var i = this._listeners.indexOf(aListener);
++  if (i >= 0) {
++    this._listeners.splice(i, 1);
++  }
+ }
+ 
+-sbSoundCloud.prototype.onStop = function sbSoundCloud_onStop() {
+-
++sbSoundCloud.prototype.notifyListeners =
++function sbSoundCloud_notifyListeners(aEventTrigger) {
++  for (var i=0; i < this._listeners.length; i++) {
++    var listener = this._listeners[i];
++    if (listener instanceof Ci.sbISoundCloudListener) {
++      try {
++        listener[aEventTrigger]();
++      } catch(e) {
++        Cu.reportError("Could not signal " + aEventTrigger +
++        " to sbSoundCloudListener. Failed with error: " + e.description);
++      }
++    }
++  }
+ }
++*/
+ 
+ sbSoundCloud.prototype.shutdown = function sbSoundCloud_shutdown() {
+-
+ }
+ 
+ var components = [sbSoundCloud];

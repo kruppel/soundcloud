@@ -53,7 +53,7 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
                     .getService(Ci.nsIStringBundleService)
                     .createBundle("chrome://soundcloud/locale/overlay.properties");
 
-  this._service = Cc['@songbirdnest.com/soundcloud;1']
+  this._service = Cc["@songbirdnest.com/soundcloud;1"]
                     .getService().wrappedJSObject;
 
   this._domEventListenerSet = new DOMEventListenerSet();
@@ -62,7 +62,7 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
   this._logo = document.getElementById("soundcloud-logo");
   var onLogoClicked = function() { gBrowser.loadOneTab("http://soundcloud.com"); };
   this._domEventListenerSet.add(this._logo,
-                                'click',
+                                "click",
                                 onLogoClicked,
                                 false,
                                 false);
@@ -87,17 +87,17 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
   var onSearchCommand = function() { self.triggerSearch(); };
 
   this._domEventListenerSet.add(this._searchBox,
-                                'input',
+                                "input",
                                 onSearchInput,
                                 false,
                                 false);
   this._domEventListenerSet.add(this._searchBox,
-                                'keydown',
+                                "keydown",
                                 onSearchKeydown,
                                 false,
                                 false);
   this._domEventListenerSet.add(this._searchBtn,
-                                'command',
+                                "command",
                                 onSearchCommand,
                                 false,
                                 false);
@@ -150,7 +150,7 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
                 SB_PROPERTY_PLAYS + " 60 " +
                 SB_PROPERTY_FAVS + " 60 " +
                 SB_PROPERTY_DOWNLOAD_IMAGE + " 60 " +
-                SB_PROPERTY_CREATION_DATE + " 120 ";
+                SB_PROPERTY_CREATION_DATE + " 130 ";
   this._library.setProperty(SBProperties.columnSpec, colSpec);
   this._directory.clearColumns();
   this._directory.appendColumn(SBProperties.trackName, "300");
@@ -159,7 +159,7 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
   this._directory.appendColumn(SB_PROPERTY_PLAYS, "60");
   this._directory.appendColumn(SB_PROPERTY_FAVS, "60");
   this._directory.appendColumn(SB_PROPERTY_DOWNLOAD_IMAGE, "60");
-  this._directory.appendColumn(SB_PROPERTY_CREATION_DATE, "120");
+  this._directory.appendColumn(SB_PROPERTY_CREATION_DATE, "130");
 
   // Add listener for playlist "Download" clicks
   if ((typeof(gBrowser) != "undefined") && gBrowser) {
