@@ -365,8 +365,6 @@ function sbSoundCloud() {
                               .createInstance(Ci.nsIMutableArray);
   
       for (let i = 0; i < aItems.length; i++) {
-        // While PRTime stores times in microseconds since epoch, JavaScript
-        // date objects store times in milliseconds since epoch.
         var createdAt = new Date(aItems[i].created_at).getTime();
         var title = aItems[i].title;
         var duration = aItems[i].duration * 1000;
