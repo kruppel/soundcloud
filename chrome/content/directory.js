@@ -150,7 +150,7 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
                 SB_PROPERTY_PLAYS + " 60 " +
                 SB_PROPERTY_FAVS + " 60 " +
                 SB_PROPERTY_DOWNLOAD_IMAGE + " 60 " +
-                SB_PROPERTY_CREATION_DATE + " 130 ";
+                SB_PROPERTY_CREATION_DATE + " 135 ";
   this._library.setProperty(SBProperties.columnSpec, colSpec);
   this._directory.clearColumns();
   this._directory.appendColumn(SBProperties.trackName, "300");
@@ -159,7 +159,7 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
   this._directory.appendColumn(SB_PROPERTY_PLAYS, "60");
   this._directory.appendColumn(SB_PROPERTY_FAVS, "60");
   this._directory.appendColumn(SB_PROPERTY_DOWNLOAD_IMAGE, "60");
-  this._directory.appendColumn(SB_PROPERTY_CREATION_DATE, "130");
+  this._directory.appendColumn(SB_PROPERTY_CREATION_DATE, "135");
 
   // Add listener for playlist "Download" clicks
   if ((typeof(gBrowser) != "undefined") && gBrowser) {
@@ -173,15 +173,20 @@ CloudDirectory.triggerSearch = function CloudDirectory_triggerSearch(aEvent) {
   // Reset the library
   this._library.clear();
 
+  var params = "";
   var query = encodeURIComponent(this._searchBox.value);
   var flags = {
     "q": query,
     "filter": "streamable",
-    "offset": 0,
     "order": "hotness"
   };
 
-  this._service.apiCall("tracks", flags, null);
+  for (var flag in flags) {
+    if (flag != "q")
+      params += "&" + flag + "=" + flags[flag];
+  }
+
+  this._service.getTracks(query, params, 0);
 }
 
 CloudDirectory.downloadClick = function CloudDirectory_downloadClick(aEvent) {
