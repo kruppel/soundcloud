@@ -1,0 +1,17 @@
+DEPTH = ../../..
+topsrcdir = @top_srcdir@
+srcdir = @srcdir@
+VPATH = @srcdir@
+
+include $(DEPTH)/build/autodefs.mk
+ 
+IS_EXTENSION = 1
+ 
+SOCL_MODULES_DIR = $(EXTENSION_STAGE_DIR)/jsmodules
+ 
+CREATEDIRS = $(SOCL_MODULES_DIR)
+
+include $(topsrcdir)/build/rules.mk
+
+export::
+	$(INSTALL_FILE) $(srcdir)/OAuth.jsm $(SOCL_MODULES_DIR)
