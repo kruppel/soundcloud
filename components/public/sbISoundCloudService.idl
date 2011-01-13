@@ -4,16 +4,45 @@
 #include "nsISupports.idl"
 
 interface sbILibrary;
+//interface sbISoundCloudUser;
+interface sbISoundCloudListener;
 
 /*
- *
+ * \interface sbISoundCloudUser
+ * \brief
  */
-[scriptable, uuid(32067828-1dd2-11b2-8c5b-ec25e8be3bc2)]
+[scriptable, uuid(48f401c8-1dd2-11b2-8c8e-c9a9274b517a)]
+interface sbISoundCloudUser : nsISupports 
+{
+  readonly attribute AString userid;
+
+  readonly attribute AString realname;
+
+  readonly attribute AString avatar;
+
+  readonly attribute PRint32 followingCount;
+
+  readonly attribute PRint32 favCount;
+
+  readonly attribute AString city;
+
+  readonly attribute AString country;
+
+  readonly attribute AString profileurl;
+};
+
+/*
+ * \interface sbISoundCloudService
+ * \brief
+ */
+[scriptable, uuid(dc9d69d0-1dd1-11b2-b9d6-cd32e6338c4d)]
 interface sbISoundCloudService : nsISupports 
-{	
+{
   attribute AString nowplaying_url;
 
   readonly attribute AString soundcloud_url;
+
+  readonly attribute sbISoundCloudUser user;
 
   readonly attribute AString oauth_token;
 
@@ -37,7 +66,9 @@ interface sbISoundCloudService : nsISupports
 
   boolean shouldAutoLogin();
 
-  void login(in boolean aClearSession);
+  void login(in AString aUsername,
+             in AString aPassword,
+             in boolean aClearSession);
 
   void logout();
 
@@ -51,5 +82,29 @@ interface sbISoundCloudService : nsISupports
 
   void getTracks(in AString aQuery, in AString aFlags, in PRint32 aOffset);
 
+  void addListener(in sbISoundCloudListener aListener);
+
+  void removeListener(in sbISoundCloudListener aListener);
+
+  void notifyListeners(in AString aEventTrigger);
+
   void shutdown();
+};
+
+/*
+ * \interface sbISoundCloudListener
+ * \brief
+ */
+[scriptable, uuid(88657d7e-1dd2-11b2-a624-e043dcf791bb)]
+interface sbISoundCloudListener : nsISupports 
+{
+  void onLoginBegins();
+
+  void onAutoLoginChanged();
+
+  void onLoggedInStateChanged();
+
+  void onProfileUpdated();
+
+  void onItemsAdded();
 };

@@ -22,7 +22,7 @@
     <hbox flex="1" id="soundcloud-search">
       <hbox align="center">
         <label id="soundcloud-logo">
-          <image src="chrome://soundcloud/skin/soundcloud_new_logo.png" />
+          <image src="chrome://soundcloud/skin/soundcloud_header.png" />
         </label>
       </hbox>
       <spacer flex="1" minwidth="50px" />

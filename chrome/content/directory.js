@@ -40,8 +40,6 @@ if (typeof(gBrowser) == "undefined")
                    .getService(Ci.nsIWindowMediator)
                    .getMostRecentWindow("Songbird:Main").window.gBrowser;
 
-const initialized = "extensions.soundcloud.library.init";
-
 if (typeof CloudDirectory == "undefined") {
   var CloudDirectory = {};
 }
@@ -53,8 +51,8 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
                     .getService(Ci.nsIStringBundleService)
                     .createBundle("chrome://soundcloud/locale/overlay.properties");
 
-  this._service = Cc["@songbirdnest.com/soundcloud;1"]
-                    .getService().wrappedJSObject;
+  this._service = Cc["@songbirdnest.com/soundcloud/service;1"]
+                    .getService(Ci.sbISoundCloudService);;
 
   this._domEventListenerSet = new DOMEventListenerSet();
 
@@ -225,11 +223,4 @@ CloudDirectory.onUnload = function CloudDirectory_onUnload() {
     this._domEventListenerSet.removeAll();
     this._domEventListenerSet = null;
   }
-}
-
-/* Helper functions */
-function unwrap(obj) {
-  if (obj && obj.wrappedJSObject)
-    obj = obj.wrappedJSObject;
-  return obj;
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of the Songbird web player.
  *
- * Copyright(c) 2005-2010 POTI, Inc.
+ * Copyright(c) 2005-2011 POTI, Inc.
  * http://www.songbirdnest.com
  *
  * This file may be licensed under the terms of of the
@@ -25,7 +25,7 @@ Cu.import("resource://app/jsmodules/DOMUtils.jsm");
 Cu.import("resource://app/jsmodules/sbProperties.jsm");
 
 // Create a namespace
-if (typeof SoundCloud == 'undefined')
+if (typeof SoundCloud == "undefined")
   var SoundCloud = {};
 
 /**
@@ -34,22 +34,24 @@ if (typeof SoundCloud == 'undefined')
 SoundCloud.SB_NS = "http://songbirdnest.com/data/1.0#";
 SoundCloud.SP_NS = "http://songbirdnest.com/rdf/servicepane#";
 
-SoundCloud.URL_SIGNUP = 'http://soundcloud.com/signup';
-SoundCloud.URL_PASSWORD = 'https://soundcloud.com/login/forgot';
+SoundCloud.URL_SIGNUP = "http://soundcloud.com/signup";
+SoundCloud.URL_PASSWORD = "https://soundcloud.com/login/forgot";
 
 SoundCloud.Icons = {
-  busy: 'chrome://soundcloud/skin/busy.png',
-  disabled: 'chrome://soundcloud/skin/disabled.png',
-  logged_in: 'chrome://soundcloud/skin/logged-in.png'
+  busy: "chrome://soundcloud/skin/busy.png",
+  disabled: "chrome://soundcloud/skin/disabled.png",
+  logged_in: "chrome://soundcloud/skin/logged-in.png"
 };
 
 SoundCloud.onLoad = function SoundCloud_onLoad() {
   // initialization code
   this._strings = document.getElementById("soundcloud-strings");
 
-  this._service = Cc["@songbirdnest.com/soundcloud;1"]
-                    .getService().wrappedJSObject;
-  this._service.listeners.add(this);
+  /*this._service = Cc["@songbirdnest.com/soundcloud;1"]
+                    .getService().wrappedJSObject;*/
+
+  this._service = Cc["@songbirdnest.com/soundcloud/service;1"]
+                    .getService(Ci.sbISoundCloudService);
 
   this.m_mgr = Cc["@songbirdnest.com/Songbird/PlaylistCommandsManager;1"]
               .createInstance(Ci.sbIPlaylistCommandsManager);
@@ -60,66 +62,117 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
   this._downloadItems = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
                           .getService(Ci.nsIMutableArray);
 
-  this._statusIcon = document.getElementById('soundcloudStatusIcon');
-  this._panelBinding = document.getElementById('soundcloudLoginPanel');
-  this._panel = this._getElement(this._panelBinding, 'loginPanel');
-  this._deck = this._getElement(this._panelBinding, 'loginDeck');
-  this._login = this._getElement(this._panelBinding, 'loginBox');
-  this._username = this._getElement(this._panelBinding, 'username');
+  this._statusIcon = document.getElementById("soundcloudStatusIcon");
+  this._panelBinding = document.getElementById("soundcloudLoginPanel");
+  this._panel = this._getElement(this._panelBinding, "loginPanel");
+  this._deck = this._getElement(this._panelBinding, "loginDeck");
+  this._login = this._getElement(this._panelBinding, "loginBox");
+  this._username = this._getElement(this._panelBinding, "username");
   // Hacky solution to increase max length of username field
   this._username.setAttribute("maxlength", 255);
-  this._password = this._getElement(this._panelBinding, 'password');
+  this._password = this._getElement(this._panelBinding, "password");
   this._loginAutoLogin = this._getElement(this._panelBinding,
-                                          'loginAutoLogin');
-  this._loginButton = this._getElement(this._panelBinding, 'loginButton');
+                                          "loginAutoLogin");
+  this._loginButton = this._getElement(this._panelBinding, "loginButton");
   this._newAccountGroupbox = this._getElement(this._panelBinding,
-                                              'newAccountGroupbox');
-  this._loginError = this._getElement(this._panelBinding, 'loginError');
-  this._loggingIn = this._getElement(this._panelBinding, 'loginProgressBox');
-  this._cancelButton = this._getElement(this._panelBinding, 'cancelButton');
+                                              "newAccountGroupbox");
+  this._loginError = this._getElement(this._panelBinding, "loginError");
+  this._loggingIn = this._getElement(this._panelBinding, "loginProgressBox");
+  this._cancelButton = this._getElement(this._panelBinding, "cancelButton");
 
-  this._signupButton = this._getElement(this._panelBinding, 'signupButton');
+  this._signupButton = this._getElement(this._panelBinding, "signupButton");
 
-  this._forgotpass = this._getElement(this._panelBinding, 'forgotpass');
+  this._forgotpass = this._getElement(this._panelBinding, "forgotpass");
   this._forgotpass.textContent =
-         this._strings.getString('soundcloud.forgotpass.label');
+         this._strings.getString("soundcloud.forgotpass.label");
 
-  this._profile = this._getElement(this._panelBinding, 'profileBox');
-  this._image = this._getElement(this._panelBinding, 'image');
-  this._realname = this._getElement(this._panelBinding, 'realname');
-  this._citycountry = this._getElement(this._panelBinding, 'profileDescription');
-  this._profileCheckbox = this._getElement(this._panelBinding, 'profileCheckbox');
+  this._profile = this._getElement(this._panelBinding, "profileBox");
+  this._image = this._getElement(this._panelBinding, "image");
+  this._realname = this._getElement(this._panelBinding, "realname");
+  this._citycountry = this._getElement(this._panelBinding, "profileDescription");
+  this._profileCheckbox = this._getElement(this._panelBinding, "profileCheckbox");
   this._profileCheckbox.hidden = true;
   this._profileAutoLogin = this._getElement(this._panelBinding,
-                                            'profileAutoLogin');
+                                            "profileAutoLogin");
 
   var self = this;
+
+  /**
+   *
+   */
+  this.listener = {
+    onLoginBegins: function listener_onLoginBegins() {
+      self._deck.selectedPanel = self._loggingIn;
+      self._newAccountGroupbox.setAttribute("loggedOut", "false");
+      self.setStatusIcon(self.Icons.busy);
+    },
+    onAutoLoginChanged: function listener_onAutoLoginChanged() {
+      if (self._service.autoLogin) {
+        self._loginAutoLogin.setAttribute("checked", "true");
+        self._profileAutoLogin.setAttribute("checked", "true");
+      } else {
+        self._loginAutoLogin.removeAttribute("checked");
+        self._profileAutoLogin.removeAttribute("checked");
+      }
+    },
+    onLoggedInStateChanged: function listener_onLoggedInStateChanged() {
+      if (self._service.loggedIn) {
+        self._deck.selectedPanel = self._profile;
+        self._newAccountGroupbox.setAttribute("loggedOut", "false");
+        self.setStatusIcon(self.Icons.logged_in);
+      } else {
+        self.setLoginError(null);
+        self._deck.selectedPanel = self._login;
+        self._newAccountGroupbox.removeAttribute("loggedOut");
+        self.setStatusIcon(self.Icons.disabled);
+      }
+    },
+    onProfileUpdated: function listener_onProfileUpdated() {
+      self._user = self._service.user;
+
+      var avatar = self._user.avatar;
+      self._image.setAttributeNS("http://www.w3.org/1999/xlink", "href", avatar);
+      if (self._user.realname && self._user.realname.length) {
+        self._realname.textContent = self._user.realname;
+      } else {
+        self._realName.textContent = self._username.value;
+      }
+      self._citycountry.textContent = self._user.city + ", " +
+                                      self._user.country;
+    },
+    onItemsAdded: function listener_onItemsAdded() {
+    },
+    QueryInterface: XPCOMUtils.generateQI([Ci.sbISoundCloudListener])
+  };
+
+  this._service.addListener(this.listener);
+
   this._domEventListenerSet = new DOMEventListenerSet();
 
   var onProfileUrlClicked = function(event) {
-    self.loadURI(self._service.profileurl, event);
+    self.loadURI(self._user.profileurl, event);
   }
 
   // Wire up UI events for the profile links
   this._domEventListenerSet.add(this._image,
-                                'click',
+                                "click",
                                 onProfileUrlClicked,
                                 false,
                                 false);
   this._domEventListenerSet.add(this._realname,
-                                'click',
+                                "click",
                                 onProfileUrlClicked,
                                 false,
                                 false);
 
   this._domEventListenerSet.add(this._citycountry,
-                                'click',
+                                "click",
                                 function() { dump(self._citycountry); },
                                 false,
                                 false);
 
   // Wire up click event for the status icon
-  this._statusIcon.addEventListener('click',
+  this._statusIcon.addEventListener("click",
     function(event) {
     // Only the left button
       if (event.button != 0) return;
@@ -131,7 +184,7 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
     self.loadURI(self.URL_SIGNUP, event);
   };
   this._domEventListenerSet.add(this._signupButton,
-                                'click',
+                                "click",
                                 onSignupButtonClicked,
                                 false,
                                 false);
@@ -141,36 +194,36 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
     self.loadURI(self.URL_PASSWORD, event);
   };
   this._domEventListenerSet.add(this._forgotpass,
-                                'click',
+                                "click",
                                 onForgotpass,
                                 false,
                                 false);
 
   var onAutoLoginToggled = function(event) { self._toggleAutoLogin(); };
   this._domEventListenerSet.add(this._loginAutoLogin,
-                                'command',
+                                "command",
                                 onAutoLoginToggled,
                                 false,
                                 false);
   this._domEventListenerSet.add(this._profileAutoLogin,
-                                'command',
+                                "command",
                                 onAutoLoginToggled,
                                 false,
                                 false);
 
   var onButtonClicked = function(event) { self._handleUIEvents(event); };
   this._domEventListenerSet.add(this._panelBinding,
-                                'login-button-clicked',
+                                "login-button-clicked",
                                 onButtonClicked,
                                 false,
                                 false);
   this._domEventListenerSet.add(this._panelBinding,
-                                'cancel-button-clicked',
+                                "cancel-button-clicked",
                                 onButtonClicked,
                                 false,
                                 false);
   this._domEventListenerSet.add(this._panelBinding,
-                                'logout-button-clicked',
+                                "logout-button-clicked",
                                 onButtonClicked,
                                 false,
                                 false);
@@ -187,18 +240,20 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
   // clear the login error message
   this.setLoginError(null);
   // update the ui with the should-auto-login state
-  this.onAutoLoginChanged(this._service.autoLogin);
+  this.listener.onAutoLoginChanged();
   // update the ui with the logged-in state
-  this.onLoggedInStateChanged();
+  this.listener.onLoggedInStateChanged();
 
   // if we have a username & password then try to log in
   if (this._service.shouldAutoLogin()) {
-    this._service.login(false);
+    this._service.login(this._username.value,
+                        this._password.value,
+                        false);
   }
 
   // Attach our listener to the ShowCurrentTrack event issued by the
   // faceplate
-  var faceplateManager = Cc['@songbirdnest.com/faceplate/manager;1'].
+  var faceplateManager = Cc["@songbirdnest.com/faceplate/manager;1"].
     getService(Ci.sbIFaceplateManager);
   var pane = faceplateManager.getPane("songbird-dashboard");
   var sbWindow = Cc["@mozilla.org/appshell/window-mediator;1"].
@@ -206,7 +261,7 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
     getMostRecentWindow("Songbird:Main").window;
   sbWindow.addEventListener("ShowCurrentTrack", this.curTrackListener, true);
 
-  // Create our properties if they don't exist
+  // Create our properties if they don"t exist
   var pMgr = Cc["@songbirdnest.com/Songbird/Properties/PropertyManager;1"].
     getService(Ci.sbIPropertyManager);
 
@@ -282,9 +337,7 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
     pMgr.addPropertyInfo(pI);
   }
 
-  // XXX - Source image needs to be updated
-  // Should file a bug to get this property column centered instead of left
-  // justified.
+  // Source image needs to be updated
   var pI = pMgr.getPropertyInfo(SBProperties.trackType)
                .QueryInterface(Ci.sbIImageLabelLinkPropertyInfo);
   pI.addImage("soundcloud", "chrome://soundcloud/skin/inactive.png");
@@ -410,7 +463,7 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
 }
 
 SoundCloud.loadURI = function SoundCloud_loadURI(uri, event) {
-  gBrowser.loadURI(uri, null, null, event, '_blank');
+  gBrowser.loadURI(uri, null, null, event, "_blank");
   this._panel.hidePopup();
 }
 
@@ -422,9 +475,9 @@ SoundCloud._handleUIEvents =
 function SoundCloud__handlUIEvents(aEvent) {
   switch (aEvent.type) {
     case "login-button-clicked":
-      this._service.username = this._username.value;
-      this._service.password = this._password.value;
-      this._service.login(false);
+      this._service.login(this._username.value,
+                          this._password.value,
+                          false);
       break;
     case "cancel-button-clicked":
       this._service.cancelLogin();
@@ -441,62 +494,12 @@ SoundCloud._toggleAutoLogin = function SoundCloud__toggleAutoLogin() {
   this._service.autoLogin = !this._service.autoLogin;
 }
 
-SoundCloud.onProfileUpdated = function SoundCloud_onProfileUpdated() {
-  var avatar = "chrome://soundcloud/skin/default-avatar.png";
-  if (this._service.avatar) {
-    avatar = this._service.avatar;
-  }
-  this._image.setAttributeNS("http://www.w3.org/1999/xlink", "href", avatar);
-  if (this._service.realname && this._service.realname.length) {
-    this._realname.textContent = this._service.realname;
-  } else {
-    this._realName.textContent = this._username.value;
-  }
-  this._citycountry.textContent = this._service.city + ", " +
-                                  this._service.country;
-}
-
-SoundCloud.onAutoLoginChanged = function SoundCloud_onAutoLoginChanged(val) {
-  if (val) {
-    this._loginAutoLogin.setAttribute('checked', 'true');
-    this._profileAutoLogin.setAttribute('checked', 'true');
-  } else {
-    this._loginAutoLogin.removeAttribute('checked');
-    this._profileAutoLogin.removeAttribute('checked');
-  }
-}
-
-// SoundCloud event handlers for login events
-SoundCloud.onLoggedInStateChanged =
-function SoundCloud_onLoggedInStateChanged() {
-  if (this._service.loggedIn) {
-    this._deck.selectedPanel = this._profile;
-    this._newAccountGroupbox.setAttribute("loggedOut", "false");
-    this.setStatusIcon(this.Icons.logged_in);
-  } else {
-    this.setLoginError(null);
-    this._deck.selectedPanel = this._login;
-    this._newAccountGroupbox.removeAttribute("loggedOut");
-    this.setStatusIcon(this.Icons.disabled);
-  }
-}
-
-SoundCloud.onLoginBegins = function SoundCloud_onLoginBegins() {
-  this._deck.selectedPanel = this._loggingIn;
-  this._newAccountGroupbox.setAttribute("loggedOut", "false");
-  this.setStatusIcon(this.Icons.busy);
-  //this.setStatusTextId('soundcloud.state.logging_in');
-}
-
-SoundCloud.onItemsAdded = function SoundCloud_onItemsAdded() {
-}
-
 SoundCloud.setStatusIcon = function SoundCloud_setStatusIcon(aIcon) {
-  this._statusIcon.setAttribute('src', aIcon);
+  this._statusIcon.setAttribute("src", aIcon);
 }
 
 SoundCloud.setStatusText = function SoundCloud_setStatusText(aText) {
-  this._statusIcon.setAttribute('tooltip', aText);
+  this._statusIcon.setAttribute("tooltip", aText);
 }
 
 SoundCloud.setStatusText = function SoundCloud_setStatusText(aId) {
@@ -506,10 +509,10 @@ SoundCloud.setStatusText = function SoundCloud_setStatusText(aId) {
 SoundCloud.setLoginError = function SoundCloud_setLoginError(aText) {
   if (aText) {
     this._loginError.textContent = aText;
-    this._loginError.style.visibility = 'visible';
+    this._loginError.style.visibility = "visible";
   } else {
-    this._loginError.textContent = '';
-    this._loginError.style.visibility = 'collapse';
+    this._loginError.textContent = "";
+    this._loginError.style.visibility = "collapse";
   }
 }
 
@@ -528,7 +531,7 @@ function SoundCloud__getElement(aWidget, aElementID) {
 }
 
 SoundCloud.onUnload = function SoundCloud_onUnload() {
-  this._service.listeners.remove(this);
+  this._service.removeListener(this);
   this.m_mgr.withdraw("soundcloud-download@sb.com", this.m_cmd_Download);
   this.m_mgr.withdraw("soundcloud-cmds@sb.com", this.m_soundcloudCommands);
 

@@ -34,7 +34,7 @@ IS_EXTENSION = 1
 SUBDIRS = components \
           defaults \
           chrome \
-          modules \
+          jsmodules \
           $(NULL)
 
 CREATEDIRS = $(SONGBIRD_COMPONENTSDIR) \
