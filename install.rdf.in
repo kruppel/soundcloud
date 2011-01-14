@@ -58,7 +58,7 @@
       <Description>
         <songbird:contentUrl>chrome://soundcloud/content/waveform.html</songbird:contentUrl>
         <songbird:contentTitle>Waveform</songbird:contentTitle>
-        <songbird:contentIcon>chrome://soundcloud/skin/inactive.png</songbird:contentIcon>
+        <songbird:contentIcon>chrome://soundcloud/skin/source.png</songbird:contentIcon>
         <songbird:defaultWidth>177</songbird:defaultWidth>
         <songbird:defaultHeight>120</songbird:defaultHeight>
         <songbird:suggestedContentGroups>contentpane</songbird:suggestedContentGroups>

@@ -168,9 +168,6 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
 }
 
 CloudDirectory.triggerSearch = function CloudDirectory_triggerSearch(aEvent) {
-  // Reset the library
-  this._library.clear();
-
   var params = "";
   var query = encodeURIComponent(this._searchBox.value);
   var flags = {

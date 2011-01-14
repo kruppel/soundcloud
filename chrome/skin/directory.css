@@ -102,3 +102,33 @@ treecol[bind="http://songbirdnest.com/data/1.0#user"] > label,
   font-size: 11px;
   text-shadow: white 0px 1px 0px;
 }
+
+#soundcloud-intro {
+  background-color: white;
+  border: 2px solid #B6CEE6;
+  margin: 0px 80px;
+  opacity: 0.7;
+  padding: 10px;
+  -moz-border-radius: 6px;
+  -moz-box-align: center;
+  -moz-box-pack: center;
+  -moz-box-flex: 1;
+}
+
+#soundcloud-intro > description {
+  color: #06C;
+  font-family: 'Lucida Grande', Arial, Helvetica, Verdana, sans-serif;
+  font-size: 18px;
+  height: 250px;
+  width: 300px;
+  min-width: 240px;
+  -moz-box-flex: 1;
+}
+
+#soundcloud-loading {
+  background-image: url(chrome://soundcloud/skin/loading-gray.gif);
+  height: 15px;
+  width: 128px;
+  min-height: 15px;
+  opacity: 0.7;
+}

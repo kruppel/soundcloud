@@ -5,27 +5,73 @@ body#socl-wf-body {
 }
 
 #socl-idle {
-  padding-right: 50px;
   background-color: rgb(244, 258, 252) !important;
   background-image: url('chrome://soundcloud/skin/big-cloud.png');
   background-position: 95% center;
   background-repeat: no-repeat;
   position: absolute;
-  z-index: 1;
-  width: 100%;
+  padding-right: 50px;
   height: 100%;
+  width: 100%;
+  max-height: 500px;
+  min-width: 750px;
+  z-index: 1;
+}
+
+#socl-frame {
+  position: absolute;
+  top: 15%;
+  left: 5%;
+  background: #DAE8F6;
+  display: block;
+  padding: 7px;
+  margin: 0px auto 20px;
+  -moz-border-radius: 7px 7px;
 }
 
 #waveform {
   position: absolute;
-  z-index: 1;
-  width: 100%;
   height: 100%;
+  width: 100%;
+  z-index: 1;
+}
+
+#socl-slogan {
+  background-color: white;
+  border: 1px solid #B6CEE6;
+  padding: 10px;
+  height: 40px;
+  width: 300px;
+  -moz-box-shadow: white 0px 0px 2px;
+  text-align: center;
+}
+
+#socl-slogan > span {
+  font-family: 'Lucida Grande', Arial, Helvetica, Verdana, sans-serif;
+  font-size: 25px;
+  color: #06C;
+}
+
+#socl-wf-display {
+  visibility: hidden;
 }
 
 .playhead {
-  height: 100%;
-  z-index: 1;
   background-image: url('chrome://soundcloud/skin/playhead.png');
+  border-right: 1px solid rgb(255,85,0);
   position: absolute;
+  height: 100%;
+  width: 0%;
+  z-index: 1;
+}
+
+.seekhead {
+  display: none;
+}
+
+.seekhead > div {
+  background: #F50;
+  left: 33%;
+  height: 100%;
+  z-index: 2;
 }

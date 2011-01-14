@@ -4,7 +4,7 @@
 #include "nsISupports.idl"
 
 interface sbILibrary;
-//interface sbISoundCloudUser;
+interface sbISoundCloudUser;
 interface sbISoundCloudListener;
 
 /*
@@ -43,6 +43,10 @@ interface sbISoundCloudService : nsISupports
   readonly attribute AString soundcloud_url;
 
   readonly attribute sbISoundCloudUser user;
+
+  readonly attribute AString username;
+
+  readonly attribute AString password;
 
   readonly attribute AString oauth_token;
 

@@ -903,6 +903,7 @@ sbSoundCloudService.prototype = {
   logout: function sbSoundCloudService_logout() {
     this.userLoggedOut = true;
     this.loggedIn = false;
+    this._token_secret = null;
     this.updateServicePaneNodes();
   },
 
@@ -979,6 +980,10 @@ sbSoundCloudService.prototype = {
     this._info_xhr = GET(url, params, success, failure, true);
   },
 
+  getDashboard: function sbSoundCloudService_getDashboard() {
+
+  },
+
   getFavorites: function sbSoundCloudService_getFavorites() {
     var self = this;
     if (!this.loggedIn)
@@ -1027,6 +1032,7 @@ sbSoundCloudService.prototype = {
       if (this._track_xhr)
         this._track_xhr.abort();
 
+      this._library.clear();
       this._searchService.insertSearch(url + "?" + aFlags, aQuery);
     }
 
@@ -1048,10 +1054,11 @@ sbSoundCloudService.prototype = {
         }
       }
 
+      self._addItemsToLibrary(tracks, self._library);
+
       if (tracks.length > 40) {
         self._track_retries = null;
         aOffset += tracks.length
-        self._addItemsToLibrary(tracks, self._library);
         self._track_xhr = self.getTracks(aQuery, aFlags, aOffset);
       }
     }
@@ -1066,6 +1073,16 @@ sbSoundCloudService.prototype = {
     var params = "q=" + aQuery + aFlags + "&offset=" + aOffset;
     params += "&consumer_key=" + CONSUMER_KEY;
     this._track_xhr = GET(url, params, success, failure, false);
+  },
+
+  getUserTracks:
+  function sbSoundCloudService_getTracksForUser() {
+
+  },
+
+  postFavorite:
+  function sbSoundCloudService_postFavorite() {
+
   },
 
   addListener: function sbSoundCloudService_addListener(aListener) {
@@ -1094,8 +1111,26 @@ sbSoundCloudService.prototype = {
     }
   },
 
-  shutdown: function sbSoundCloudService_shutdown() {
+  // sbIPlaybackHistoryListener
+  onEntriesAdded: function sbSoundCloudService_onEntriesAdded(aEntries) {
+    // In order to get tracks to scrobble, need to scrape the metadata.
+    // LastFM API: http://www.last.fm/api/show?service=443
+  },
 
+  onEntriesUpdated: function sbSoundCloudService_onEntriesUpdated(aEntries) {
+
+  },
+
+  onEntriesRemoved: function sbSoundCloudService_onEntriesRemoved(aEntries) {
+
+  },
+
+  onEntriesCleared: function sbSoundCloudService_onEntriesCleared() {
+
+  },
+
+  shutdown: function sbSoundCloudService_shutdown() {
+    // Observer topic = "songbird-library-manager-before-shutdown"
   }
 };
 

@@ -70,13 +70,26 @@
       <spacer flex="1" />
     </hbox>
   </vbox>
-  <sb-playlist flex="1"
-               id="soundcloud-directory"
-               enableColumnDrag="true"
-               persist="column-list column-widths"
-               hidecolumnpicker="true"
-               editable="false" />
-
+  <stack flex="1">
+    <sb-playlist flex="1"
+                 id="soundcloud-directory"
+                 enableColumnDrag="true"
+                 persist="column-list column-widths"
+                 hidecolumnpicker="true"
+                 editable="false"/>
+    <hbox flex="1" align="center" hidden="true">
+      <vbox flex="1" align="center">
+        <spacer flex="4" />
+        <deck selectedIndex="0">
+          <box id="soundcloud-intro">
+            <description>Experience SoundCloud in Songbird. Do this. Do that. And more.</description>
+          </box>
+          <box id="soundcloud-loading"/>
+        </deck>
+        <spacer flex="6" />
+      </vbox>
+    </hbox>
+  </stack>
   <script type="application/javascript" 
           src="chrome://songbird/content/scripts/windowUtils.js"/>
   <script type="application/javascript" 
