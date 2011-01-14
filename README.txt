@@ -18,6 +18,3 @@ Especially when accounting for the autologin process, is there a way
 to obfuscate these? Or is it not even worth the trouble?
 Also set prefs for oauth_token and token_secret... Should probably
 encode/decode these strings.
-
-### Major oversight with the auto login ###
-FUCK FUCK FUCK FUCK FUCK...
