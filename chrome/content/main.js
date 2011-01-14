@@ -44,11 +44,7 @@ SoundCloud.Icons = {
 };
 
 SoundCloud.onLoad = function SoundCloud_onLoad() {
-  // initialization code
   this._strings = document.getElementById("soundcloud-strings");
-
-  /*this._service = Cc["@songbirdnest.com/soundcloud;1"]
-                    .getService().wrappedJSObject;*/
 
   this._service = Cc["@songbirdnest.com/soundcloud/service;1"]
                     .getService(Ci.sbISoundCloudService);
