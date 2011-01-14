@@ -52,7 +52,7 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
                     .createBundle("chrome://soundcloud/locale/overlay.properties");
 
   this._service = Cc["@songbirdnest.com/soundcloud/service;1"]
-                    .getService(Ci.sbISoundCloudService);;
+                    .getService(Ci.sbISoundCloudService);
 
   this._domEventListenerSet = new DOMEventListenerSet();
 
@@ -181,7 +181,7 @@ CloudDirectory.triggerSearch = function CloudDirectory_triggerSearch(aEvent) {
       params += "&" + flag + "=" + flags[flag];
   }
 
-  this._service.getTracks(query, params, 0);
+  this._service.getTracks(null, query, params, 0);
 }
 
 CloudDirectory.downloadClick = function CloudDirectory_downloadClick(aEvent) {

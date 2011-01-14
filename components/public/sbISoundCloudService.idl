@@ -80,11 +80,14 @@ interface sbISoundCloudService : nsISupports
 
   void authCallback();
 
-  void updateProfile();
+  void updateProfile(in boolean aSavedSession);
 
   void getFavorites();
 
-  void getTracks(in AString aQuery, in AString aFlags, in PRint32 aOffset);
+  void getTracks(in PRint32 aUserId,
+                 in AString aQuery,
+                 in AString aFlags,
+                 in PRint32 aOffset);
 
   void addListener(in sbISoundCloudListener aListener);
 
