@@ -28,3 +28,6 @@ encode/decode these strings.
 ### Allow for configuration of sandbox/test environment ###
 
 ### Disable edit, "dropping", and removal for directory ###
+
+### Scrape artist for the playback history service ###
+Requirement for scrobbling tracks.
