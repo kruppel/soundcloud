@@ -374,15 +374,37 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
                                                 "soundcloud_cmd_download",
                                                 plCmd_IsSelectionDownloadable);
   this.m_mgr.publish("soundcloud-download@sb.com", this.m_cmd_Download);
+  this.m_cmd_Favorite = new PlaylistCommandsBuilder("favorite-soundcloud-cmd");
+  this.m_cmd_Favorite.appendAction(null,
+                                   "soundcloud_cmd_favorite",
+                                   "Favorite",
+                                   "Favorite track",
+                                   plCmd_Favorite_TriggerCallback);
+  /*this.m_cmd_Favorite.setCommandShortcut(null,
+                                         "soundcloud_cmd_favorite",
+                                         "&command.shortcut.key.favorite",
+                                         "&command.shortcut.keycode.favorite",
+                                         "&command.shortcut.modifiers.favorite",
+                                         true);*/
+  this.m_cmd_Favorite.setCommandVisibleCallback(null,
+                                                "soundcloud_cmd_favorite",
+                                                plCmd_IsSelectionFavoriteable);
+  this.m_mgr.publish("soundcloud-favorite@sb.com", this.m_cmd_Favorite);
   this.m_soundcloudCommands = new PlaylistCommandsBuilder("soundcloud_cmds");
   this.m_soundcloudCommands.appendPlaylistCommands(null,
                                                    "soundcloud_cmd_download",
                                                    this.m_cmd_Download);
+  this.m_soundcloudCommands.appendPlaylistCommands(null,
+                                                   "soundcloud_cmd_favorite",
+                                                   this.m_cmd_Favorite);
   this.m_soundcloudCommands.setVisibleCallback(plCmd_HideForToolbarCheck);
   this.m_mgr.publish("soundcloud-cmds@sb.com", this.m_soundcloudCommands);
 
   // Called when the download action is triggered
-  function plCmd_Download_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
+  function plCmd_Download_TriggerCallback(aContext,
+                                          aSubMenuId,
+                                          aCommandId,
+                                          aHost) {
     // if something is selected, trigger the download event on the playlist
     if (plCmd_IsAnyTrackSelected(aContext, aSubMenuId, aCommandId, aHost)) {
       var ddh = Cc["@songbirdnest.com/Songbird/DownloadDeviceHelper;1"]
@@ -446,6 +468,23 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
       Cu.reportError(ex);
       return false;
     }
+  }
+
+  function plCmd_Favorite_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
+      var playlist = unwrap(aContext.playlist);
+      var selectedEnum = playlist.mediaListView.selection.selectedMediaItems;
+
+      var curItem = selectedEnum.getNext()
+                                .QueryInterface(Ci.sbIMediaItem)
+      if (curItem) {
+        var trackId = curItem.getProperty(SB_PROPERTY_TRACK_ID);
+        if (trackId)
+          self._service.putFavorite(trackId);
+      }
+  }
+
+  function plCmd_IsSelectionFavoriteable(aContext, aSubMenuId, aCommandId, aHost) {
+    return true;
   }
 
   // Returns true when at least one track is selected in the playlist
@@ -529,6 +568,7 @@ function SoundCloud__getElement(aWidget, aElementID) {
 SoundCloud.onUnload = function SoundCloud_onUnload() {
   this._service.removeListener(this);
   this.m_mgr.withdraw("soundcloud-download@sb.com", this.m_cmd_Download);
+  this.m_mgr.withdraw("soundcloud-favorite@sb.com", this.m_cmd_Favorite);
   this.m_mgr.withdraw("soundcloud-cmds@sb.com", this.m_soundcloudCommands);
 
   if (this._domEventListenerSet) {

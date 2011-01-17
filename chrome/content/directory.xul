@@ -76,6 +76,7 @@
                  enableColumnDrag="true"
                  persist="column-list column-widths"
                  hidecolumnpicker="true"
+                 disabled="false"
                  editable="false"/>
     <hbox flex="1" align="center" hidden="true">
       <vbox flex="1" align="center">

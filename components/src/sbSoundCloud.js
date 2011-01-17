@@ -251,6 +251,43 @@ function POST(url, params, onload, onerror) {
   return xhr;
 }
 
+function PUT(url, params, onload, onerror) {
+  var xhr = null;
+
+  try {
+    xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance();
+    xhr.mozBackgroundRequest = true;
+    xhr.onload = function(event) { onload(xhr); }
+    xhr.onerror = function(event) { onerror(xhr); }
+    xhr.open('PUT', url + "?" + params, true);
+    xhr.send();
+  } catch(e) {
+    Cu.reportError(e);
+    onerror(xhr);
+  }
+  return xhr;
+}
+
+function DELETE_(url, params, onload, onerror) {
+  var xhr = null;
+
+  try {
+    xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance();
+    xhr.mozBackgroundRequest = true;
+    xhr.onload = function(event) { onload(xhr); }
+    xhr.onerror = function(event) { onerror(xhr); }
+    xhr.open('DELETE', url, true);
+    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xhr.setRequestHeader("Content-length", params.length);
+    xhr.setRequestHeader("Connection", "close");
+    xhr.send(params);
+  } catch(e) {
+    Cu.reportError(e);
+    onerror(xhr);
+  }
+  return xhr;
+}
+
 /**
  *
  */
@@ -648,14 +685,14 @@ function sbSoundCloudService() {
   }
 
   this._nowplaying_url = null;
-  this.__defineGetter__('nowplaying_url', function() {
+  this.__defineGetter__('nowPlayingURL', function() {
     return this._nowplaying_url;
   });
-  this.__defineSetter__('nowplaying_url', function(val) {
+  this.__defineSetter__('nowPlayingURL', function(val) {
     this._nowplaying_url = val;
   });
 
-  this.__defineGetter__('soundcloud_url', function() {
+  this.__defineGetter__('soundcloudURL', function() {
     return SOCL_URL;
   });
 
@@ -674,7 +711,7 @@ function sbSoundCloudService() {
     return this._password;
   });
 
-  this.__defineGetter__("oauth_token", function() {
+  this.__defineGetter__("token", function() {
     let pref = this.username + ".oauth_token";
     this._oauth_token = (this._prefs.prefHasUserValue(pref)) ?
                          atob(this._prefs.getCharPref(pref)) : null;
@@ -717,7 +754,7 @@ function sbSoundCloudService() {
 
   // get the playback history service
   this._playbackHistory =
-      Cc['@songbirdnest.com/Songbird/PlaybackHistoryService;1']
+      Cc["@songbirdnest.com/Songbird/PlaybackHistoryService;1"]
         .getService(Ci.sbIPlaybackHistoryService);
   // add ourselves as a playlist history listener
   this._playbackHistory.addListener(this);
@@ -725,18 +762,18 @@ function sbSoundCloudService() {
   this._library = this._getLibrary(Libraries.SEARCH, null);
   this._downloads = this._getLibrary(Libraries.DOWNLOADS, null);
 
-  this.__defineGetter__('library', function() { return this._library; });
-  this.__defineGetter__('dashboard', function() {
+  this.__defineGetter__("library", function() { return this._library; });
+  this.__defineGetter__("dashboard", function() {
     let dashLib = (this._dashboard) ? this._dashboard : null;
     return dashLib;
   });
-  this.__defineGetter__('favorites', function() {
+  this.__defineGetter__("favorites", function() {
     let favLib = (this._favorites) ? this._favorites : null;
     return favLib;
   });
-  this.__defineGetter__('downloads', function() { return this._downloads; });
+  this.__defineGetter__("downloads", function() { return this._downloads; });
 
-  this.__defineGetter__('lastSearch', function() {
+  this.__defineGetter__("lastSearch", function() {
       if (!this._searchService)
         return;
 
@@ -823,10 +860,10 @@ sbSoundCloudService.prototype = {
                                                       "soclfollowingcount");
       followingBadge.label = this.followingCount;
       followingBadge.visible = true;
-
+      */
       // Create dashboard node
       var dashNode = this._servicePaneService
-                        .getNode("urn:soclfavorites");
+                         .getNode("urn:socldashboard");
       if (!dashNode) {
         dashNode = this._servicePaneService.createNode();
         dashNode.url=
@@ -837,13 +874,12 @@ sbSoundCloudService.prototype = {
         dashNode.editable = false;
         dashNode.setAttributeNS(SP_NS, "Weight", 5);
         soclNode.appendChild(dashNode);
-        dashNode.hidden = true;
+        dashNode.hidden = false;
       }
 
-      var dashBadge = ServicePaneHelper.getBadge(dashNode, "socldashboard");
-      dashBadge.label = this.incomingCount;
-      dashBadge.visible = true;
-      */
+      //var dashBadge = ServicePaneHelper.getBadge(dashNode, "socldashboard");
+      //dashBadge.label = this.incomingCount;
+      //dashBadge.visible = true;
    
       // Create favorites node
       var favNode = this._servicePaneService
@@ -866,7 +902,7 @@ sbSoundCloudService.prototype = {
       favBadge.label = this.user.favCount;
       favBadge.visible = true;
    
-      this._dashboard = this._getLibrary(Libraries.DASHBOARD, null);
+      this._dashboard = this._getLibrary(Libraries.DASHBOARD, this._user.userid);
       this._favorites = this._getLibrary(Libraries.FAVORITES, this._user.userid);
     } else {
       while (soclNode.firstChild) {
@@ -898,7 +934,7 @@ sbSoundCloudService.prototype = {
     this._token_secret = (this._prefs.prefHasUserValue(secretPref)) ?
                           atob(this._prefs.getCharPref(secretPref)) : null;
     if (!aClearSession) {
-      if (this.oauth_token && this._token_secret)
+      if (this._oauth_token && this._token_secret)
         return this.updateProfile(true);
     } else {
       this._prefs.clearUserPref(this.username + ".oauth_token");
@@ -1000,47 +1036,6 @@ sbSoundCloudService.prototype = {
     this._info_xhr = GET(url, params, success, failure, true);
   },
 
-  getDashboard: function sbSoundCloudService_getDashboard() {
-
-  },
-
-  getFavorites: function sbSoundCloudService_getFavorites() {
-    var self = this;
-    if (!this.loggedIn)
-      return;
-
-    if (!this._fav_retries)
-      this._fav_retries = 0;
-
-    var url = SOCL_URL + "/me/favorites.json";
-    var success = function(xhr) {
-      let json = xhr.responseText;
-      let favorites = JSON.parse(json);
-      if (favorites.error) {
-        if (self._fav_retries < MAX_RETRIES) {
-          self._fav_retries++;
-          self.getFavorites();
-        } else {
-          Cu.reportError("Unable to retrieve favorites: " + favorites.error);
-          return false;
-        }
-      }
-
-      self.user._favCount = favorites.length;
-      self._addItemsToLibrary(favorites, self._favorites);
-    }
-
-    var failure = function(xhr) {
-      dump("\nUnable to retrieve favorites.");
-      dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
-      self._fav_retries = null;
-      return false;
-    }
-
-    var params = this._getParameters(url, "GET");
-    this._fav_xhr = GET(url, params, success, failure, true);
-  },
-
   getTracks:
   function sbSoundCloudService_getTracks(aUserId, aQuery, aFlags, aOffset) {
     var self = this;
@@ -1073,6 +1068,7 @@ sbSoundCloudService.prototype = {
         } else {
           Cu.reportError("Unable to retrieve tracks: " + tracks.error);
           self._track_retries = null;
+          self._track_xhr = null;
           return false;
         }
       }
@@ -1082,7 +1078,9 @@ sbSoundCloudService.prototype = {
       if (tracks.length > 40) {
         self._track_retries = null;
         aOffset += tracks.length
-        self._track_xhr = self.getTracks(aUserId, aQuery, aFlags, aOffset);
+        self.getTracks(aUserId, aQuery, aFlags, aOffset);
+      } else {
+        self._track_xhr = null;
       }
     }
 
@@ -1098,9 +1096,106 @@ sbSoundCloudService.prototype = {
     this._track_xhr = GET(url, params, success, failure, false);
   },
 
-  putFavorite:
-  function sbSoundCloudService_putFavorite() {
+  getDashboard: function sbSoundCloudService_getDashboard() {
+    if (!this.loggedIn)
+      return;
 
+    if (this._dash_xhr) {
+      this._dash_xhr.abort();
+    } else if (!this._dash_retries) {
+      this._dash_retries = 0;
+    }
+
+    var url = SOCL_URL + "/me/activities/tracks.json";
+    var success = function(xhr) {
+      let json = xhr.responseText;
+      let activities = JSON.parse(json);
+      if (activities.error) {
+        if (self._dash_retries < MAX_RETRIES) {
+          self._dash_retries++;
+          self.getDashboard();
+        } else {
+          Cu.reportError("Unable to retrieve activities: " + activities.error);
+          self._dash_xhr = null;
+          return false;
+        }
+      }
+
+      dump("\n" + json + "\n");
+    }
+
+    var failure = function(xhr) {
+      dump("\nUnable to retrieve activities.");
+      dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
+      self._dash_xhr = null;
+      self._dash_retries = null;
+      return false;
+    }
+
+    var params = this._getParameters(url, "GET");
+    this._dash_xhr = GET(url, params, success, failure, true);
+  },
+
+  getFavorites: function sbSoundCloudService_getFavorites() {
+    var self = this;
+    if (!this.loggedIn)
+      return;
+
+    if (this._fav_xhr) {
+      this._fav_xhr.abort();
+    } else if (!this._fav_retries) {
+      this._fav_retries = 0;
+    }
+
+    var url = SOCL_URL + "/me/favorites.json";
+    var success = function(xhr) {
+      let json = xhr.responseText;
+      let favorites = JSON.parse(json);
+      if (favorites.error) {
+        if (self._fav_retries < MAX_RETRIES) {
+          self._fav_retries++;
+          self.getFavorites();
+        } else {
+          Cu.reportError("Unable to retrieve favorites: " + favorites.error);
+          self._fav_xhr = null;
+          return false;
+        }
+      }
+
+      self.user._favCount = favorites.length;
+      self._addItemsToLibrary(favorites, self._favorites);
+      self._fav_xhr = null;
+    }
+
+    var failure = function(xhr) {
+      dump("\nUnable to retrieve favorites.");
+      dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
+      self._fav_xhr = null;
+      self._fav_retries = null;
+      return false;
+    }
+
+    var params = this._getParameters(url, "GET");
+    this._fav_xhr = GET(url, params, success, failure, true);
+  },
+
+  putFavorite:
+  function sbSoundCloudService_putFavorite(aTrackId) {
+    if (!this.loggedIn)
+      return;
+
+    var url = SOCL_URL + "/me/favorites/" + aTrackId;
+    var success = function(xhr) {
+      Cu.reportError(xhr.responseText);
+    }
+
+    var failure = function(xhr) {
+      Cu.reportError(xhr.responseText);
+      return false;
+    }
+
+    var params = this._getParameters(url, "PUT");
+    PUT(url, params, success, failure);
   },
 
   addListener: function sbSoundCloudService_addListener(aListener) {

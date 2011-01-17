@@ -38,9 +38,9 @@ interface sbISoundCloudUser : nsISupports
 [scriptable, uuid(dc9d69d0-1dd1-11b2-b9d6-cd32e6338c4d)]
 interface sbISoundCloudService : nsISupports 
 {
-  attribute AString nowplaying_url;
+  attribute AString nowPlayingURL;
 
-  readonly attribute AString soundcloud_url;
+  readonly attribute AString soundcloudURL;
 
   readonly attribute sbISoundCloudUser user;
 
@@ -48,7 +48,7 @@ interface sbISoundCloudService : nsISupports
 
   readonly attribute AString password;
 
-  readonly attribute AString oauth_token;
+  readonly attribute AString token;
 
   attribute PRBool userLoggedOut;
 
@@ -59,6 +59,8 @@ interface sbISoundCloudService : nsISupports
   attribute boolean authorized;
 
   readonly attribute sbILibrary library;
+  
+  readonly attribute sbILibrary dashboard;
   
   readonly attribute sbILibrary favorites;
 
@@ -82,12 +84,16 @@ interface sbISoundCloudService : nsISupports
 
   void updateProfile(in boolean aSavedSession);
 
-  void getFavorites();
-
   void getTracks(in PRint32 aUserId,
                  in AString aQuery,
                  in AString aFlags,
                  in PRint32 aOffset);
+
+  void getDashboard();
+
+  void getFavorites();
+
+  void putFavorite(in Print32 aTrackId);
 
   void addListener(in sbISoundCloudListener aListener);
 

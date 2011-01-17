@@ -74,6 +74,23 @@ function SoundClouWaveform_onLoad() {
   this.remote_length = SBNewDataRemote("metadata.length", null);
   this.remote_length.bindObserver(dataRemoteListener, true);
   this.onPositionChanged();
+
+  this._domEventListenerSet = new DOMEventListenerSet();
+  var onWaveformClicked = function(event) {
+    var boxObject = event.target.parentNode.getBoundingClientRect();
+    var rel_pos = event.clientX / boxObject.width;
+    try {
+      gMM.playbackControl.position = rel_pos * self.remote_length.intValue;
+    } catch(e) {
+      Cu.reportError(e);
+    }
+  }
+
+  this._domEventListenerSet.add(this._wfdisplay,
+                                "click",
+                                onWaveformClicked,
+                                false,
+                                false);
 }
 
 SoundCloudWaveform.onPositionChanged =
@@ -102,12 +119,8 @@ function SoundCloudWaveform_onMediacoreEvent(aEvent) {
       }
       break;
     case Ci.sbIMediacoreEvent.SEQUENCE_CHANGE:
-      dump("\nSEQUENCECHANGE\nposition: " + gMM.sequencer.viewPosition +
-           "index: " + gMM.sequencer.currentItem + "\n");
       break;
     case Ci.sbIMediacoreEvent.VIEW_CHANGE:
-      dump("\nVIEWCHANGE\nposition: " + gMM.sequencer.viewPosition +
-           "index: " + gMM.sequencer.currentItem + "\n");
       break;
     default:
       break;
@@ -117,6 +130,11 @@ function SoundCloudWaveform_onMediacoreEvent(aEvent) {
 SoundCloudWaveform.onUnload =
 function SoundCloudWaveform_onUnload(aEvent) {
   gMM.removeListener(this);
+
+  if (this._domEventListenerSet) {
+    this._domEventListenerSet.removeAll();
+    this._domEventListenerSet = null;
+  }
 }
 
 window.addEventListener("load",

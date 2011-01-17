@@ -35,11 +35,11 @@ Cu.import("resource://app/jsmodules/WindowUtils.jsm");
 var SoundCloudAuthorize = {
   _open: function SoundCloudAuthorizeAuthorize_open() {
     this._service = Cc["@songbirdnest.com/soundcloud/service;1"]
-                      .getService().wrappedJSObject;
+                      .getService(Ci.sbISoundCloudService);
     this._browser = document.getElementById("soundcloud_auth_browser");
-    this._browser.loadURI(this._service.soundcloud_url
+    this._browser.loadURI(this._service.soundcloudURL
                           + "/oauth/authorize?oauth_token="
-                          + this._service.oauth_token
+                          + this._service.token
                           + "&display=popup");
     var self = this;
     this._domEventListenerSet = new DOMEventListenerSet();
