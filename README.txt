@@ -33,6 +33,9 @@ encode/decode these strings.
 
 ### Attempt to login to SoundCloud in the background before auth ###
 
+### Scrape artist for the playback history service ###
+Requirement for scrobbling tracks.
+
 ### [pref] Mediacore adjustments ###
 - songbird.mediacore.output.buffertime
 - songbird.mediacore.streaming.buffersize
