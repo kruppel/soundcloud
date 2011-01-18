@@ -111,15 +111,13 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
     switch(type) {
       case "dashboard":
         this._library = this._service.dashboard;
-        this._library.clear();
-        this._service.getDashboard();
+        this._service.getDashboard(null);
         document.title =
           this._strings.GetStringFromName("soundcloud.dashboard.title");
         search.hidden = true;
         break;
       case "favorites":
         this._library = this._service.favorites;
-        this._library.clear();
         this._service.getFavorites();
         document.title =
           this._strings.GetStringFromName("soundcloud.favorites.title");

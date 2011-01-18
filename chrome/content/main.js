@@ -380,12 +380,12 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
                                    "Favorite",
                                    "Favorite track",
                                    plCmd_Favorite_TriggerCallback);
-  /*this.m_cmd_Favorite.setCommandShortcut(null,
+  this.m_cmd_Favorite.setCommandShortcut(null,
                                          "soundcloud_cmd_favorite",
                                          "&command.shortcut.key.favorite",
                                          "&command.shortcut.keycode.favorite",
                                          "&command.shortcut.modifiers.favorite",
-                                         true);*/
+                                         true);
   this.m_cmd_Favorite.setCommandVisibleCallback(null,
                                                 "soundcloud_cmd_favorite",
                                                 plCmd_IsSelectionFavoriteable);
@@ -484,7 +484,27 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
   }
 
   function plCmd_IsSelectionFavoriteable(aContext, aSubMenuId, aCommandId, aHost) {
-    return true;
+    if (!self._service.loggedIn ||
+        !plCmd_IsAnyTrackSelected(aContext, aSubMenuId, aCommandId, aHost))
+      return false;
+
+    var itemEnum = unwrap(aContext.playlist).mediaListView
+                                            .selection
+                                            .selectedMediaItems;
+    try {
+      let item = itemEnum.getNext().QueryInterface(Ci.sbIMediaItem);
+      let trackId = item.getProperty(SB_PROPERTY_TRACK_ID);
+      let faved = self._service
+                      .favorites
+                      .getItemsByProperty(SB_PROPERTY_TRACK_ID, trackId);
+      if (faved.length > 0)
+        return false;
+
+      return true;
+    } catch (ex) {
+      Cu.reportError(ex);
+      return false;
+    }
   }
 
   // Returns true when at least one track is selected in the playlist
