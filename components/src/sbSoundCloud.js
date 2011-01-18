@@ -590,22 +590,27 @@ function sbSoundCloudService() {
    * \return URL encoded string of parameters
    */
   this._getParameters =
-  function sbSoundCloudService__getParameters(aURL, aMethodType) {
+  function sbSoundCloudService__getParameters(aURL, aMethodType, aParams) {
     var accessor = { consumerSecret: CONSUMER_SECRET };
     var message = { action: aURL,
                     method: aMethodType,
                     parameters: []
                   };
 
-    message.parameters.push(['oauth_consumer_key', CONSUMER_KEY]);
-    message.parameters.push(['oauth_nonce', OAuth.nonce(11)]);
-    message.parameters.push(['oauth_signature_method', SIG_METHOD]);
-    message.parameters.push(['oauth_timestamp', OAuth.timestamp()]);
-    if (this._oauth_token)
-      message.parameters.push(['oauth_token', this._oauth_token]);
-    message.parameters.push(['oauth_version', "1.0"]);
+    // Optional parameters pushed
+    for (var param in aParams) {
+      message.parameters.push([param, aParams[param]]);
+    }
 
-    message.parameters.push(['oauth_signature', this._sign(message)]);
+    message.parameters.push(["oauth_consumer_key", CONSUMER_KEY]);
+    message.parameters.push(["oauth_nonce", OAuth.nonce(11)]);
+    message.parameters.push(["oauth_signature_method", SIG_METHOD]);
+    message.parameters.push(["oauth_timestamp", OAuth.timestamp()]);
+    if (this._oauth_token)
+      message.parameters.push(["oauth_token", this._oauth_token]);
+    message.parameters.push(["oauth_version", "1.0"]);
+
+    message.parameters.push(["oauth_signature", this._sign(message)]);
 
     return urlencode(message.parameters);
   }
@@ -625,7 +630,7 @@ function sbSoundCloudService() {
     this._token_secret = "";
 
     var url = SOCL_URL + "/oauth/request_token";
-    var params = this._getParameters(url, 'POST');
+    var params = this._getParameters(url, "POST", null);
 
     if (!this._oauth_retries)
       this._oauth_retries = 0;
@@ -695,7 +700,7 @@ function sbSoundCloudService() {
     var self = this;
 
     var url = SOCL_URL + "/oauth/access_token";
-    var params = self._getParameters(url, 'POST');
+    var params = self._getParameters(url, "POST", null);
 
     if (!this._oauth_retries)
       this._oauth_retries = 0;
@@ -1052,7 +1057,7 @@ sbSoundCloudService.prototype = {
       this._info_retries = 0;
 
     var url = SOCL_URL + "/me.json";
-    var params = this._getParameters(url, 'GET');
+    var params = this._getParameters(url, "GET", null);
 
     var success = function(xhr) {
       let json = xhr.responseText;
@@ -1171,6 +1176,8 @@ sbSoundCloudService.prototype = {
       this._dash_retries = 0;
     }
 
+    var url = SOCL_URL + "/me/activities/tracks.json";
+
     var success = function(xhr) {
       let json = xhr.responseText;
       let activities = JSON.parse(json);
@@ -1192,8 +1199,9 @@ sbSoundCloudService.prototype = {
       self._dash_retries = null;
 
       if (next_href) {
-        let cursor = next_href.split("?")[1];
-        dump("\n" + cursor + "\n");
+        let idx = next_href.indexOf("cursor");
+        let slc = next_href.slice(idx);
+        let cursor = slc.split("=")[1];
         self.getDashboard(cursor);
       } else {
         self._dash_xhr = null;
@@ -1208,14 +1216,13 @@ sbSoundCloudService.prototype = {
       return false;
     }
 
-    var params = this._getParameters(url, "GET");
+    var flags = null;
+    if (aCursor)
+      flags = { "cursor" : aCursor };
+    var params = this._getParameters(url, "GET", flags);
 
-    if (aCursor) {
-      dump("\n" + aCursor + "&" + params);
-      this._dash_xhr = GET(url, aCursor + "&" + params, success, failure, false);
-    } else {
-      this._dash_xhr = GET(url, params, success, failure, true);
-    }
+    dump("\n" + aCursor + "&" + params);
+    this._dash_xhr = GET(url, params, success, failure, true);
   },
 
   getFavorites: function sbSoundCloudService_getFavorites() {
@@ -1262,7 +1269,7 @@ sbSoundCloudService.prototype = {
       return false;
     }
 
-    var params = this._getParameters(url, "GET");
+    var params = this._getParameters(url, "GET", null);
     this._fav_xhr = GET(url, params, success, failure, true);
   },
 
@@ -1282,7 +1289,7 @@ sbSoundCloudService.prototype = {
       return false;
     }
 
-    var params = this._getParameters(url, "PUT");
+    var params = this._getParameters(url, "PUT", null);
     PUT(url, params, success, failure);
   },
 

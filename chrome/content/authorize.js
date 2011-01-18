@@ -26,7 +26,6 @@
  */
 var Cc = Components.classes;
 var Ci = Components.interfaces;
-var Cr = Components.results;
 var Cu = Components.utils;
 
 Cu.import("resource://app/jsmodules/DOMUtils.jsm");
@@ -69,6 +68,7 @@ var SoundCloudAuthorize = {
       doc.getElementById("password").value = this._service.password;
       deck.selectedPanel = this._browser;
       WindowUtils.sizeToContent(window);
+      this._browser.focus();
       return;
     }
 

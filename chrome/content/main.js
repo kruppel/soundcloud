@@ -499,11 +499,8 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
                       .getItemsByProperty(SB_PROPERTY_TRACK_ID, trackId);
       if (faved.length > 0)
         return false;
-
-      return true;
     } catch (ex) {
-      Cu.reportError(ex);
-      return false;
+      return true;
     }
   }
 
