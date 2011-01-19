@@ -46,3 +46,7 @@ Copy over all properties
 
 ### Disable editable title ###
 Not sure if this is even possible...
+
+### [playlistcommand] Copy permalink URL ###
+
+### [playlistcommand] Follow user ###
