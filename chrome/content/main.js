@@ -136,7 +136,8 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
       self._citycountry.textContent = self._user.city + ", " +
                                       self._user.country;
     },
-    onItemsAdded: function listener_onItemsAdded() {
+    onTracksAdded: function listener_onTracksAdded() {
+      
     },
     QueryInterface: XPCOMUtils.generateQI([Ci.sbISoundCloudListener])
   };
@@ -252,9 +253,9 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
   var faceplateManager = Cc["@songbirdnest.com/faceplate/manager;1"].
     getService(Ci.sbIFaceplateManager);
   var pane = faceplateManager.getPane("songbird-dashboard");
-  var sbWindow = Cc["@mozilla.org/appshell/window-mediator;1"].
-    getService(Ci.nsIWindowMediator).
-    getMostRecentWindow("Songbird:Main").window;
+  var sbWindow = Cc["@mozilla.org/appshell/window-mediator;1"]
+                   .getService(Ci.nsIWindowMediator)
+                   .getMostRecentWindow("Songbird:Main").window;
   sbWindow.addEventListener("ShowCurrentTrack", this.curTrackListener, true);
 
   // Create our properties if they don"t exist

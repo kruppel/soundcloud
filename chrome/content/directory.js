@@ -34,6 +34,7 @@ Cu.import("resource://app/jsmodules/DOMUtils.jsm");
 Cu.import("resource://app/components/kPlaylistCommands.jsm");
 Cu.import("resource://app/jsmodules/sbLibraryUtils.jsm");
 Cu.import("resource://app/jsmodules/sbProperties.jsm");
+Cu.import("resource://app/jsmodules/StringUtils.jsm");
 
 if (typeof(gBrowser) == "undefined")
   var gBrowser = Cc["@mozilla.org/appshell/window-mediator;1"]
@@ -137,6 +138,7 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
   var mgr = Cc["@songbirdnest.com/Songbird/PlaylistCommandsManager;1"]
               .createInstance(Ci.sbIPlaylistCommandsManager);
   var cmds = mgr.request("soundcloud-cmds@sb.com");
+
   // Bind the playlist widget to our library
   this._directory.bind(this._library.createView(), cmds);
 
@@ -156,6 +158,41 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
   this._directory.appendColumn(SB_PROPERTY_FAVS, "60");
   this._directory.appendColumn(SB_PROPERTY_DOWNLOAD_IMAGE, "60");
   this._directory.appendColumn(SB_PROPERTY_CREATION_DATE, "135");
+
+  this.listener = {
+    onLoginBegins: function listener_onLoginBegins() { },
+    onAutoLoginChanged: function listener_onAutoLoginChanged() { },
+    onLoggedInStateChanged: function listener_onLoggedInStateChanged() { },
+    onProfileUpdated: function listener_onProfileUpdated() { },
+    onTracksAdded: function listener_onTracksAdded() {
+      if (!self._library)
+        return;
+
+      let count = self._library
+                      .getItemCountByProperty(SBProperties.hidden,
+                                              "0");
+      var SB_NewDataRemote =
+        Components.Constructor("@songbirdnest.com/Songbird/DataRemote;1",
+                               "sbIDataRemote",
+                               "init");
+      var statusOverrideText =
+        SB_NewDataRemote( "faceplate.status.override.text", null );
+      var statusOverrideType =
+        SB_NewDataRemote( "faceplate.status.override.type", null );
+ 
+      statusOverrideText.stringValue = "";
+      if (count == 1) {
+        statusOverrideText.stringValue = count + " track";
+      } else {
+        statusOverrideText.stringValue = count + " tracks";
+      }
+      statusOverrideType.stringValue = "report" 
+    },
+    QueryInterface: XPCOMUtils.generateQI([Ci.sbISoundCloudListener])
+  }
+
+  this._service.addListener(this.listener);
+  this.listener.onTracksAdded();
 
   // Add listener for playlist "Download" clicks
   if ((typeof(gBrowser) != "undefined") && gBrowser) {
@@ -213,6 +250,8 @@ CloudDirectory.onUnload = function CloudDirectory_onUnload() {
     this._directory.destroy();
     this._directory = null;
   }
+
+  this._service.removeListener(this.listener);
 
   if (this._domEventListenerSet) {
     this._domEventListenerSet.removeAll();

@@ -62,7 +62,9 @@ const CONSUMER_SECRET = "YqGENlIGpWPnjQDJ2XCLAur2La9cTLdMYcFfWVIsnvw";
 const CONSUMER_KEY = "eJ2Mqrpr2P4TdO62XXJ3A";
 const SIG_METHOD = "HMAC-SHA1";
 
+const DASH_LIMIT = 3;
 const MAX_RETRIES = 5;
+const REFRESH_TIME = 5;
 
 /*
  * SoundCloud library objects.
@@ -246,7 +248,7 @@ function GET(url, params, onload, onerror, oauth) {
     xhr.mozBackgroundRequest = true;
     xhr.onload = function(event) { onload(xhr); }
     xhr.onerror = function(event) { onerror(xhr); }
-    xhr.open('GET', url + "?" + params, true);
+    xhr.open("GET", url + "?" + params, true);
     if (oauth)
       xhr.setRequestHeader("Authorization", "OAuth");
     xhr.setRequestHeader("Content-Type", "application/json");
@@ -266,7 +268,7 @@ function POST(url, params, onload, onerror) {
     xhr.mozBackgroundRequest = true;
     xhr.onload = function(event) { onload(xhr); }
     xhr.onerror = function(event) { onerror(xhr); }
-    xhr.open('POST', url, true);
+    xhr.open("POST", url, true);
     xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
     xhr.setRequestHeader("Content-length", params.length);
     xhr.setRequestHeader("Connection", "close");
@@ -286,7 +288,7 @@ function PUT(url, params, onload, onerror) {
     xhr.mozBackgroundRequest = true;
     xhr.onload = function(event) { onload(xhr); }
     xhr.onerror = function(event) { onerror(xhr); }
-    xhr.open('PUT', url + "?" + params, true);
+    xhr.open("PUT", url + "?" + params, true);
     xhr.send();
   } catch(e) {
     Cu.reportError(e);
@@ -303,7 +305,7 @@ function DELETE_(url, params, onload, onerror) {
     xhr.mozBackgroundRequest = true;
     xhr.onload = function(event) { onload(xhr); }
     xhr.onerror = function(event) { onerror(xhr); }
-    xhr.open('DELETE', url, true);
+    xhr.open("DELETE", url, true);
     xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
     xhr.setRequestHeader("Content-length", params.length);
     xhr.setRequestHeader("Connection", "close");
@@ -396,6 +398,10 @@ function sbSoundCloudService() {
   this._prefs = Cc['@mozilla.org/preferences-service;1']
                   .getService(Ci.nsIPrefService)
                   .getBranch("extensions.soundcloud.");
+
+  this._refreshTimer = Cc["@mozilla.org/timer;1"]
+                         .createInstance(Ci.nsITimer);
+  var interval = REFRESH_TIME * 60000;
 
   /**
    * \brief Gets (or creates) a SoundCloud library.
@@ -530,7 +536,7 @@ function sbSoundCloudService() {
       var batchListener = {
         onProgress: function(aIndex) {},
         onComplete: function(aMediaItems, aResult) {
-          self.notifyListeners("onItemsAdded");
+          self.notifyListeners("onTracksAdded");
         }
       };
   
@@ -937,9 +943,8 @@ sbSoundCloudService.prototype = {
         dashNode.hidden = false;
       }
 
-      //var dashBadge = ServicePaneHelper.getBadge(dashNode, "socldashboard");
-      //dashBadge.label = this.incomingCount;
-      //dashBadge.visible = true;
+      var dashBadge = ServicePaneHelper.getBadge(dashNode, "socldashboard");
+      dashBadge.visible = false;
    
       // Create favorites node
       var favNode = this._servicePaneService
@@ -1204,6 +1209,33 @@ sbSoundCloudService.prototype = {
         let cursor = slc.split("=")[1];
         self.getDashboard(cursor);
       } else {
+        // Update Dashboard SPS node badge
+        let enumListener = {
+          onEnumerationBegin: function(list) {
+            self._incomingCount = 0;
+          },
+          onEnumeratedItem: function(list, item) {
+            let creation_date =
+              item.getProperty(SB_PROPERTY_CREATION_DATE);
+            let now = new Date().getTime();
+            let limit = now - (1000 * 60 * 60 * 24 * DASH_LIMIT);
+            if (creation_date > limit)
+              self._incomingCount += 1;
+          },
+          onEnumerationEnd: function(list, status) {
+            Cu.reportError(self._incomingCount);
+            if (self._incomingCount > 0) {
+              let dashNode = self._servicePaneService
+                                 .getNode("urn:socldashboard");
+              let dashBadge = ServicePaneHelper.getBadge(dashNode,
+                                                         "socldashboard");
+              dashBadge.label = self._incomingCount;
+              dashBadge.visible = true;
+            }
+          }
+        }
+
+        self._dashboard.enumerateAllItems(enumListener);
         self._dash_xhr = null;
       }
     }
@@ -1221,7 +1253,6 @@ sbSoundCloudService.prototype = {
       flags = { "cursor" : aCursor };
     var params = this._getParameters(url, "GET", flags);
 
-    dump("\n" + aCursor + "&" + params);
     this._dash_xhr = GET(url, params, success, failure, true);
   },
 
