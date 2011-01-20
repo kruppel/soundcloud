@@ -105,7 +105,7 @@ var Logins = {
     var password = "";
     // lets ask the login manager
     var logins = this.loginManager.findLogins({}, this.LOGIN_HOSTNAME,
-                                              '', null);
+                                              "", null);
     for (var i = 0; i < logins.length; i++) {
       if (i==0) {
         // use the first username & password we find
@@ -121,7 +121,7 @@ var Logins = {
 
   set: function(username, password) {
     var logins = this.loginManager.findLogins({}, this.LOGIN_HOSTNAME,
-                                              '', null);
+                                              "", null);
     for (var i=0; i<logins.length; i++) {
       this.loginManager.removeLogin(logins[i]);
     }
@@ -395,7 +395,7 @@ function sbSoundCloudService() {
   this._searchService = new sbSoundCloudSearchService();
   this._searchService.createTable();
 
-  this._prefs = Cc['@mozilla.org/preferences-service;1']
+  this._prefs = Cc["@mozilla.org/preferences-service;1"]
                   .getService(Ci.nsIPrefService)
                   .getBranch("extensions.soundcloud.");
 
@@ -578,7 +578,7 @@ function sbSoundCloudService() {
     var params = aMessage.parameters;
     var s = "";
     for (let p in params) {
-      if (params[p][0] != 'oauth_signature') {
+      if (params[p][0] != "oauth_signature") {
         if (p == 0) {
           s = params[p][0] + "=" + params[p][1];
         } else {
@@ -586,8 +586,8 @@ function sbSoundCloudService() {
         }
       }
     }
-    return aMessage.method + '&' + encodeURIComponent(aMessage.action)
-                          + '&' + encodeURIComponent(s);
+    return aMessage.method + "&" + encodeURIComponent(aMessage.action)
+                          + "&" + encodeURIComponent(s);
   }
 
   /**
@@ -1361,15 +1361,12 @@ sbSoundCloudService.prototype = {
   },
 
   onEntriesUpdated: function sbSoundCloudService_onEntriesUpdated(aEntries) {
-
   },
 
   onEntriesRemoved: function sbSoundCloudService_onEntriesRemoved(aEntries) {
-
   },
 
   onEntriesCleared: function sbSoundCloudService_onEntriesCleared() {
-
   },
 
   shutdown: function sbSoundCloudService_shutdown() {

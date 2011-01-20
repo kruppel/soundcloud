@@ -359,6 +359,7 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
                   "sbIPlaylistCommandsBuilder");
   }
 
+  // Download playlist command
   this.m_cmd_Download = new PlaylistCommandsBuilder("download-soundcloud-cmd");
   this.m_cmd_Download.appendAction(null,
                                    "soundcloud_cmd_download",
@@ -375,6 +376,7 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
                                                 "soundcloud_cmd_download",
                                                 plCmd_IsSelectionDownloadable);
   this.m_mgr.publish("soundcloud-download@sb.com", this.m_cmd_Download);
+  // Favorite playlist command
   this.m_cmd_Favorite = new PlaylistCommandsBuilder("favorite-soundcloud-cmd");
   this.m_cmd_Favorite.appendAction(null,
                                    "soundcloud_cmd_favorite",
@@ -391,6 +393,20 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
                                                 "soundcloud_cmd_favorite",
                                                 plCmd_IsSelectionFavoriteable);
   this.m_mgr.publish("soundcloud-favorite@sb.com", this.m_cmd_Favorite);
+  // Search playlist commands
+  this.m_searchCommands = new PlaylistCommandsBuilder("search-soundcloud-cmds");
+  this.m_searchCommands.appendSubmenu(null,
+                                      "soundcloud_search_cmds",
+                                      "Search For...",
+                                      "Search Options");
+  this.m_searchCommands.appendAction("soundcloud_search_cmds",
+                                     "soundcloud_cmd_searchuser",
+                                     this._strings.getString("command.soundcloud_searchuser"),
+                                     this._strings.getString("command.tooltip.searchuser"),
+                                     plCmd_SearchUser_TriggerCallback);
+  this.m_searchCommands.setVisibleCallback(plCmd_HideForToolbarCheck);
+  this.m_mgr.publish("soundcloud-search@sb.com", this.m_searchCommands);
+  // SoundCloud playlist commands
   this.m_soundcloudCommands = new PlaylistCommandsBuilder("soundcloud_cmds");
   this.m_soundcloudCommands.appendPlaylistCommands(null,
                                                    "soundcloud_cmd_download",
@@ -398,6 +414,9 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
   this.m_soundcloudCommands.appendPlaylistCommands(null,
                                                    "soundcloud_cmd_favorite",
                                                    this.m_cmd_Favorite);
+  this.m_soundcloudCommands.appendPlaylistCommands(null,
+                                                   "soundcloud_search_cmds",
+                                                   this.m_searchCommands);
   this.m_soundcloudCommands.setVisibleCallback(plCmd_HideForToolbarCheck);
   this.m_mgr.publish("soundcloud-cmds@sb.com", this.m_soundcloudCommands);
 
@@ -481,6 +500,17 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
         var trackId = curItem.getProperty(SB_PROPERTY_TRACK_ID);
         if (trackId)
           self._service.putFavorite(trackId);
+      }
+  }
+
+  function plCmd_SearchUser_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
+      var playlist = unwrap(aContext.playlist);
+      var selectedEnum = playlist.mediaListView.selection.selectedMediaItems;
+
+      var curItem = selectedEnum.getNext()
+                                .QueryInterface(Ci.sbIMediaItem)
+      if (curItem) {
+        Cu.reportError("Search triggered!");
       }
   }
 
@@ -587,6 +617,8 @@ SoundCloud.onUnload = function SoundCloud_onUnload() {
   this._service.removeListener(this);
   this.m_mgr.withdraw("soundcloud-download@sb.com", this.m_cmd_Download);
   this.m_mgr.withdraw("soundcloud-favorite@sb.com", this.m_cmd_Favorite);
+  this.m_mgr.withdraw("soundcloud-search@sb.com", this.m_searchCommands);
+  this.m_mgr.withdraw("soundcloud-searchuser@sb.com", this.m_cmd_SearchUser);
   this.m_mgr.withdraw("soundcloud-cmds@sb.com", this.m_soundcloudCommands);
 
   if (this._domEventListenerSet) {
