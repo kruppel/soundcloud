@@ -1374,7 +1374,6 @@ sbSoundCloudService.prototype = {
 
   shutdown: function sbSoundCloudService_shutdown() {
     // Observer topic = "songbird-library-manager-before-shutdown"
-    this._mediacoreManager.removeListener(this._mediacoreListener);
     this._playbackHistory.removeListener(this);
   }
 };
