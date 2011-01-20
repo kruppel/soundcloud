@@ -112,7 +112,7 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
     switch(type) {
       case "dashboard":
         this._library = this._service.dashboard;
-        this._service.getDashboard(null);
+        //this._service.getDashboard(null);
         document.title =
           this._strings.GetStringFromName("soundcloud.dashboard.title");
         search.hidden = true;
@@ -197,7 +197,7 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
   // Add listener for playlist "Download" clicks
   if ((typeof(gBrowser) != "undefined") && gBrowser) {
     this._directory.addEventListener("PlaylistCellClick", function(e) {
-      return self.downloadClick(e);
+      return self.onDownloadClick(e);
     }, false);
   }
 }
@@ -219,7 +219,7 @@ CloudDirectory.triggerSearch = function CloudDirectory_triggerSearch(aEvent) {
   this._service.getTracks(null, query, params, 0);
 }
 
-CloudDirectory.downloadClick = function CloudDirectory_downloadClick(aEvent) {
+CloudDirectory.onDownloadClick = function CloudDirectory_onDownloadClick(aEvent) {
   var prop = aEvent.getData("property");
   var item = aEvent.getData("item");
 

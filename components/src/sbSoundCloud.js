@@ -517,6 +517,9 @@ function sbSoundCloudService() {
         properties.appendProperty(SBProperties.trackName, title);
         properties.appendProperty(SBProperties.primaryImageURL, artwork);
         properties.appendProperty(SB_PROPERTY_USER, username);
+        // Setting artistName to user for LastFM scrobbling support. Ideally,
+        // should scrape the artist metadata from the stream
+        properties.appendProperty(SBProperties.artistName, username);
         properties.appendProperty(SB_PROPERTY_PLAYS, playcount);
         properties.appendProperty(SB_PROPERTY_FAVS, favcount);
         properties.appendProperty(SB_PROPERTY_WAVEFORM, waveformURL);
@@ -749,14 +752,14 @@ function sbSoundCloudService() {
   }
 
   this._nowplaying_url = null;
-  this.__defineGetter__('nowPlayingURL', function() {
+  this.__defineGetter__("nowPlayingURL", function() {
     return this._nowplaying_url;
   });
-  this.__defineSetter__('nowPlayingURL', function(val) {
+  this.__defineSetter__("nowPlayingURL", function(val) {
     this._nowplaying_url = val;
   });
 
-  this.__defineGetter__('soundcloudURL', function() {
+  this.__defineGetter__("soundcloudURL", function() {
     return SOCL_URL;
   });
 
@@ -811,8 +814,8 @@ function sbSoundCloudService() {
 
   // the loggedIn state
   this._loggedIn = false;
-  this.__defineGetter__('loggedIn', function() { return this._loggedIn; });
-  this.__defineSetter__('loggedIn', function(aLoggedIn){
+  this.__defineGetter__("loggedIn", function() { return this._loggedIn; });
+  this.__defineSetter__("loggedIn", function(aLoggedIn){
     this._loggedIn = aLoggedIn;
     this.notifyListeners("onLoggedInStateChanged");
   });
@@ -1090,6 +1093,7 @@ sbSoundCloudService.prototype = {
 
         self.loggedIn = true;
         self.updateServicePaneNodes();
+        self.getDashboard();
       }
     }
 
@@ -1370,6 +1374,8 @@ sbSoundCloudService.prototype = {
 
   shutdown: function sbSoundCloudService_shutdown() {
     // Observer topic = "songbird-library-manager-before-shutdown"
+    this._mediacoreManager.removeListener(this._mediacoreListener);
+    this._playbackHistory.removeListener(this);
   }
 };
 

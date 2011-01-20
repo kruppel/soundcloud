@@ -378,14 +378,14 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
   this.m_cmd_Favorite = new PlaylistCommandsBuilder("favorite-soundcloud-cmd");
   this.m_cmd_Favorite.appendAction(null,
                                    "soundcloud_cmd_favorite",
-                                   "Favorite",
-                                   "Favorite track",
+                                   this._strings.getString("command.soundcloud_favorite"),
+                                   this._strings.getString("command.tooltip.favorite"),
                                    plCmd_Favorite_TriggerCallback);
   this.m_cmd_Favorite.setCommandShortcut(null,
                                          "soundcloud_cmd_favorite",
-                                         "&command.shortcut.key.favorite",
-                                         "&command.shortcut.keycode.favorite",
-                                         "&command.shortcut.modifiers.favorite",
+                                         this._strings.getString("command.shortcut.key.favorite"),
+                                         this._strings.getString("command.shortcut.keycode.favorite"),
+                                         this._strings.getString("command.shortcut.modifiers.favorite"),
                                          true);
   this.m_cmd_Favorite.setCommandVisibleCallback(null,
                                                 "soundcloud_cmd_favorite",
