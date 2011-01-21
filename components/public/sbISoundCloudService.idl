@@ -86,7 +86,7 @@ interface sbISoundCloudService : nsISupports
 
   void updateProfile(in boolean aSavedSession);
 
-  void getTracks(in PRint32 aUserId,
+  void getTracks(in AString aUser,
                  in AString aQuery,
                  in AString aFlags,
                  in PRint32 aOffset);

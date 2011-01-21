@@ -49,6 +49,8 @@ const SB_PROPERTY_TRACK_ID = SB_NS + "trackID";
 const SB_PROPERTY_CREATION_DATE = SB_NS + "creationDate";
 const SB_PROPERTY_COMMENTABLE = SB_NS + "commentable";
 const SB_PROPERTY_USER = SB_NS + "user";
+const SB_PROPERTY_USER_ID = SB_NS + "userID";
+const SB_PROPERTY_USER_PERMALINK = SB_NS + "userPermalink";
 const SB_PROPERTY_PLAYS = SB_NS + "playcount";
 const SB_PROPERTY_FAVS = SB_NS + "favcount";
 const SB_PROPERTY_WAVEFORM = SB_NS + "waveformURL";
@@ -248,6 +250,7 @@ function GET(url, params, onload, onerror, oauth) {
     xhr.mozBackgroundRequest = true;
     xhr.onload = function(event) { onload(xhr); }
     xhr.onerror = function(event) { onerror(xhr); }
+    dump("\n\nGET:\n\t" + url + "?" + params + "\n");
     xhr.open("GET", url + "?" + params, true);
     if (oauth)
       xhr.setRequestHeader("Authorization", "OAuth");
@@ -492,6 +495,8 @@ function sbSoundCloudService() {
         var title = item.title;
         var artwork = item.artwork_url;
         var username = item.user.username;
+        var userid = item.user.id;
+        var userlink = item.user.permalink;
         var playcount = item.playback_count;
         var favcount = item.favoritings_count;
         var uri = item.uri;
@@ -517,6 +522,8 @@ function sbSoundCloudService() {
         properties.appendProperty(SBProperties.trackName, title);
         properties.appendProperty(SBProperties.primaryImageURL, artwork);
         properties.appendProperty(SB_PROPERTY_USER, username);
+        properties.appendProperty(SB_PROPERTY_USER_ID, userid);
+        properties.appendProperty(SB_PROPERTY_USER_PERMALINK, userlink);
         // Setting artistName to user for LastFM scrobbling support. Ideally,
         // should scrape the artist metadata from the stream
         properties.appendProperty(SBProperties.artistName, username);
@@ -1112,7 +1119,7 @@ sbSoundCloudService.prototype = {
   },
 
   getTracks:
-  function sbSoundCloudService_getTracks(aUserId, aQuery, aFlags, aOffset) {
+  function sbSoundCloudService_getTracks(aUser, aQuery, aFlags, aOffset) {
     var self = this;
 
     if (!this._track_retries)
@@ -1120,8 +1127,8 @@ sbSoundCloudService.prototype = {
 
     var url = SOCL_URL;
 
-    if (aUserId)
-      url += "/" + aUserId;
+    if (aUser)
+      url += "/users/" + aUser;
 
     url += "/tracks.json";
     
@@ -1130,7 +1137,11 @@ sbSoundCloudService.prototype = {
         this._track_xhr.abort();
 
       this._library.clear();
-      this._searchService.insertSearch(url + "?" + aFlags, aQuery);
+      if (!aQuery && aUser) {
+        this._searchService.insertSearch(url + "?" + aFlags, aUser);
+      } else {
+        this._searchService.insertSearch(url + "?" + aFlags, aQuery);
+      }
     }
 
     var success = function(xhr) {
@@ -1139,7 +1150,7 @@ sbSoundCloudService.prototype = {
       if (tracks.error) {
         if (self._track_retries < MAX_RETRIES) {
           self._track_retries++;
-          return self.getTracks(aUserId, aQuery, aFlags, aOffset);
+          return self.getTracks(aUser, aQuery, aFlags, aOffset);
         } else {
           Cu.reportError("Unable to retrieve tracks: " + tracks.error);
           self._track_retries = null;
@@ -1153,7 +1164,7 @@ sbSoundCloudService.prototype = {
       if (tracks.length > 40) {
         self._track_retries = null;
         aOffset += tracks.length
-        self.getTracks(aUserId, aQuery, aFlags, aOffset);
+        self.getTracks(aUser, aQuery, aFlags, aOffset);
       } else {
         self._track_xhr = null;
       }
@@ -1166,8 +1177,10 @@ sbSoundCloudService.prototype = {
       return false;
     }
 
-    var params = "q=" + aQuery + aFlags + "&offset=" + aOffset;
-    params += "&consumer_key=" + CONSUMER_KEY;
+    var params = "";
+    if (aQuery)
+      params += "q=" + aQuery + "&";
+    params += aFlags + "&offset=" + aOffset + "&consumer_key=" + CONSUMER_KEY;
     this._track_xhr = GET(url, params, success, failure, false);
   },
 

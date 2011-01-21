@@ -206,14 +206,12 @@ CloudDirectory.triggerSearch = function CloudDirectory_triggerSearch(aEvent) {
   var params = "";
   var query = encodeURIComponent(this._searchBox.value);
   var flags = {
-    "q": query,
     "filter": "streamable",
     "order": "hotness"
   };
 
   for (var flag in flags) {
-    if (flag != "q")
-      params += "&" + flag + "=" + flags[flag];
+    params += flag + "=" + flags[flag] + "&";
   }
 
   this._service.getTracks(null, query, params, 0);
