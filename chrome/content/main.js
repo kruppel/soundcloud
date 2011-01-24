@@ -52,6 +52,10 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
   this.m_mgr = Cc["@songbirdnest.com/Songbird/PlaylistCommandsManager;1"]
               .createInstance(Ci.sbIPlaylistCommandsManager);
 
+  var observer = Cc["@mozilla.org/observer-service;1"]
+                   .getService(Ci.nsIObserverService);
+  observer.addObserver(this, "quit-application", false);
+
   if (!this.m_mgr.request("soundcloud-cmds@sb.com"))
     this._initCommands();
 
@@ -342,6 +346,11 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
 
 SoundCloud._initCommands = function SoundCloud__initCommands() {
   var self = this;
+
+  var observer = Cc["@mozilla.org/observer-service;1"]
+                   .getService(Ci.nsIObserverService);
+  observer.addObserver(this, "quit-application", false);
+
   var ioService = Cc["@mozilla.org/network/io-service;1"]
                     .getService(Ci.nsIIOService);
 
@@ -491,37 +500,37 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
   }
 
   function plCmd_Favorite_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
-      var playlist = unwrap(aContext.playlist);
-      var selectedEnum = playlist.mediaListView.selection.selectedMediaItems;
+    var playlist = unwrap(aContext.playlist);
+    var selectedEnum = playlist.mediaListView.selection.selectedMediaItems;
 
-      var curItem = selectedEnum.getNext()
-                                .QueryInterface(Ci.sbIMediaItem)
-      if (curItem) {
-        var trackId = curItem.getProperty(SB_PROPERTY_TRACK_ID);
-        if (trackId)
-          self._service.putFavorite(trackId);
-      }
+    var curItem = selectedEnum.getNext()
+                              .QueryInterface(Ci.sbIMediaItem)
+    if (curItem) {
+      var trackId = curItem.getProperty(SB_PROPERTY_TRACK_ID);
+      if (trackId)
+        self._service.putFavorite(trackId);
+    }
   }
 
   function plCmd_SearchUser_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
-      var playlist = unwrap(aContext.playlist);
-      var selectedEnum = playlist.mediaListView.selection.selectedMediaItems;
+    var playlist = unwrap(aContext.playlist);
+    var selectedEnum = playlist.mediaListView.selection.selectedMediaItems;
 
-      var curItem = selectedEnum.getNext()
-                                .QueryInterface(Ci.sbIMediaItem)
-      if (curItem) {
-        var params = "filter=streamable";
-        var permalink = curItem.getProperty(SB_PROPERTY_USER_PERMALINK);
-        self._service.getTracks(permalink, "", params, 0);
+    var curItem = selectedEnum.getNext()
+                              .QueryInterface(Ci.sbIMediaItem)
+    if (curItem) {
+      var params = "filter=streamable";
+      var permalink = curItem.getProperty(SB_PROPERTY_USER_PERMALINK);
+      self._service.getTracks(permalink, "", params, 0);
 
-        // XXX - If not active node
-        var sps = Cc["@songbirdnest.com/servicepane/service;1"]
-                    .getService(Ci.sbIServicePaneService);
-        var search = sps.getNode("SB:RadioStations:SoundCloud");
-        gServicePane.activateAndLoadNode(search, null, null);
+      // XXX - If not active node
+      var sps = Cc["@songbirdnest.com/servicepane/service;1"]
+                  .getService(Ci.sbIServicePaneService);
+      var search = sps.getNode("SB:RadioStations:SoundCloud");
+      gServicePane.activateAndLoadNode(search, null, null);
 
-        Cu.reportError("Search triggered!");
-      }
+      Cu.reportError("Search triggered!");
+    }
   }
 
   function plCmd_IsSelectionFavoriteable(aContext, aSubMenuId, aCommandId, aHost) {
@@ -533,9 +542,9 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
                                             .selection
                                             .selectedMediaItems;
     try {
-      let item = itemEnum.getNext().QueryInterface(Ci.sbIMediaItem);
-      let trackId = item.getProperty(SB_PROPERTY_TRACK_ID);
-      let faved = self._service
+      var item = itemEnum.getNext().QueryInterface(Ci.sbIMediaItem);
+      var trackId = item.getProperty(SB_PROPERTY_TRACK_ID);
+      var faved = self._service
                       .favorites
                       .getItemsByProperty(SB_PROPERTY_TRACK_ID, trackId);
       if (faved.length > 0)
@@ -553,6 +562,24 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
   function plCmd_HideForToolbarCheck(aContext, aHost) {
     return (aHost !== "toolbar");
   }
+}
+
+SoundCloud.shutdownCommands = function SoundCloud_shutdownCommands() {
+  this.m_mgr.withdraw("soundcloud-download@sb.com", this.m_cmd_Download);
+  this.m_mgr.withdraw("soundcloud-favorite@sb.com", this.m_cmd_Favorite);
+  this.m_mgr.withdraw("soundcloud-search@sb.com", this.m_searchCommands);
+  this.m_mgr.withdraw("soundcloud-searchuser@sb.com", this.m_cmd_SearchUser);
+  this.m_mgr.withdraw("soundcloud-cmds@sb.com", this.m_soundcloudCommands);
+
+  this.m_cmd_Download.shutdown();
+  this.m_cmd_Favorite.shutdown();
+  this.m_searchCommands.shutdown();
+  this.m_cmd_SearchUser.shutdown();
+  this.m_soundcloudCommands();
+
+  var observer = Cc["@mozilla.org/observer-service;1"]
+                   .getService(Ci.nsIObserverService);
+  observer.removeObserver(this, "quit-application", false);
 }
 
 SoundCloud.loadURI = function SoundCloud_loadURI(uri, event) {
@@ -614,27 +641,28 @@ function SoundCloud_curTrackListener(aEvent) {
 
 }
 
-SoundCloud.uninstallObserver = {
+SoundCloud.observe =
+function SoundCloud_observe(aSubject, aTopic, aData) {
+  switch (aTopic) {
+    case "quit-application":
+      this.shutdownCommands();
+      if (this._domEventListenerSet) {
+        this._domEventListenerSet.removeAll();
+        this._domEventListenerSet = null;
+      }
 
+      this._service.removeListener(this);
+
+      var observer = Cc["@mozilla.org/observer-service;1"]
+                       .getService(Ci.nsIObserverService);
+      observer.addObserver(this, "quit-application", false);
+      break;
+  }
 }
 
 SoundCloud._getElement =
 function SoundCloud__getElement(aWidget, aElementID) {
   return document.getAnonymousElementByAttribute(aWidget, "sbid", aElementID);
-}
-
-SoundCloud.onUnload = function SoundCloud_onUnload() {
-  this._service.removeListener(this);
-  this.m_mgr.withdraw("soundcloud-download@sb.com", this.m_cmd_Download);
-  this.m_mgr.withdraw("soundcloud-favorite@sb.com", this.m_cmd_Favorite);
-  this.m_mgr.withdraw("soundcloud-search@sb.com", this.m_searchCommands);
-  this.m_mgr.withdraw("soundcloud-searchuser@sb.com", this.m_cmd_SearchUser);
-  this.m_mgr.withdraw("soundcloud-cmds@sb.com", this.m_soundcloudCommands);
-
-  if (this._domEventListenerSet) {
-    this._domEventListenerSet.removeAll();
-    this._domEventListenerSet = null;
-  }
 }
 
 /* Helper functions */
@@ -646,5 +674,3 @@ function unwrap(obj) {
 
 window.addEventListener("load",
                         function(e) { SoundCloud.onLoad(e); }, false);
-window.addEventListener("unload",
-                        function(e) { SoundCloud.onUnload(e); }, false);

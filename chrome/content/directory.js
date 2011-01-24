@@ -35,11 +35,18 @@ Cu.import("resource://app/components/kPlaylistCommands.jsm");
 Cu.import("resource://app/jsmodules/sbLibraryUtils.jsm");
 Cu.import("resource://app/jsmodules/sbProperties.jsm");
 Cu.import("resource://app/jsmodules/StringUtils.jsm");
+Cu.import("resource://app/jsmodules/URLUtils.jsm");
+
+if (typeof(songbirdMainWindow) == "undefined")
+  var songbirdMainWindow = Cc["@mozilla.org/appshell/window-mediator;1"]
+                             .getService(Ci.nsIWindowMediator)
+                             .getMostRecentWindow("Songbird:Main").window;
 
 if (typeof(gBrowser) == "undefined")
-  var gBrowser = Cc["@mozilla.org/appshell/window-mediator;1"]
-                   .getService(Ci.nsIWindowMediator)
-                   .getMostRecentWindow("Songbird:Main").window.gBrowser;
+  var gBrowser = songbirdMainWindow.gBrowser;
+
+if (typeof(gServicePane) == "undefined")
+  var gServicePane = songbirdMainWindow.gServicePane;
 
 if (typeof CloudDirectory == "undefined") {
   var CloudDirectory = {};
@@ -56,6 +63,9 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
                     .getService(Ci.sbISoundCloudService);
 
   this._domEventListenerSet = new DOMEventListenerSet();
+
+  this._threadManager = Cc["@mozilla.org/thread-manager;1"]
+                          .getService(Ci.nsIThreadManager);
 
   // Wire up UI events
   this._logo = document.getElementById("soundcloud-logo");
@@ -106,33 +116,29 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
 
   // Setup library
   var uri = gBrowser.currentURI.spec;
-  var idx = uri.indexOf("type");
-  if (idx != -1) {
-    var type = uri.slice(idx + 5);
-    switch(type) {
+  var params = {};
+  URLUtils.extractQuery(uri, params);
+  if (params.type) {
+    switch(params.type) {
       case "dashboard":
         this._library = this._service.dashboard;
         //this._service.getDashboard(null);
-        document.title =
-          this._strings.GetStringFromName("soundcloud.dashboard.title");
-        search.hidden = true;
+        search.hidden = true
         break;
       case "favorites":
         this._library = this._service.favorites;
         this._service.getFavorites();
-        document.title =
-          this._strings.GetStringFromName("soundcloud.favorites.title");
         search.hidden = true;
         break;
       default:
         this._library = this._service.library;
-        document.title =
-          this._strings.GetStringFromName("soundcloud.search.title");
     }
   } else {
     this._library = this._service.library;
-    document.title = this._strings.GetStringFromName("soundcloud.search.title");
   }
+
+  var node = gServicePane.activeNode;
+  document.title = node.displayName;
 
   // Get playlist commands
   var mgr = Cc["@songbirdnest.com/Songbird/PlaylistCommandsManager;1"]
@@ -176,9 +182,9 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
                                "sbIDataRemote",
                                "init");
       var statusOverrideText =
-        SB_NewDataRemote( "faceplate.status.override.text", null );
+        SB_NewDataRemote("faceplate.status.override.text");
       var statusOverrideType =
-        SB_NewDataRemote( "faceplate.status.override.type", null );
+        SB_NewDataRemote("faceplate.status.override.type");
  
       statusOverrideText.stringValue = "";
       if (count == 1) {
@@ -195,14 +201,13 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
   this.listener.onTracksAdded();
 
   // Add listener for playlist "Download" clicks
-  if ((typeof(gBrowser) != "undefined") && gBrowser) {
-    this._directory.addEventListener("PlaylistCellClick", function(e) {
-      return self.onDownloadClick(e);
-    }, false);
-  }
+  this._directory.addEventListener("PlaylistCellClick", function(e) {
+    return self.onDownloadClick(e);
+  }, false);
 }
 
 CloudDirectory.triggerSearch = function CloudDirectory_triggerSearch(aEvent) {
+  var self = this;
   var params = "";
   var query = encodeURIComponent(this._searchBox.value);
   var flags = {

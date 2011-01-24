@@ -156,7 +156,7 @@ function sbSoundCloudSearchService() {
         this._initQuery();
 
       this._dbq.addQuery("INSERT INTO search_history VALUES (NULL, "
-                         + Date.now() + ", '" + aUrl + "', '" + aTerms
+                         + Date.now() + ", '" + aUrl + "', '" + escape(aTerms)
                          + "')");
       this._dbq.execute();
       this._dbq.resetQuery();
@@ -250,7 +250,6 @@ function GET(url, params, onload, onerror, oauth) {
     xhr.mozBackgroundRequest = true;
     xhr.onload = function(event) { onload(xhr); }
     xhr.onerror = function(event) { onerror(xhr); }
-    dump("\n\nGET:\n\t" + url + "?" + params + "\n");
     xhr.open("GET", url + "?" + params, true);
     if (oauth)
       xhr.setRequestHeader("Authorization", "OAuth");
@@ -827,6 +826,11 @@ function sbSoundCloudService() {
     this.notifyListeners("onLoggedInStateChanged");
   });
 
+  this.__defineGetter__("running", function() {
+    let busy = (this._track_xhr) ? true : false;
+    return busy;
+  });
+
   // get the playback history service
   this._playbackHistory =
       Cc["@songbirdnest.com/Songbird/PlaybackHistoryService;1"]
@@ -855,7 +859,7 @@ function sbSoundCloudService() {
       let term = "";
 
       try {
-        term = this._searchService.getLastSearch();
+        term = unescape(this._searchService.getLastSearch());
       } catch(ex) {
         Cu.reportError(ex);
       }
@@ -1121,7 +1125,6 @@ sbSoundCloudService.prototype = {
   getTracks:
   function sbSoundCloudService_getTracks(aUser, aQuery, aFlags, aOffset) {
     var self = this;
-
     if (!this._track_retries)
       this._track_retries = 0;
 
@@ -1146,6 +1149,7 @@ sbSoundCloudService.prototype = {
 
     var success = function(xhr) {
       let json = xhr.responseText;
+      dump(json);
       let tracks = JSON.parse(json);
       if (tracks.error) {
         if (self._track_retries < MAX_RETRIES) {
@@ -1174,6 +1178,7 @@ sbSoundCloudService.prototype = {
       dump("\nUnable to retrieve tracks.");
       dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
       self._track_retries = null;
+      self._track_xhr = null;
       return false;
     }
 
