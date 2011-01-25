@@ -1125,6 +1125,8 @@ sbSoundCloudService.prototype = {
   getTracks:
   function sbSoundCloudService_getTracks(aUser, aQuery, aFlags, aOffset) {
     var self = this;
+
+
     if (!this._track_retries)
       this._track_retries = 0;
 
@@ -1139,7 +1141,9 @@ sbSoundCloudService.prototype = {
       if (this._track_xhr)
         this._track_xhr.abort();
 
+      this.notifyListeners("onSearchTriggered");
       this._library.clear();
+
       if (!aQuery && aUser) {
         this._searchService.insertSearch(url + "?" + aFlags, aUser);
       } else {

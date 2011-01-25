@@ -123,5 +123,7 @@ interface sbISoundCloudListener : nsISupports
 
   void onProfileUpdated();
 
+  void onSearchTriggered();
+
   void onTracksAdded();
 };

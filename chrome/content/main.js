@@ -140,6 +140,9 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
       self._citycountry.textContent = self._user.city + ", " +
                                       self._user.country;
     },
+    onSearchTriggered: function listener_onSearchTriggered() {
+      
+    },
     onTracksAdded: function listener_onTracksAdded() {
       
     },

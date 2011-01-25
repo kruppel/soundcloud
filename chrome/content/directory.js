@@ -37,6 +37,8 @@ Cu.import("resource://app/jsmodules/sbProperties.jsm");
 Cu.import("resource://app/jsmodules/StringUtils.jsm");
 Cu.import("resource://app/jsmodules/URLUtils.jsm");
 
+const SOUNDCLOUD_FIRST_RUN = "extensions.soundcloud.firstrun";
+
 if (typeof(songbirdMainWindow) == "undefined")
   var songbirdMainWindow = Cc["@mozilla.org/appshell/window-mediator;1"]
                              .getService(Ci.nsIWindowMediator)
@@ -114,6 +116,11 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
   this._directory = document.getElementById("soundcloud-directory");
   var search = document.getElementById("soundcloud-box");
 
+  this._topLayer = document.getElementById("dir-top-layer");
+  this._idleDeck = document.getElementById("idle-deck");
+  var loading = document.getElementById("soundcloud-loading");
+  var noneFound = document.getElementById("soundcloud-none-found");
+
   // Setup library
   var uri = gBrowser.currentURI.spec;
   var params = {};
@@ -165,18 +172,45 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
   this._directory.appendColumn(SB_PROPERTY_DOWNLOAD_IMAGE, "60");
   this._directory.appendColumn(SB_PROPERTY_CREATION_DATE, "135");
 
+  var itemCount = this._library.getItemCountByProperty(SBProperties.hidden,
+                                                       "0");
+  var firstrun = Application.prefs.getValue(SOUNDCLOUD_FIRST_RUN, false);
+  if (itemCount == 0) {
+    this._directory.setAttribute("disabled", true);
+    this._topLayer.hidden = false;
+    if (firstrun) {
+      this._idleDeck.selectedIndex = 0;
+    } else {
+      this._idleDeck.selectedIndex = 2;
+    }
+  }
+
   this.listener = {
     onLoginBegins: function listener_onLoginBegins() { },
     onAutoLoginChanged: function listener_onAutoLoginChanged() { },
     onLoggedInStateChanged: function listener_onLoggedInStateChanged() { },
     onProfileUpdated: function listener_onProfileUpdated() { },
+    onSearchTriggered: function listener_onSearchTriggered() {
+      self._directory.setAttribute("disabled", true);
+      self._topLayer.hidden = false;
+      self._idleDeck.selectedIndex = 1;
+    },
     onTracksAdded: function listener_onTracksAdded() {
       if (!self._library)
         return;
 
-      let count = self._library
+      var count = self._library
                       .getItemCountByProperty(SBProperties.hidden,
                                               "0");
+
+      if (self._directory.getAttribute("disabled") && count > 0) {
+        self._directory.removeAttribute("disabled");
+        self._topLayer.hidden = true;
+      } else if (count == 0) {
+        // XXX - Need to adjust for completed search
+        self._idleDeck.selectedIndex = 2;
+      }
+
       var SB_NewDataRemote =
         Components.Constructor("@songbirdnest.com/Songbird/DataRemote;1",
                                "sbIDataRemote",
@@ -208,6 +242,7 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
 
 CloudDirectory.triggerSearch = function CloudDirectory_triggerSearch(aEvent) {
   var self = this;
+
   var params = "";
   var query = encodeURIComponent(this._searchBox.value);
   var flags = {

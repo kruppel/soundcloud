@@ -1,3 +1,2 @@
-// Library preferences
-pref("extensions.soundcloud.library.guid", "");
-pref("extensions.soundcloud.library.init", false);
+// Default preferences
+pref("extensions.soundcloud.firstrun", true);
