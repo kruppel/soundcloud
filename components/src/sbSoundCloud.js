@@ -1195,15 +1195,25 @@ sbSoundCloudService.prototype = {
 
   getDashboard: function sbSoundCloudService_getDashboard(aCursor) {
     var self = this;
+
+    var dashNode = self._servicePaneService
+                       .getNode("urn:socldashboard");
+    var dashBadge = ServicePaneHelper.getBadge(dashNode,
+                                               "socldashboard");
+
     if (!this.loggedIn)
       return;
 
     if (this._dash_xhr)
       this._dash_xhr.abort();
 
-    if (!this._dash_retries) {
-      if (!aCursor)
-        this._dashboard.clear();
+    if (!aCursor) {
+      this._dashboard.clear();
+      dashBadge.label = null;
+      dashBadge.image = "chrome://songbird/skin/service-pane/icon-busy.png";
+      dashBadge.visible = true;
+
+      this._dash_counted = false;
       this._dash_retries = 0;
     }
 
@@ -1233,37 +1243,37 @@ sbSoundCloudService.prototype = {
         let idx = next_href.indexOf("cursor");
         let slc = next_href.slice(idx);
         let cursor = slc.split("=")[1];
-        self.getDashboard(cursor);
+        self._dash_xhr = self.getDashboard(cursor);
       } else {
-        // Update Dashboard SPS node badge
-        let enumListener = {
-          onEnumerationBegin: function(list) {
-            self._incomingCount = 0;
-          },
-          onEnumeratedItem: function(list, item) {
-            let creation_date =
-              item.getProperty(SB_PROPERTY_CREATION_DATE);
-            let now = new Date().getTime();
-            let limit = now - (1000 * 60 * 60 * 24 * DASH_LIMIT);
-            if (creation_date > limit)
-              self._incomingCount += 1;
-          },
-          onEnumerationEnd: function(list, status) {
-            Cu.reportError(self._incomingCount);
-            if (self._incomingCount > 0) {
-              let dashNode = self._servicePaneService
-                                 .getNode("urn:socldashboard");
-              let dashBadge = ServicePaneHelper.getBadge(dashNode,
-                                                         "socldashboard");
-              dashBadge.label = self._incomingCount;
-              dashBadge.visible = true;
-            }
-          }
-        }
-
-        self._dashboard.enumerateAllItems(enumListener);
         self._dash_xhr = null;
       }
+
+      // Update Dashboard SPS node badge
+      let enumListener = {
+        onEnumerationBegin: function(list) {
+          self._incomingCount = 0;
+        },
+        onEnumeratedItem: function(list, item) {
+          let creation_date =
+            item.getProperty(SB_PROPERTY_CREATION_DATE);
+          let now = new Date().getTime();
+          let limit = now - (1000 * 60 * 60 * 24 * DASH_LIMIT);
+          if (creation_date > limit)
+            self._incomingCount += 1;
+        },
+        onEnumerationEnd: function(list, status) {
+          if (self._incomingCount > 0) {
+            self._dash_counted =
+              parseInt(dashBadge.label) == self._incomingCount;
+            dashBadge.label = self._incomingCount;
+          }
+
+          //dashBadge.image = null;
+        }
+      }
+
+      if (!self._dash_counted)
+        self._dashboard.enumerateAllItems(enumListener);
     }
 
     var failure = function(xhr) {

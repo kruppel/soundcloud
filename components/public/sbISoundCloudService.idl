@@ -93,7 +93,7 @@ interface sbISoundCloudService : nsISupports
                  in AString aFlags,
                  in PRint32 aOffset);
 
-  void getDashboard(in AString aCursor);
+  void getDashboard([optional] in AString aCursor);
 
   void getFavorites();
 
