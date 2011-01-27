@@ -66,7 +66,7 @@ const SIG_METHOD = "HMAC-SHA1";
 
 const DASH_LIMIT = 3;
 const MAX_RETRIES = 5;
-const REFRESH_TIME = 5;
+const REFRESH_TIME = 2;
 
 /*
  * SoundCloud library objects.
@@ -388,7 +388,8 @@ function sbSoundCloudService() {
   // Imports
   Cu.import("resource://soundcloud/OAuth.jsm");
 
-  this.wrappedJSObject = this;
+  var self = this;
+
   this.log = DebugUtils.generateLogFunction("sbSoundCloudService");
 
   this._user = new sbSoundCloudUser();
@@ -404,6 +405,10 @@ function sbSoundCloudService() {
   this._refreshTimer = Cc["@mozilla.org/timer;1"]
                          .createInstance(Ci.nsITimer);
   var interval = REFRESH_TIME * 60000;
+  var timerCallback = function() { self.getDashboard(); };
+  this._refreshTimer.initWithCallback(timerCallback,
+                                      interval,
+                                      Ci.nsITimer.TYPE_REPEATING_SLACK);
 
   /**
    * \brief Gets (or creates) a SoundCloud library.
@@ -1196,7 +1201,7 @@ sbSoundCloudService.prototype = {
   getDashboard: function sbSoundCloudService_getDashboard(aCursor) {
     var self = this;
 
-    var dashNode = self._servicePaneService
+    var dashNode = this._servicePaneService
                        .getNode("urn:socldashboard");
     var dashBadge = ServicePaneHelper.getBadge(dashNode,
                                                "socldashboard");
@@ -1204,12 +1209,12 @@ sbSoundCloudService.prototype = {
     if (!this.loggedIn)
       return;
 
-    if (this._dash_xhr)
-      this._dash_xhr.abort();
-
     if (!aCursor) {
+      if (this._dash_xhr)
+        this._dash_xhr.abort();
+
       this._dashboard.clear();
-      dashBadge.label = null;
+      dashBadge.remove();
       dashBadge.image = "chrome://songbird/skin/service-pane/icon-busy.png";
       dashBadge.visible = true;
 
@@ -1265,10 +1270,10 @@ sbSoundCloudService.prototype = {
           if (self._incomingCount > 0) {
             self._dash_counted =
               parseInt(dashBadge.label) == self._incomingCount;
+            dashBadge.remove();
             dashBadge.label = self._incomingCount;
+            dashBadge.visible = true;
           }
-
-          //dashBadge.image = null;
         }
       }
 
@@ -1402,8 +1407,12 @@ sbSoundCloudService.prototype = {
   },
 
   shutdown: function sbSoundCloudService_shutdown() {
-    // Observer topic = "songbird-library-manager-before-shutdown"
     this._playbackHistory.removeListener(this);
+
+    if (this._refreshTimer) {
+      this._refreshTimer.cancel();
+      this._refreshTimer = null;
+    }
   }
 };
 

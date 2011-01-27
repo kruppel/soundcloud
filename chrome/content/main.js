@@ -579,10 +579,6 @@ SoundCloud.shutdownCommands = function SoundCloud_shutdownCommands() {
   this.m_searchCommands.shutdown();
   this.m_cmd_SearchUser.shutdown();
   this.m_soundcloudCommands();
-
-  var observer = Cc["@mozilla.org/observer-service;1"]
-                   .getService(Ci.nsIObserverService);
-  observer.removeObserver(this, "quit-application", false);
 }
 
 SoundCloud.loadURI = function SoundCloud_loadURI(uri, event) {
@@ -655,10 +651,11 @@ function SoundCloud_observe(aSubject, aTopic, aData) {
       }
 
       this._service.removeListener(this);
+      this._service.shutdown();
 
       var observer = Cc["@mozilla.org/observer-service;1"]
                        .getService(Ci.nsIObserverService);
-      observer.addObserver(this, "quit-application", false);
+      observer.removeObserver(this, "quit-application", false);
       break;
   }
 }
