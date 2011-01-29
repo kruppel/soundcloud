@@ -185,6 +185,9 @@ function sbSoundCloudSearchService() {
                     .get("ProfD", Ci.nsIFile);
         dir.append("db");
         dir.append("soundcloud");
+        if (!dir.exists()) {
+          dir.create();
+        }
         var uri = ios.newFileURI(dir);
         this._dbq = Cc["@songbirdnest.com/Songbird/DatabaseQuery;1"]
                       .createInstance(Ci.sbIDatabaseQuery);
