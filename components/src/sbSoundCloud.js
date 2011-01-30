@@ -186,7 +186,7 @@ function sbSoundCloudSearchService() {
         dir.append("db");
         dir.append("soundcloud");
         if (!dir.exists()) {
-          dir.create();
+          dir.create(Ci.nsIFile.DIRECTORY_TYPE, 0755);
         }
         var uri = ios.newFileURI(dir);
         this._dbq = Cc["@songbirdnest.com/Songbird/DatabaseQuery;1"]
