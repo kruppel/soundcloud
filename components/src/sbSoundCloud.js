@@ -338,6 +338,7 @@ sbSoundCloudUser.prototype = {
   _realname: null,
   _avatar: null,
   _followingCount: null,
+  _incomingCount: null,
   _favCount: null,
   _city: null,
   _country: null,
@@ -988,11 +989,11 @@ sbSoundCloudService.prototype = {
       var favBadge = ServicePaneHelper.getBadge(favNode, "soclfavcount");
       favBadge.label = this.user.favCount;
       favBadge.visible = true;
-
-      this._fav_update = true;
    
       this._dashboard = this._getLibrary(Libraries.DASHBOARD, this._user.userid);
       this._favorites = this._getLibrary(Libraries.FAVORITES, this._user.userid);
+
+      this.getFavorites();
     } else {
       while (soclNode.firstChild) {
         soclNode.removeChild(soclNode.firstChild);
@@ -1130,10 +1131,13 @@ sbSoundCloudService.prototype = {
     this._info_xhr = GET(url, params, success, failure, true);
   },
 
+  getUser:
+  function sbSoundCloudService_getUser(aUserId) {
+  },
+
   getTracks:
   function sbSoundCloudService_getTracks(aUser, aQuery, aFlags, aOffset) {
     var self = this;
-
 
     if (!this._track_retries)
       this._track_retries = 0;
@@ -1280,8 +1284,12 @@ sbSoundCloudService.prototype = {
         }
       }
 
-      if (!self._dash_counted)
+      if (!self._dash_counted) {
         self._dashboard.enumerateAllItems(enumListener);
+      } else if (self._incomingCount === 0) {
+        dashBadge.remove();
+        dashBadge.visible = false;
+      }
     }
 
     var failure = function(xhr) {
@@ -1302,7 +1310,7 @@ sbSoundCloudService.prototype = {
 
   getFavorites: function sbSoundCloudService_getFavorites() {
     var self = this;
-    if (!this.loggedIn || !this._fav_update)
+    if (!this.loggedIn)
       return;
 
     if (this._fav_xhr)
@@ -1331,7 +1339,6 @@ sbSoundCloudService.prototype = {
 
       self.user._favCount = favorites.length;
       self._addItemsToLibrary(favorites, self._favorites);
-      self._fav_update = false;
       self._fav_retries = null;
       self._fav_xhr = null;
     }
@@ -1348,15 +1355,152 @@ sbSoundCloudService.prototype = {
     this._fav_xhr = GET(url, params, success, failure, true);
   },
 
-  putFavorite:
-  function sbSoundCloudService_putFavorite(aTrackId) {
+  favoriteTrack:
+  function sbSoundCloudService_favoriteTrack(aTrackId) {
     if (!this.loggedIn)
       return;
 
+    var self = this;
     var url = SOCL_URL + "/me/favorites/" + aTrackId;
     var success = function(xhr) {
+      self._favput_retries += 1;
+      // Check for an error status
+      var nsResolver = xhr.responseXML.createNSResolver(
+                                xhr.responseXML.ownerDocument == null ?
+                                xhr.responseXML.documentElement :
+                                xhr.responseXML.ownerDocument.documentElement);
+      var result = xhr.responseXML.evaluate("//status",
+                                            xhr.responseXML,
+                                            nsResolver,
+                                            2,  //XPathResult.STRING_TYPE,
+                                            null);
+      if (result.stringValue.indexOf("200")) {
+        self._favput_retries = 0;
+        self.getFavorites();
+      } else {
+        if (self._favput_retries < MAX_RETRIES) {
+          self._favput_retries += 1;
+          return self.favoriteTrack(aTrackId);
+        }
+
+        if (result.stringValue == "") {
+          // 401 - Unauthorized
+          result = xhr.responseXML.evaluate("//error",
+                                             xhr.responseXML,
+                                             nsResolver,
+                                             2,  //XPathResult.STRING_TYPE,
+                                             null);
+        }
+
+        Cu.reportError(result.stringValue);
+
+      }
+    }
+
+    var failure = function(xhr) {
       Cu.reportError(xhr.responseText);
-      this._fav_update = true;
+      return false;
+    }
+
+    var params = this._getParameters(url, "PUT", null);
+    PUT(url, params, success, failure);
+  },
+
+  /* Doesn't do much right now */
+  getFollowings: function sbSoundCloudService_getFollowings(aUserId) {
+    var self = this;
+
+    if (this._foll_xhr)
+      this._foll_xhr.abort();
+
+    if (!this._foll_retries) {
+      //this._followings.clear();
+      this._foll_retries = 0;
+    }
+
+    var url = SOCL_URL;
+    if (aUserId) {
+      url += "/users/" + aUserId
+    } else {
+      if (!self._user.userid)
+        return;
+
+      url += self._user.userid + "/followings.json";
+    }
+
+    var success = function(xhr) {
+      let json = xhr.responseText;
+      let followings = JSON.parse(json);
+      if (followings.error) {
+        if (self._foll_retries < MAX_RETRIES) {
+          self._foll_retries++;
+          return self.getFollowings(aUserId);
+        } else {
+          Cu.reportError("Unable to retrieve followings: " + followings.error);
+          self._foll_xhr = null;
+          self._foll_retries = null;
+          return false;
+        }
+      }
+
+      self.user._follCount = followings.length;
+      //self._addUsers(followings, self._followings);
+      dump("\n" + json + "\n");
+      self._foll_retries = null;
+      self._foll_xhr = null;
+    }
+
+    var failure = function(xhr) {
+      dump("\nUnable to retrieve followings.");
+      dump("\nStatus is " + xhr.status + "\n" + xhr.getAllResponseHeaders());
+      self._foll_xhr = null;
+      self._foll_retries = null;
+      return false;
+    }
+
+    var params = "consumer_key=" + CONSUMER_KEY;
+    this._foll_xhr = GET(url, params, success, failure, true);
+  },
+
+  followUser:
+  function sbSoundCloudService_followUser(aUserId) {
+    if (!this.loggedIn)
+      return;
+
+    var self = this;
+    var url = SOCL_URL + "/me/followings/" + aUserId;
+    var success = function(xhr) {
+      self._follput_retries += 1;
+      // Check for an error status
+      var nsResolver = xhr.responseXML.createNSResolver(
+                                xhr.responseXML.ownerDocument == null ?
+                                xhr.responseXML.documentElement :
+                                xhr.responseXML.ownerDocument.documentElement);
+      var result = xhr.responseXML.evaluate("//status",
+                                            xhr.responseXML,
+                                            nsResolver,
+                                            2,  //XPathResult.STRING_TYPE,
+                                            null);
+      if (result.stringValue.indexOf("200")) {
+        self._follput_retries = 0;
+      } else {
+        if (self._favput_retries < MAX_RETRIES) {
+          self._favput_retries += 1;
+          return self.followUser(aUserId);
+        }
+
+        if (result.stringValue == "") {
+          // 401 - Unauthorized
+          result = xhr.responseXML.evaluate("//error",
+                                             xhr.responseXML,
+                                             nsResolver,
+                                             2,  //XPathResult.STRING_TYPE,
+                                             null);
+        }
+
+        Cu.reportError(result.stringValue);
+
+      }
     }
 
     var failure = function(xhr) {

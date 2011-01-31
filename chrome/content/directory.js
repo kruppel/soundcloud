@@ -129,12 +129,10 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
     switch(params.type) {
       case "dashboard":
         this._library = this._service.dashboard;
-        //this._service.getDashboard(null);
         search.hidden = true
         break;
       case "favorites":
         this._library = this._service.favorites;
-        this._service.getFavorites();
         search.hidden = true;
         break;
       default:

@@ -405,6 +405,23 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
                                                 "soundcloud_cmd_favorite",
                                                 plCmd_IsSelectionFavoriteable);
   this.m_mgr.publish("soundcloud-favorite@sb.com", this.m_cmd_Favorite);
+  // Follow playlist command
+  this.m_cmd_Follow = new PlaylistCommandsBuilder("follow-soundcloud-cmd");
+  this.m_cmd_Follow.appendAction(null,
+                                 "soundcloud_cmd_follow",
+                                 this._strings.getString("command.soundcloud_follow"),
+                                 this._strings.getString("command.tooltip.follow"),
+                                 plCmd_Follow_TriggerCallback);
+  this.m_cmd_Follow.setCommandShortcut(null,
+                                       "soundcloud_cmd_follow",
+                                       this._strings.getString("command.shortcut.key.follow"),
+                                       this._strings.getString("command.shortcut.keycode.follow"),
+                                       this._strings.getString("command.shortcut.modifiers.follow"),
+                                       true);
+  this.m_cmd_Follow.setCommandVisibleCallback(null,
+                                              "soundcloud_cmd_follow",
+                                              plCmd_IsSelectionFollowable);
+  this.m_mgr.publish("soundcloud-follow@sb.com", this.m_cmd_Follow);
   // Search playlist commands
   this.m_searchCommands = new PlaylistCommandsBuilder("search-soundcloud-cmds");
   this.m_searchCommands.appendSubmenu(null,
@@ -426,6 +443,9 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
   this.m_soundcloudCommands.appendPlaylistCommands(null,
                                                    "soundcloud_cmd_favorite",
                                                    this.m_cmd_Favorite);
+  this.m_soundcloudCommands.appendPlaylistCommands(null,
+                                                   "soundcloud_cmd_follow",
+                                                   this.m_cmd_Follow);
   this.m_soundcloudCommands.appendPlaylistCommands(null,
                                                    "soundcloud_search_cmds",
                                                    this.m_searchCommands);
@@ -511,28 +531,7 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
     if (curItem) {
       var trackId = curItem.getProperty(SB_PROPERTY_TRACK_ID);
       if (trackId)
-        self._service.putFavorite(trackId);
-    }
-  }
-
-  function plCmd_SearchUser_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
-    var playlist = unwrap(aContext.playlist);
-    var selectedEnum = playlist.mediaListView.selection.selectedMediaItems;
-
-    var curItem = selectedEnum.getNext()
-                              .QueryInterface(Ci.sbIMediaItem)
-    if (curItem) {
-      var params = "filter=streamable";
-      var permalink = curItem.getProperty(SB_PROPERTY_USER_PERMALINK);
-      self._service.getTracks(permalink, "", params, 0);
-
-      // XXX - If not active node
-      var sps = Cc["@songbirdnest.com/servicepane/service;1"]
-                  .getService(Ci.sbIServicePaneService);
-      var search = sps.getNode("SB:RadioStations:SoundCloud");
-      gServicePane.activateAndLoadNode(search, null, null);
-
-      Cu.reportError("Search triggered!");
+        self._service.favoriteTrack(trackId);
     }
   }
 
@@ -554,6 +553,51 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
         return false;
     } catch (ex) {
       return true;
+    }
+  }
+
+  function plCmd_Follow_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
+    var playlist = unwrap(aContext.playlist);
+    var selectedEnum = playlist.mediaListView.selection.selectedMediaItems;
+
+    var curItem = selectedEnum.getNext()
+                              .QueryInterface(Ci.sbIMediaItem)
+    if (curItem) {
+      var userId = curItem.getProperty(SB_PROPERTY_USER_ID);
+      if (userId)
+        self._service.followUser(userId);
+    }
+  }
+
+  function plCmd_IsSelectionFollowable(aContext, aSubMenuId, aCommandId, aHost) {
+    if (!self._service.loggedIn ||
+        !plCmd_IsAnyTrackSelected(aContext, aSubMenuId, aCommandId, aHost))
+      return false;
+
+    var itemEnum = unwrap(aContext.playlist).mediaListView
+                                            .selection
+                                            .selectedMediaItems;
+    return true;
+  }
+
+  function plCmd_SearchUser_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
+    var playlist = unwrap(aContext.playlist);
+    var selectedEnum = playlist.mediaListView.selection.selectedMediaItems;
+
+    var curItem = selectedEnum.getNext()
+                              .QueryInterface(Ci.sbIMediaItem)
+    if (curItem) {
+      var params = "filter=streamable";
+      var permalink = curItem.getProperty(SB_PROPERTY_USER_PERMALINK);
+      self._service.getTracks(permalink, "", params, 0);
+
+      // XXX - If not active node
+      var sps = Cc["@songbirdnest.com/servicepane/service;1"]
+                  .getService(Ci.sbIServicePaneService);
+      var search = sps.getNode("SB:RadioStations:SoundCloud");
+      gServicePane.activateAndLoadNode(search, null, null);
+
+      Cu.reportError("Search triggered!");
     }
   }
 
