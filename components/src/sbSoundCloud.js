@@ -245,7 +245,7 @@ var converter =
   return s;
 }
 
-function GET(url, params, onload, onerror, oauth) {
+function GET(url, params, onload, onerror, oauth, async) {
   var xhr = null;
 
   try {
@@ -253,7 +253,7 @@ function GET(url, params, onload, onerror, oauth) {
     xhr.mozBackgroundRequest = true;
     xhr.onload = function(event) { onload(xhr); }
     xhr.onerror = function(event) { onerror(xhr); }
-    xhr.open("GET", url + "?" + params, true);
+    xhr.open("GET", url + "?" + params, async);
     if (oauth)
       xhr.setRequestHeader("Authorization", "OAuth");
     xhr.setRequestHeader("Content-Type", "application/json");
@@ -1128,7 +1128,7 @@ sbSoundCloudService.prototype = {
       return false;
     }
 
-    this._info_xhr = GET(url, params, success, failure, true);
+    this._info_xhr = GET(url, params, success, failure, true, true);
   },
 
   getUser:
@@ -1136,7 +1136,11 @@ sbSoundCloudService.prototype = {
   },
 
   getTracks:
-  function sbSoundCloudService_getTracks(aUser, aQuery, aFlags, aOffset) {
+  function sbSoundCloudService_getTracks(aUser,
+                                         aQuery,
+                                         aFlags,
+                                         aOffset,
+                                         aAsync) {
     var self = this;
 
     if (!this._track_retries)
@@ -1170,7 +1174,7 @@ sbSoundCloudService.prototype = {
       if (tracks.error) {
         if (self._track_retries < MAX_RETRIES) {
           self._track_retries++;
-          return self.getTracks(aUser, aQuery, aFlags, aOffset);
+          return self.getTracks(aUser, aQuery, aFlags, aOffset, aAsync);
         } else {
           Cu.reportError("Unable to retrieve tracks: " + tracks.error);
           self._track_retries = null;
@@ -1184,7 +1188,7 @@ sbSoundCloudService.prototype = {
       if (tracks.length > 40) {
         self._track_retries = null;
         aOffset += tracks.length
-        self.getTracks(aUser, aQuery, aFlags, aOffset);
+        self.getTracks(aUser, aQuery, aFlags, aOffset, aAsync);
       } else {
         self._track_xhr = null;
       }
@@ -1202,7 +1206,7 @@ sbSoundCloudService.prototype = {
     if (aQuery)
       params += "q=" + aQuery + "&";
     params += aFlags + "&offset=" + aOffset + "&consumer_key=" + CONSUMER_KEY;
-    this._track_xhr = GET(url, params, success, failure, false);
+    this._track_xhr = GET(url, params, success, failure, false, aAsync);
   },
 
   getDashboard: function sbSoundCloudService_getDashboard(aCursor) {
@@ -1305,7 +1309,7 @@ sbSoundCloudService.prototype = {
       flags = { "cursor" : aCursor };
     var params = this._getParameters(url, "GET", flags);
 
-    this._dash_xhr = GET(url, params, success, failure, true);
+    this._dash_xhr = GET(url, params, success, failure, true, true);
   },
 
   getFavorites: function sbSoundCloudService_getFavorites() {
@@ -1352,7 +1356,7 @@ sbSoundCloudService.prototype = {
     }
 
     var params = this._getParameters(url, "GET", null);
-    this._fav_xhr = GET(url, params, success, failure, true);
+    this._fav_xhr = GET(url, params, success, failure, true, true);
   },
 
   favoriteTrack:
@@ -1377,6 +1381,14 @@ sbSoundCloudService.prototype = {
       if (result.stringValue.indexOf("200")) {
         self._favput_retries = 0;
         self.getFavorites();
+
+        self.user.favCount += 1;
+        var favNode = self._servicePaneService
+                          .getNode("urn:soclfavorites");
+        var favBadge = ServicePaneHelper.getBadge(favNode, "soclfavcount");
+        favBadge.remove();
+        favBadge.label = self.user.favCount;
+        favBadge.visible = true;
       } else {
         if (self._favput_retries < MAX_RETRIES) {
           self._favput_retries += 1;
@@ -1459,7 +1471,7 @@ sbSoundCloudService.prototype = {
     }
 
     var params = "consumer_key=" + CONSUMER_KEY;
-    this._foll_xhr = GET(url, params, success, failure, true);
+    this._foll_xhr = GET(url, params, success, failure, true, true);
   },
 
   followUser:

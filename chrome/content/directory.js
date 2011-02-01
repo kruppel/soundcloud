@@ -252,7 +252,7 @@ CloudDirectory.triggerSearch = function CloudDirectory_triggerSearch(aEvent) {
     params += flag + "=" + flags[flag] + "&";
   }
 
-  this._service.getTracks(null, query, params, 0);
+  this._service.getTracks(null, query, params, 0, true);
 }
 
 CloudDirectory.onDownloadClick = function CloudDirectory_onDownloadClick(aEvent) {

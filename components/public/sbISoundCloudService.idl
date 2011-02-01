@@ -91,7 +91,8 @@ interface sbISoundCloudService : nsISupports
   void getTracks(in AString aUser,
                  in AString aQuery,
                  in AString aFlags,
-                 in PRint32 aOffset);
+                 in PRint32 aOffset,
+                 in boolean aAsync);
 
   void getDashboard([optional] in AString aCursor);
 

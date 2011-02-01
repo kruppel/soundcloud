@@ -589,15 +589,13 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
     if (curItem) {
       var params = "filter=streamable";
       var permalink = curItem.getProperty(SB_PROPERTY_USER_PERMALINK);
-      self._service.getTracks(permalink, "", params, 0);
+      self._service.getTracks(permalink, "", params, 0, false);
 
       // XXX - If not active node
       var sps = Cc["@songbirdnest.com/servicepane/service;1"]
                   .getService(Ci.sbIServicePaneService);
       var search = sps.getNode("SB:RadioStations:SoundCloud");
       gServicePane.activateAndLoadNode(search, null, null);
-
-      Cu.reportError("Search triggered!");
     }
   }
 
