@@ -219,9 +219,8 @@ function urlencode(obj) {
 }
 
 function md5(str) {
-var converter =
-  Components.classes["@mozilla.org/intl/scriptableunicodeconverter"].
-    createInstance(Components.interfaces.nsIScriptableUnicodeConverter);
+var converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+                  .createInstance(Ci.nsIScriptableUnicodeConverter);
 
   converter.charset = "UTF-8";
   // result is an out parameter,
@@ -229,8 +228,8 @@ var converter =
   var result = {};
   // data is an array of bytes
   var data = converter.convertToByteArray(str, result);
-  var ch = Components.classes["@mozilla.org/security/hash;1"]
-                   .createInstance(Components.interfaces.nsICryptoHash);
+  var ch = Cc["@mozilla.org/security/hash;1"]
+             .createInstance(Ci.nsICryptoHash);
   ch.init(ch.MD5);
   ch.update(data, data.length);
   var hash = ch.finish(false);
@@ -245,7 +244,7 @@ var converter =
   return s;
 }
 
-function GET(url, params, onload, onerror, oauth, async) {
+function GET(url, params, onload, onerror, oauth) {
   var xhr = null;
 
   try {
@@ -253,7 +252,7 @@ function GET(url, params, onload, onerror, oauth, async) {
     xhr.mozBackgroundRequest = true;
     xhr.onload = function(event) { onload(xhr); }
     xhr.onerror = function(event) { onerror(xhr); }
-    xhr.open("GET", url + "?" + params, async);
+    xhr.open("GET", url + "?" + params, true);
     if (oauth)
       xhr.setRequestHeader("Authorization", "OAuth");
     xhr.setRequestHeader("Content-Type", "application/json");
@@ -1128,7 +1127,7 @@ sbSoundCloudService.prototype = {
       return false;
     }
 
-    this._info_xhr = GET(url, params, success, failure, true, true);
+    this._info_xhr = GET(url, params, success, failure, true);
   },
 
   getUser:
@@ -1136,11 +1135,7 @@ sbSoundCloudService.prototype = {
   },
 
   getTracks:
-  function sbSoundCloudService_getTracks(aUser,
-                                         aQuery,
-                                         aFlags,
-                                         aOffset,
-                                         aAsync) {
+  function sbSoundCloudService_getTracks(aUser, aQuery, aFlags, aOffset) {
     var self = this;
 
     if (!this._track_retries)
@@ -1157,7 +1152,6 @@ sbSoundCloudService.prototype = {
       if (this._track_xhr)
         this._track_xhr.abort();
 
-      this.notifyListeners("onSearchTriggered");
       this._library.clear();
 
       if (!aQuery && aUser) {
@@ -1174,7 +1168,7 @@ sbSoundCloudService.prototype = {
       if (tracks.error) {
         if (self._track_retries < MAX_RETRIES) {
           self._track_retries++;
-          return self.getTracks(aUser, aQuery, aFlags, aOffset, aAsync);
+          return self.getTracks(aUser, aQuery, aFlags, aOffset);
         } else {
           Cu.reportError("Unable to retrieve tracks: " + tracks.error);
           self._track_retries = null;
@@ -1188,9 +1182,10 @@ sbSoundCloudService.prototype = {
       if (tracks.length > 40) {
         self._track_retries = null;
         aOffset += tracks.length
-        self.getTracks(aUser, aQuery, aFlags, aOffset, aAsync);
+        self.getTracks(aUser, aQuery, aFlags, aOffset);
       } else {
         self._track_xhr = null;
+        self.notifyListeners("onSearchCompleted");
       }
     }
 
@@ -1206,7 +1201,7 @@ sbSoundCloudService.prototype = {
     if (aQuery)
       params += "q=" + aQuery + "&";
     params += aFlags + "&offset=" + aOffset + "&consumer_key=" + CONSUMER_KEY;
-    this._track_xhr = GET(url, params, success, failure, false, aAsync);
+    this._track_xhr = GET(url, params, success, failure, false);
   },
 
   getDashboard: function sbSoundCloudService_getDashboard(aCursor) {
@@ -1309,7 +1304,7 @@ sbSoundCloudService.prototype = {
       flags = { "cursor" : aCursor };
     var params = this._getParameters(url, "GET", flags);
 
-    this._dash_xhr = GET(url, params, success, failure, true, true);
+    this._dash_xhr = GET(url, params, success, failure, true);
   },
 
   getFavorites: function sbSoundCloudService_getFavorites() {
@@ -1356,7 +1351,7 @@ sbSoundCloudService.prototype = {
     }
 
     var params = this._getParameters(url, "GET", null);
-    this._fav_xhr = GET(url, params, success, failure, true, true);
+    this._fav_xhr = GET(url, params, success, failure, true);
   },
 
   favoriteTrack:
@@ -1471,7 +1466,7 @@ sbSoundCloudService.prototype = {
     }
 
     var params = "consumer_key=" + CONSUMER_KEY;
-    this._foll_xhr = GET(url, params, success, failure, true, true);
+    this._foll_xhr = GET(url, params, success, failure, true);
   },
 
   followUser:

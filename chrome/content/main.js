@@ -143,8 +143,20 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
     onSearchTriggered: function listener_onSearchTriggered() {
       
     },
+    onSearchCompleted: function listener_onSearchCompleted() {
+      self._searchComplete = true;
+    },
     onTracksAdded: function listener_onTracksAdded() {
-      
+      if (self._searchComplete) {
+        var sps = Cc["@songbirdnest.com/servicepane/service;1"]
+                    .getService(Ci.sbIServicePaneService);
+        var searchNode = sps.getNode("SB:RadioStations:SoundCloud");
+        if (gServicePane.activeNode != searchNode) {
+          gServicePane.activateAndLoadNode(searchNode, null, null);
+        }
+      }
+
+      self._searchComplete = false;
     },
     QueryInterface: XPCOMUtils.generateQI([Ci.sbISoundCloudListener])
   };
@@ -589,13 +601,8 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
     if (curItem) {
       var params = "filter=streamable";
       var permalink = curItem.getProperty(SB_PROPERTY_USER_PERMALINK);
-      self._service.getTracks(permalink, "", params, 0, false);
-
-      // XXX - If not active node
-      var sps = Cc["@songbirdnest.com/servicepane/service;1"]
-                  .getService(Ci.sbIServicePaneService);
-      var search = sps.getNode("SB:RadioStations:SoundCloud");
-      gServicePane.activateAndLoadNode(search, null, null);
+      self._service.notifyListeners("onSearchTriggered");
+      self._service.getTracks(permalink, "", params, 0);
     }
   }
 

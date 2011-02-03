@@ -193,6 +193,15 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
       self._topLayer.hidden = false;
       self._idleDeck.selectedIndex = 1;
     },
+    onSearchCompleted: function listener_onSearchCompleted() {
+      var count = self._library
+                      .getItemCountByProperty(SBProperties.hidden,
+                                              "0");
+
+      if (count == 0) {
+        self._idleDeck.selectedIndex = 2;
+      }
+    },
     onTracksAdded: function listener_onTracksAdded() {
       if (!self._library)
         return;
@@ -204,9 +213,6 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
       if (self._directory.getAttribute("disabled") && count > 0) {
         self._directory.removeAttribute("disabled");
         self._topLayer.hidden = true;
-      } else if (count == 0) {
-        // XXX - Need to adjust for completed search
-        self._idleDeck.selectedIndex = 2;
       }
 
       var SB_NewDataRemote =
@@ -252,7 +258,8 @@ CloudDirectory.triggerSearch = function CloudDirectory_triggerSearch(aEvent) {
     params += flag + "=" + flags[flag] + "&";
   }
 
-  this._service.getTracks(null, query, params, 0, true);
+  this._service.notifyListeners("onSearchTriggered");
+  this._service.getTracks(null, query, params, 0);
 }
 
 CloudDirectory.onDownloadClick = function CloudDirectory_onDownloadClick(aEvent) {
