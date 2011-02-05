@@ -185,6 +185,7 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
 
   this.listener = {
     onLoginBegins: function listener_onLoginBegins() { },
+    onLogout: function listener_onLogout() { },
     onAutoLoginChanged: function listener_onAutoLoginChanged() { },
     onLoggedInStateChanged: function listener_onLoggedInStateChanged() { },
     onProfileUpdated: function listener_onProfileUpdated() { },

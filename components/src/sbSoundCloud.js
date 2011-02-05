@@ -1004,6 +1004,8 @@ sbSoundCloudService.prototype = {
       while (soclNode.firstChild) {
         soclNode.removeChild(soclNode.firstChild);
       }
+
+      this.notifyListeners("onLogout");
     }
 
     // XXX - Need to switch the active node if it's any of the above

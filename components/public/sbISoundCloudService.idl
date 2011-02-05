@@ -120,6 +120,8 @@ interface sbISoundCloudListener : nsISupports
 {
   void onLoginBegins();
 
+  void onLogout();
+
   void onAutoLoginChanged();
 
   void onLoggedInStateChanged();

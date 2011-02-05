@@ -106,6 +106,14 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
       self._newAccountGroupbox.setAttribute("loggedOut", "false");
       self.setStatusIcon(self.Icons.busy);
     },
+    onLogout: function listener_onLogout() {
+      var sps = Cc["@songbirdnest.com/servicepane/service;1"]
+                  .getService(Ci.sbIServicePaneService);
+      var search = sps.getNode("SB:RadioStations:SoundCloud");
+      if (gServicePane.activeNode !== search) {
+        gServicePane.activateAndLoadNode(search, null, null);
+      }
+    },
     onAutoLoginChanged: function listener_onAutoLoginChanged() {
       if (self._service.autoLogin) {
         self._loginAutoLogin.setAttribute("checked", "true");
