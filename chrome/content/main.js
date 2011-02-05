@@ -435,6 +435,23 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
                                      plCmd_SearchUser_TriggerCallback);
   this.m_searchCommands.setVisibleCallback(plCmd_HideForToolbarCheck);
   this.m_mgr.publish("soundcloud-search@sb.com", this.m_searchCommands);
+  // Copy permalink playlist command
+  this.m_cmd_CopyLink = new PlaylistCommandsBuilder("copylink-soundcloud-cmd");
+  this.m_cmd_CopyLink.appendAction(null,
+                               "soundcloud_cmd_copylink",
+                               this._strings.getString("command.soundcloud_copylink"),
+                               this._strings.getString("command.tooltip.copylink"),
+                               plCmd_CopyLink_TriggerCallback);
+  this.m_cmd_CopyLink.setCommandShortcut(null,
+                                     "soundcloud_cmd_copylink",
+                                     this._strings.getString("command.shortcut.key.copylink"),
+                                     this._strings.getString("command.shortcut.keycode.copylink"),
+                                     this._strings.getString("command.shortcut.modifiers.copylink"),
+                                     true);
+  this.m_cmd_CopyLink.setCommandVisibleCallback(null,
+                                                "soundcloud_cmd_copylink",
+                                                plCmd_IsSelectionLinkable);
+  this.m_mgr.publish("soundcloud-copylink@sb.com", this.m_cmd_CopyLink);
   // SoundCloud playlist commands
   this.m_soundcloudCommands = new PlaylistCommandsBuilder("soundcloud_cmds");
   this.m_soundcloudCommands.appendPlaylistCommands(null,
@@ -446,6 +463,11 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
   this.m_soundcloudCommands.appendPlaylistCommands(null,
                                                    "soundcloud_cmd_follow",
                                                    this.m_cmd_Follow);
+  this.m_soundcloudCommands.appendSeparator(null, "soundcloud_cmds_separator_1");
+  this.m_soundcloudCommands.appendPlaylistCommands(null,
+                                                   "soundcloud_cmd_copylink",
+                                                   this.m_cmd_CopyLink);
+  this.m_soundcloudCommands.appendSeparator(null, "soundcloud_cmds_separator_2");
   this.m_soundcloudCommands.appendPlaylistCommands(null,
                                                    "soundcloud_search_cmds",
                                                    this.m_searchCommands);
@@ -580,6 +602,41 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
     return true;
   }
 
+  function plCmd_CopyLink_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
+    if (!plCmd_IsAnyTrackSelected(aContext, aSubMenuId, aCommandId, aHost))
+      return false;
+
+    var itemEnum = unwrap(aContext.playlist).mediaListView
+                                            .selection
+                                            .selectedMediaItems;
+    var curItem = itemEnum.getNext()
+                          .QueryInterface(Ci.sbIMediaItem);
+    if (curItem) {
+      var link = curItem.getProperty(SB_PROPERTY_PERMALINK);
+      var str = Cc["@mozilla.org/supports-string;1"]
+                  .createInstance(Ci.nsISupportsString);
+      if (!str) return false;
+      str.data = link;
+
+      var trans = Cc["@mozilla.org/widget/transferable;1"]
+                    .createInstance(Ci.nsITransferable);
+      if (!trans) return false;
+
+      trans.addDataFlavor("text/unicode");
+      trans.setTransferData("text/unicode", str, link.length * 2);
+
+      var clipid = Ci.nsIClipboard;
+      var clip = Cc["@mozilla.org/widget/clipboard;1"].getService(clipid);
+      if (!clip) return false;
+
+      clip.setData(trans, null, clipid.kGlobalClipboard);
+    }
+  }
+
+  function plCmd_IsSelectionLinkable(aContext, aSubMenuId, aCommandId, aHost) {
+    return true;
+  }
+
   function plCmd_SearchUser_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
     var playlist = unwrap(aContext.playlist);
     var selectedEnum = playlist.mediaListView.selection.selectedMediaItems;
@@ -613,11 +670,13 @@ SoundCloud.shutdownCommands = function SoundCloud_shutdownCommands() {
   this.m_mgr.withdraw("soundcloud-download@sb.com", this.m_cmd_Download);
   this.m_mgr.withdraw("soundcloud-favorite@sb.com", this.m_cmd_Favorite);
   this.m_mgr.withdraw("soundcloud-search@sb.com", this.m_searchCommands);
+  this.m_mgr.withdraw("soundcloud-copylink@sb.com", this.m_cmd_CopyLink);
   this.m_mgr.withdraw("soundcloud-searchuser@sb.com", this.m_cmd_SearchUser);
   this.m_mgr.withdraw("soundcloud-cmds@sb.com", this.m_soundcloudCommands);
 
   this.m_cmd_Download.shutdown();
   this.m_cmd_Favorite.shutdown();
+  this.m_cmd_CopyLink.shutdown();
   this.m_searchCommands.shutdown();
   this.m_cmd_SearchUser.shutdown();
   this.m_soundcloudCommands();
