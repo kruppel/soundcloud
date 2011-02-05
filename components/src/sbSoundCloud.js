@@ -1165,14 +1165,14 @@ sbSoundCloudService.prototype = {
       if (this._track_xhr)
         this._track_xhr.abort();
 
-      this.notifyListeners("onSearchTriggered");
-      this._library.clear();
-
       if (!aQuery && aUser) {
         this._searchService.insertSearch(url + "?" + aFlags, aUser);
       } else {
         this._searchService.insertSearch(url + "?" + aFlags, aQuery);
       }
+
+      this.notifyListeners("onSearchTriggered");
+      this._library.clear();
     }
 
     var success = function(xhr) {
@@ -1391,7 +1391,7 @@ sbSoundCloudService.prototype = {
         self._favput_retries = 0;
         self.getFavorites();
 
-        self.user.favCount += 1;
+        self.user._favCount += 1;
         var favNode = self._servicePaneService
                           .getNode("urn:soclfavorites");
         var favBadge = ServicePaneHelper.getBadge(favNode, "soclfavcount");

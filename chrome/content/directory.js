@@ -190,6 +190,7 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
     onLoggedInStateChanged: function listener_onLoggedInStateChanged() { },
     onProfileUpdated: function listener_onProfileUpdated() { },
     onSearchTriggered: function listener_onSearchTriggered() {
+      self._searchBox.value = decodeURIComponent(self._service.lastSearch);
       self._directory.setAttribute("disabled", true);
       self._topLayer.hidden = false;
       self._idleDeck.selectedIndex = 1;
