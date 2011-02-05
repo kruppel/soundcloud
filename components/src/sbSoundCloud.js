@@ -410,7 +410,10 @@ function sbSoundCloudService() {
   this._refreshTimer = Cc["@mozilla.org/timer;1"]
                          .createInstance(Ci.nsITimer);
   var interval = REFRESH_TIME * 60000;
-  var timerCallback = function() { self.getDashboard(); };
+  var timerCallback = function() {
+                        //self.notifyListeners("onDashboardRefresh");
+                        self.getDashboard();
+                      };
   this._refreshTimer.initWithCallback(timerCallback,
                                       interval,
                                       Ci.nsITimer.TYPE_REPEATING_SLACK);
@@ -1283,19 +1286,19 @@ sbSoundCloudService.prototype = {
         onEnumerationEnd: function(list, status) {
           if (self._incomingCount > 0) {
             self._dash_counted =
-              parseInt(dashBadge.label) == self._incomingCount;
+              parseInt(dashBadge.label) === self._incomingCount;
             dashBadge.remove();
             dashBadge.label = self._incomingCount;
             dashBadge.visible = true;
+          } else if (!self._dash_xhr) {
+            dashBadge.remove();
+            dashBadge.visible = false;
           }
         }
       }
 
       if (!self._dash_counted) {
         self._dashboard.enumerateAllItems(enumListener);
-      } else if (self._incomingCount === 0) {
-        dashBadge.remove();
-        dashBadge.visible = false;
       }
     }
 
@@ -1313,6 +1316,7 @@ sbSoundCloudService.prototype = {
     var params = this._getParameters(url, "GET", flags);
 
     this._dash_xhr = GET(url, params, success, failure, true, true);
+    return this._dash_xhr;
   },
 
   getFavorites: function sbSoundCloudService_getFavorites() {

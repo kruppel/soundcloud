@@ -94,7 +94,7 @@ interface sbISoundCloudService : nsISupports
                  in PRint32 aOffset,
                  in boolean aAsync);
 
-  void getDashboard([optional] in AString aCursor);
+  nsISupports getDashboard([optional] in AString aCursor);
 
   void getFavorites();
 
