@@ -65,9 +65,9 @@ const CONSUMER_SECRET = "YqGENlIGpWPnjQDJ2XCLAur2La9cTLdMYcFfWVIsnvw";
 const CONSUMER_KEY = "eJ2Mqrpr2P4TdO62XXJ3A";
 const SIG_METHOD = "HMAC-SHA1";
 
-const DASH_LIMIT = 3;
+const DASH_LIMIT = 7;
 const MAX_RETRIES = 5;
-const REFRESH_TIME = 2;
+const REFRESH_TIME = 10;
 
 /*
  * SoundCloud library objects.
@@ -311,11 +311,8 @@ function DELETE_(url, params, onload, onerror) {
     xhr.mozBackgroundRequest = true;
     xhr.onload = function(event) { onload(xhr); }
     xhr.onerror = function(event) { onerror(xhr); }
-    xhr.open("DELETE", url, true);
-    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-    xhr.setRequestHeader("Content-length", params.length);
-    xhr.setRequestHeader("Connection", "close");
-    xhr.send(params);
+    xhr.open("DELETE", url + "?" + params, true);
+    xhr.send();
   } catch(e) {
     Cu.reportError(e);
     onerror(xhr);
@@ -1374,14 +1371,19 @@ sbSoundCloudService.prototype = {
   },
 
   favoriteTrack:
-  function sbSoundCloudService_favoriteTrack(aTrackId) {
+  function sbSoundCloudService_favoriteTrack(aTrackId, aFavorite) {
+    var self = this;
+
     if (!this.loggedIn)
       return;
 
-    var self = this;
+    if (!this._favaction_retries) {
+      this._favaction_retries = 0;
+    }
+
     var url = SOCL_URL + "/me/favorites/" + aTrackId;
     var success = function(xhr) {
-      self._favput_retries += 1;
+      self._favaction_retries += 1;
       // Check for an error status
       var nsResolver = xhr.responseXML.createNSResolver(
                                 xhr.responseXML.ownerDocument == null ?
@@ -1392,11 +1394,15 @@ sbSoundCloudService.prototype = {
                                             nsResolver,
                                             2,  //XPathResult.STRING_TYPE,
                                             null);
-      if (result.stringValue.indexOf("200")) {
-        self._favput_retries = 0;
+      if (result.stringValue.indexOf("200") != -1) {
+        self._favaction_retries = 0;
         self.getFavorites();
 
-        self.user._favCount += 1;
+        if (aFavorite) {
+          self.user._favCount += 1;
+        } else {
+          self.user._favCount -= 1;
+        }
         var favNode = self._servicePaneService
                           .getNode("urn:soclfavorites");
         var favBadge = ServicePaneHelper.getBadge(favNode, "soclfavcount");
@@ -1404,9 +1410,9 @@ sbSoundCloudService.prototype = {
         favBadge.label = self.user.favCount;
         favBadge.visible = true;
       } else {
-        if (self._favput_retries < MAX_RETRIES) {
-          self._favput_retries += 1;
-          return self.favoriteTrack(aTrackId);
+        if (self._favaction_retries < MAX_RETRIES) {
+          self._favaction_retries += 1;
+          return self.favoriteTrack(aTrackId, aFavorite);
         }
 
         if (result.stringValue == "") {
@@ -1428,8 +1434,14 @@ sbSoundCloudService.prototype = {
       return false;
     }
 
-    var params = this._getParameters(url, "PUT", null);
-    PUT(url, params, success, failure);
+    var params;
+    if (aFavorite) {
+      params = this._getParameters(url, "PUT", null);
+      PUT(url, params, success, failure);
+    } else {
+      params = this._getParameters(url, "DELETE", null);
+      DELETE_(url, params, success, failure);
+    }
   },
 
   /* Doesn't do much right now */
@@ -1489,7 +1501,6 @@ sbSoundCloudService.prototype = {
     }
 
     var params = "consumer_key=" + CONSUMER_KEY;
-    Cu.reportError(url);
     this._foll_xhr = GET(url, params, success, failure, false);
   },
 

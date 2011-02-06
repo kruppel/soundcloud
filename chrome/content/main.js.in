@@ -414,6 +414,23 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
                                                 "soundcloud_cmd_favorite",
                                                 plCmd_IsSelectionFavoriteable);
   this.m_mgr.publish("soundcloud-favorite@sb.com", this.m_cmd_Favorite);
+  // Unfavorite playlist command
+  this.m_cmd_Unfavorite = new PlaylistCommandsBuilder("unfavorite-soundcloud-cmd");
+  this.m_cmd_Unfavorite.appendAction(null,
+                                     "soundcloud_cmd_unfavorite",
+                                     this._strings.getString("command.soundcloud_unfavorite"),
+                                     this._strings.getString("command.tooltip.unfavorite"),
+                                     plCmd_Unfavorite_TriggerCallback);
+  this.m_cmd_Unfavorite.setCommandShortcut(null,
+                                           "soundcloud_cmd_unfavorite",
+                                           this._strings.getString("command.shortcut.key.unfavorite"),
+                                           this._strings.getString("command.shortcut.keycode.unfavorite"),
+                                           this._strings.getString("command.shortcut.modifiers.unfavorite"),
+                                           true);
+  this.m_cmd_Unfavorite.setCommandVisibleCallback(null,
+                                                  "soundcloud_cmd_unfavorite",
+                                                  plCmd_IsSelectionUnfavoriteable);
+  this.m_mgr.publish("soundcloud-unfavorite@sb.com", this.m_cmd_Unfavorite);
   // Follow playlist command
   this.m_cmd_Follow = new PlaylistCommandsBuilder("follow-soundcloud-cmd");
   this.m_cmd_Follow.appendAction(null,
@@ -431,6 +448,23 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
                                               "soundcloud_cmd_follow",
                                               plCmd_IsSelectionFollowable);
   this.m_mgr.publish("soundcloud-follow@sb.com", this.m_cmd_Follow);
+  // Unfollow playlist command
+  /*this.m_cmd_Unfollow = new PlaylistCommandsBuilder("unfollow-soundcloud-cmd");
+  this.m_cmd_Unfollow.appendAction(null,
+                                   "soundcloud_cmd_unfollow",
+                                   this._strings.getString("command.soundcloud_unfollow"),
+                                   this._strings.getString("command.tooltip.unfollow"),
+                                   plCmd_Unfollow_TriggerCallback);
+  this.m_cmd_Unfollow.setCommandShortcut(null,
+                                       "soundcloud_cmd_unfollow",
+                                       this._strings.getString("command.shortcut.key.unfollow"),
+                                       this._strings.getString("command.shortcut.keycode.unfollow"),
+                                       this._strings.getString("command.shortcut.modifiers.unfollow"),
+                                       true);
+  this.m_cmd_Unfollow.setCommandVisibleCallback(null,
+                                                "soundcloud_cmd_unfollow",
+                                                plCmd_IsSelectionUnfollowable);
+  this.m_mgr.publish("soundcloud-unfollow@sb.com", this.m_cmd_Unfollow);*/
   // Search playlist commands
   this.m_searchCommands = new PlaylistCommandsBuilder("search-soundcloud-cmds");
   this.m_searchCommands.appendSubmenu(null,
@@ -470,8 +504,14 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
                                                    "soundcloud_cmd_favorite",
                                                    this.m_cmd_Favorite);
   this.m_soundcloudCommands.appendPlaylistCommands(null,
+                                                   "soundcloud_cmd_unfavorite",
+                                                   this.m_cmd_Unfavorite);
+  this.m_soundcloudCommands.appendPlaylistCommands(null,
                                                    "soundcloud_cmd_follow",
                                                    this.m_cmd_Follow);
+  //this.m_soundcloudCommands.appendPlaylistCommands(null,
+  //                                                 "soundcloud_cmd_unfollow",
+  //                                                 this.m_cmd_Unfollow);
   this.m_soundcloudCommands.appendSeparator(null, "soundcloud_cmds_separator_1");
   this.m_soundcloudCommands.appendPlaylistCommands(null,
                                                    "soundcloud_cmd_copylink",
@@ -558,11 +598,11 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
     var selectedEnum = playlist.mediaListView.selection.selectedMediaItems;
 
     var curItem = selectedEnum.getNext()
-                              .QueryInterface(Ci.sbIMediaItem)
+                              .QueryInterface(Ci.sbIMediaItem);
     if (curItem) {
       var trackId = curItem.getProperty(SB_PROPERTY_TRACK_ID);
       if (trackId)
-        self._service.favoriteTrack(trackId);
+        self._service.favoriteTrack(trackId, true);
     }
   }
 
@@ -587,12 +627,47 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
     }
   }
 
+  function plCmd_Unfavorite_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
+    var playlist = unwrap(aContext.playlist);
+    var selectedEnum = playlist.mediaListView.selection.selectedMediaItems;
+
+    var curItem = selectedEnum.getNext()
+                              .QueryInterface(Ci.sbIMediaItem);
+    if (curItem) {
+      var trackId = curItem.getProperty(SB_PROPERTY_TRACK_ID);
+      if (trackId) {
+        self._service.favoriteTrack(trackId, false);
+      }
+    }
+  }
+
+  function plCmd_IsSelectionUnfavoriteable(aContext, aSubMenuId, aCommandId, aHost) {
+    if (!self._service.loggedIn ||
+        !plCmd_IsAnyTrackSelected(aContext, aSubMenuId, aCommandId, aHost))
+      return false;
+
+    var itemEnum = unwrap(aContext.playlist).mediaListView
+                                            .selection
+                                            .selectedMediaItems;
+    try {
+      var item = itemEnum.getNext().QueryInterface(Ci.sbIMediaItem);
+      var trackId = item.getProperty(SB_PROPERTY_TRACK_ID);
+      var faved = self._service
+                      .favorites
+                      .getItemsByProperty(SB_PROPERTY_TRACK_ID, trackId);
+      if (faved.length > 0)
+        return true;
+    } catch (ex) {
+      return false;
+    }
+  }
+
   function plCmd_Follow_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
     var playlist = unwrap(aContext.playlist);
     var selectedEnum = playlist.mediaListView.selection.selectedMediaItems;
 
     var curItem = selectedEnum.getNext()
-                              .QueryInterface(Ci.sbIMediaItem)
+                              .QueryInterface(Ci.sbIMediaItem);
     if (curItem) {
       var userId = curItem.getProperty(SB_PROPERTY_USER_ID);
       if (userId)
@@ -610,7 +685,31 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
                                             .selectedMediaItems;
     return true;
   }
+/*
+  function plCmd_Unfollow_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
+    var playlist = unwrap(aContext.playlist);
+    var selectedEnum = playlist.mediaListView.selection.selectedMediaItems;
 
+    var curItem = selectedEnum.getNext()
+                              .QueryInterface(Ci.sbIMediaItem)
+    if (curItem) {
+      var userId = curItem.getProperty(SB_PROPERTY_USER_ID);
+      //if (userId)
+        //self._service.unfollowUser(userId);
+    }
+  }
+
+  function plCmd_IsSelectionUnfollowable(aContext, aSubMenuId, aCommandId, aHost) {
+    if (!self._service.loggedIn ||
+        !plCmd_IsAnyTrackSelected(aContext, aSubMenuId, aCommandId, aHost))
+      return false;
+
+    var itemEnum = unwrap(aContext.playlist).mediaListView
+                                            .selection
+                                            .selectedMediaItems;
+    return false;
+  }
+*/
   function plCmd_CopyLink_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
     if (!plCmd_IsAnyTrackSelected(aContext, aSubMenuId, aCommandId, aHost))
       return false;

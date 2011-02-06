@@ -99,7 +99,7 @@ interface sbISoundCloudService : nsISupports
 
   void getFavorites();
 
-  void favoriteTrack(in PRint32 aTrackId);
+  void favoriteTrack(in PRint32 aTrackId, in boolean aFavorite);
 
   void followUser(in PRint32 aUserId);
 
