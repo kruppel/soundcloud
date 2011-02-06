@@ -16,6 +16,8 @@ interface sbISoundCloudUser : nsISupports
 {
   readonly attribute AString userid;
 
+  readonly attribute AString permalink;
+
   readonly attribute AString realname;
 
   readonly attribute AString avatar;
@@ -91,8 +93,7 @@ interface sbISoundCloudService : nsISupports
   void getTracks(in AString aUser,
                  in AString aQuery,
                  in AString aFlags,
-                 in PRint32 aOffset,
-                 in boolean aAsync);
+                 in PRint32 aOffset);
 
   nsISupports getDashboard([optional] in AString aCursor);
 
@@ -101,6 +102,8 @@ interface sbISoundCloudService : nsISupports
   void favoriteTrack(in PRint32 aTrackId);
 
   void followUser(in PRint32 aUserId);
+
+  void getFollowings([optional] in PRint32 aUserId);
 
   void addListener(in sbISoundCloudListener aListener);
 

@@ -246,7 +246,7 @@ var converter =
   return s;
 }
 
-function GET(url, params, onload, onerror, oauth, async) {
+function GET(url, params, onload, onerror, oauth) {
   var xhr = null;
 
   try {
@@ -254,7 +254,7 @@ function GET(url, params, onload, onerror, oauth, async) {
     xhr.mozBackgroundRequest = true;
     xhr.onload = function(event) { onload(xhr); }
     xhr.onerror = function(event) { onerror(xhr); }
-    xhr.open("GET", url + "?" + params, async);
+    xhr.open("GET", url + "?" + params, true);
     if (oauth)
       xhr.setRequestHeader("Authorization", "OAuth");
     xhr.setRequestHeader("Content-Type", "application/json");
@@ -336,6 +336,7 @@ sbSoundCloudUser.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.sbISoundCloudUser]),
 
   _userid: null,
+  _permalink: null,
   _realname: null,
   _avatar: null,
   _followingCount: null,
@@ -347,6 +348,10 @@ sbSoundCloudUser.prototype = {
 
   get userid() {
     return this._userid;
+  },
+
+  get permalink() {
+    return this._permalink;
   },
 
   get realname() {
@@ -1109,6 +1114,7 @@ sbSoundCloudService.prototype = {
         self._info_retries = null;
 
         self.user._userid = jsObject.id;
+        self.user._permalink = jsObject.permalink;
         self.user._realname = jsObject.username;
         self.user._avatar = jsObject.avatar_url;
         self.user._followingCount = jsObject.followings_count;
@@ -1136,7 +1142,7 @@ sbSoundCloudService.prototype = {
       return false;
     }
 
-    this._info_xhr = GET(url, params, success, failure, true, true);
+    this._info_xhr = GET(url, params, success, failure, true);
   },
 
   getUser:
@@ -1147,8 +1153,7 @@ sbSoundCloudService.prototype = {
   function sbSoundCloudService_getTracks(aUser,
                                          aQuery,
                                          aFlags,
-                                         aOffset,
-                                         aAsync) {
+                                         aOffset) {
     var self = this;
 
     if (!this._track_retries)
@@ -1182,7 +1187,7 @@ sbSoundCloudService.prototype = {
       if (tracks.error) {
         if (self._track_retries < MAX_RETRIES) {
           self._track_retries++;
-          return self.getTracks(aUser, aQuery, aFlags, aOffset, aAsync);
+          return self.getTracks(aUser, aQuery, aFlags, aOffset);
         } else {
           Cu.reportError("Unable to retrieve tracks: " + tracks.error);
           self._track_retries = null;
@@ -1196,7 +1201,7 @@ sbSoundCloudService.prototype = {
       if (tracks.length > 40) {
         self._track_retries = null;
         aOffset += tracks.length
-        self.getTracks(aUser, aQuery, aFlags, aOffset, aAsync);
+        self.getTracks(aUser, aQuery, aFlags, aOffset);
       } else {
         self._track_xhr = null;
       }
@@ -1214,7 +1219,7 @@ sbSoundCloudService.prototype = {
     if (aQuery)
       params += "q=" + aQuery + "&";
     params += aFlags + "&offset=" + aOffset + "&consumer_key=" + CONSUMER_KEY;
-    this._track_xhr = GET(url, params, success, failure, false, aAsync);
+    this._track_xhr = GET(url, params, success, failure, false);
   },
 
   getDashboard: function sbSoundCloudService_getDashboard(aCursor) {
@@ -1317,7 +1322,7 @@ sbSoundCloudService.prototype = {
       flags = { "cursor" : aCursor };
     var params = this._getParameters(url, "GET", flags);
 
-    this._dash_xhr = GET(url, params, success, failure, true, true);
+    this._dash_xhr = GET(url, params, success, failure, true);
     return this._dash_xhr;
   },
 
@@ -1365,7 +1370,7 @@ sbSoundCloudService.prototype = {
     }
 
     var params = this._getParameters(url, "GET", null);
-    this._fav_xhr = GET(url, params, success, failure, true, true);
+    this._fav_xhr = GET(url, params, success, failure, true);
   },
 
   favoriteTrack:
@@ -1439,18 +1444,22 @@ sbSoundCloudService.prototype = {
       this._foll_retries = 0;
     }
 
-    var url = SOCL_URL;
+    var url = SOCL_URL + "/users/";
     if (aUserId) {
-      url += "/users/" + aUserId
+      // XXX - Need to update to user object
+      url += aUserId;
     } else {
-      if (!self._user.userid)
+      if (!self._user.permalink)
         return;
 
-      url += self._user.userid + "/followings.json";
+      url += self._user.permalink;
     }
+
+    url += "/followings.json";
 
     var success = function(xhr) {
       let json = xhr.responseText;
+      dump(json);
       let followings = JSON.parse(json);
       if (followings.error) {
         if (self._foll_retries < MAX_RETRIES) {
@@ -1480,7 +1489,8 @@ sbSoundCloudService.prototype = {
     }
 
     var params = "consumer_key=" + CONSUMER_KEY;
-    this._foll_xhr = GET(url, params, success, failure, true, true);
+    Cu.reportError(url);
+    this._foll_xhr = GET(url, params, success, failure, false);
   },
 
   followUser:

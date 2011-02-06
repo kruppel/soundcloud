@@ -152,10 +152,8 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
                                       self._user.country;
     },
     onSearchTriggered: function listener_onSearchTriggered() {
-      
     },
-    onTracksAdded: function listener_onTracksAdded() {
-      
+    onTracksAdded: function listener_onTracksAdded(aLibrary) {
     },
     QueryInterface: XPCOMUtils.generateQI([Ci.sbISoundCloudListener])
   };
