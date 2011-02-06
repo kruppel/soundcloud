@@ -191,15 +191,12 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
       }
     },
     onTracksAdded: function listener_onTracksAdded(aLibrary) {
-      Cu.reportError(aLibrary.guid);
-      Cu.reportError(self._library.guid);
       if (!self._library || self._library != aLibrary)
         return;
 
       var count = self._library
                       .getItemCountByProperty(SBProperties.hidden,
                                               "0");
-      Cu.reportError(count);
 
       if (self._directory.getAttribute("disabled") && count > 0) {
         self._directory.removeAttribute("disabled");
@@ -225,6 +222,7 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
       }
       statusOverrideType.stringValue = "report" 
     },
+    //onNowFollowing: function listener_onNowFollowing(aUser) { },
     QueryInterface: XPCOMUtils.generateQI([Ci.sbISoundCloudListener])
   }
 
