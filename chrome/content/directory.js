@@ -126,7 +126,8 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
   var params = {};
   URLUtils.extractQuery(uri, params);
   if (params.type) {
-    switch(params.type) {
+    this._page = params.type;
+    switch(this._page) {
       case "dashboard":
         this._library = this._service.dashboard;
         search.hidden = true
@@ -139,8 +140,10 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
         this._library = this._service.library;
     }
   } else {
+    this._page = "main";
     this._library = this._service.library;
   }
+
 
   var node = gServicePane.activeNode;
   document.title = node.displayName;
@@ -172,17 +175,6 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
 
   var itemCount = this._library.getItemCountByProperty(SBProperties.hidden,
                                                        "0");
-  var firstrun = Application.prefs.getValue(SOUNDCLOUD_FIRST_RUN, false);
-  if (itemCount == 0) {
-    this._directory.setAttribute("disabled", true);
-    this._topLayer.hidden = false;
-    if (firstrun) {
-      this._idleDeck.selectedIndex = 0;
-    } else {
-      this._idleDeck.selectedIndex = 2;
-    }
-  }
-
   this.listener = {
     onLoginBegins: function listener_onLoginBegins() { },
     onLogout: function listener_onLogout() { },
@@ -194,20 +186,25 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
       self._directory.setAttribute("disabled", true);
       self._topLayer.hidden = false;
       self._idleDeck.selectedIndex = 1;
+      if (firstrun) {
+        Application.prefs.setValue(SOUNDCLOUD_FIRST_RUN, false);
+      }
     },
-    onTracksAdded: function listener_onTracksAdded() {
-      if (!self._library)
+    onTracksAdded: function listener_onTracksAdded(aLibrary) {
+      Cu.reportError(aLibrary.guid);
+      Cu.reportError(self._library.guid);
+      if (!self._library || self._library != aLibrary)
         return;
 
       var count = self._library
                       .getItemCountByProperty(SBProperties.hidden,
                                               "0");
+      Cu.reportError(count);
 
       if (self._directory.getAttribute("disabled") && count > 0) {
         self._directory.removeAttribute("disabled");
         self._topLayer.hidden = true;
       } else if (count == 0) {
-        // XXX - Need to adjust for completed search
         self._idleDeck.selectedIndex = 2;
       }
 
@@ -232,7 +229,21 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
   }
 
   this._service.addListener(this.listener);
-  this.listener.onTracksAdded();
+
+  var firstrun = Application.prefs.getValue(SOUNDCLOUD_FIRST_RUN, false);
+  if (itemCount == 0) {
+    this._directory.setAttribute("disabled", true);
+    this._topLayer.hidden = false;
+    if (firstrun) {
+      this._idleDeck.selectedIndex = 0;
+    } else {
+      this._idleDeck.selectedIndex = 2;
+      this.listener.onTracksAdded(self._library);
+    }
+  } else {
+    this.listener.onTracksAdded(self._library);
+  }
+
 
   // Add listener for playlist "Download" clicks
   this._directory.addEventListener("PlaylistCellClick", function(e) {

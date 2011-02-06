@@ -106,7 +106,8 @@ interface sbISoundCloudService : nsISupports
 
   void removeListener(in sbISoundCloudListener aListener);
 
-  void notifyListeners(in AString aEventTrigger);
+  void notifyListeners(in AString aEventTrigger,
+                       [optional] in nsISupports aArgs);
 
   void shutdown();
 };
@@ -130,5 +131,5 @@ interface sbISoundCloudListener : nsISupports
 
   void onSearchTriggered();
 
-  void onTracksAdded();
+  void onTracksAdded(in sbILibrary aLibrary);
 };

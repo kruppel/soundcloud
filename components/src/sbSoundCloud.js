@@ -560,7 +560,7 @@ function sbSoundCloudService() {
       var batchListener = {
         onProgress: function(aIndex) {},
         onComplete: function(aMediaItems, aResult) {
-          self.notifyListeners("onTracksAdded");
+          self.notifyListeners("onTracksAdded", [aLibrary]);
         }
       };
   
@@ -1546,12 +1546,12 @@ sbSoundCloudService.prototype = {
   },
 
   notifyListeners:
-  function sbSoundCloudService_notifyListeners(aEventTrigger) {
+  function sbSoundCloudService_notifyListeners(aEventTrigger, aArgs) {
     for (var i=0; i < this._listeners.length; i++) {
       var listener = this._listeners[i]
                          .QueryInterface(Ci.sbISoundCloudListener);
       try {
-        listener[aEventTrigger]();
+        listener[aEventTrigger].apply(this, aArgs);
       } catch(e) {
         Cu.reportError("Could not signal " + aEventTrigger +
         " to sbSoundCloudListener. Failed with error: " + e.description);
