@@ -137,25 +137,21 @@ var Logins = {
   }
 }
 
-function sbSoundCloudSearchService() {
-  this.createTable =
-    function sbSoundCloudSearchService_createTable() {
-      if (!this._dbq)
-        this._initQuery();
-
+function sbSoundCloudDBService() {
+  this.createSearchTable =
+    function sbSoundCloudDBService_createSearchTable() {
+      this._initQuery("search-history@soundcloud.com");
       this._dbq.addQuery("CREATE TABLE IF NOT EXISTS search_history"
                          + "(id INTEGER PRIMARY KEY,"
-                         + "timestamp INTEGER, url TEXT,"
-                         + "terms TEXT)");
+                         + " timestamp INTEGER, url TEXT,"
+                         + " terms TEXT)");
       this._dbq.execute();
       this._dbq.resetQuery();
     }
 
   this.insertSearch =
-    function sbSoundCloudSearchService_insertSearch(aUrl, aTerms) {
-      if (!this._dbq)
-        this._initQuery();
-
+    function sbSoundCloudDBService_insertSearch(aUrl, aTerms) {
+      this._initQuery("search-history@soundcloud.com");
       this._dbq.addQuery("INSERT INTO search_history VALUES (NULL, "
                          + Date.now() + ", '" + aUrl + "', '" + escape(aTerms)
                          + "')");
@@ -164,10 +160,8 @@ function sbSoundCloudSearchService() {
     }
 
   this.getLastSearch =
-    function sbSoundCloudSearchService_getLastSearch() {
-      if (!this._dbq)
-        this._initQuery();
-
+    function sbSoundCloudDBService_getLastSearch() {
+      this._initQuery("search-history@soundcloud.com");
       this._dbq.addQuery("SELECT * FROM search_history "
                          + "ORDER BY id DESC LIMIT 1");
       this._dbq.execute();
@@ -176,24 +170,46 @@ function sbSoundCloudSearchService() {
       return rs.getRowCell(0, 3);
   }
 
+  this.createUsersTable =
+    function sbSoundCloudDBService_createUsersTable() {
+      this._initQuery("users@soundcloud.com");
+      this._dbq.addQuery("CREATE TABLE IF NOT EXISTS users"
+                         + "(id INTEGER PRIMARY KEY, permalink TEXT,"
+                         + " username TEXT, uri TEXT,"
+                         + " permalink_url TEXT, avatar_url TEXT,"
+                         + " country TEXT, full_name TEXT,"
+                         + " city TEXT, description TEXT,"
+                         + " discogs_name TEXT, myspace_name TEXT,"
+                         + " website TEXT, website_title TEXT,"
+                         + " online INTEGER, track_count INTEGER,"
+                         + " followers_count INTEGER, followings_count INTEGER,"
+                         + " public_favorites_count INTEGER,"
+                         + " updated INTEGER)");
+      this._dbq.execute();
+      this._dbq.resetQuery();
+    }
+
   this._initQuery =
-    function sbSoundCloudSearchService__initQuery() {
+    function sbSoundCloudDBService__initQuery(aGuid) {
       try {
-        var ios = Cc["@mozilla.org/network/io-service;1"]
-                    .createInstance(Ci.nsIIOService);
-        var dir = Cc["@mozilla.org/file/directory_service;1"]
-                    .getService(Ci.nsIProperties)
-                    .get("ProfD", Ci.nsIFile);
-        dir.append("db");
-        dir.append("soundcloud");
-        if (!dir.exists()) {
-          dir.create(Ci.nsIFile.DIRECTORY_TYPE, 0755);
+        if (!this._dbq) {
+          var ios = Cc["@mozilla.org/network/io-service;1"]
+                      .createInstance(Ci.nsIIOService);
+          var dir = Cc["@mozilla.org/file/directory_service;1"]
+                      .getService(Ci.nsIProperties)
+                      .get("ProfD", Ci.nsIFile);
+          dir.append("db");
+          dir.append("soundcloud");
+          if (!dir.exists()) {
+            dir.create(Ci.nsIFile.DIRECTORY_TYPE, 0755);
+          }
+          var uri = ios.newFileURI(dir);
+          this._dbq = Cc["@songbirdnest.com/Songbird/DatabaseQuery;1"]
+                        .createInstance(Ci.sbIDatabaseQuery);
+          this._dbq.databaseLocation = uri;
         }
-        var uri = ios.newFileURI(dir);
-        this._dbq = Cc["@songbirdnest.com/Songbird/DatabaseQuery;1"]
-                      .createInstance(Ci.sbIDatabaseQuery);
-        this._dbq.databaseLocation = uri;
-        this._dbq.setDatabaseGUID("search-history@soundcloud.com");
+
+        this._dbq.setDatabaseGUID(aGuid);
         this._dbq.setAsyncQuery(false);
         this._dbq.resetQuery();
       } catch(e) {
@@ -220,9 +236,9 @@ function urlencode(obj) {
 }
 
 function md5(str) {
-var converter =
-  Components.classes["@mozilla.org/intl/scriptableunicodeconverter"].
-    createInstance(Components.interfaces.nsIScriptableUnicodeConverter);
+  var converter =
+    Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+      .createInstance(Ci.nsIScriptableUnicodeConverter);
 
   converter.charset = "UTF-8";
   // result is an out parameter,
@@ -385,6 +401,18 @@ sbSoundCloudUser.prototype = {
 
   get profileurl() {
     return this._profileurl;
+  },
+
+  createRelationship:
+  function sbSoundCloudDBService_createRelationship(aFollowerId, aFollowingId) {
+  },
+
+  hasRelationship:
+  function sbSoundCloudDBService_hasRelationship(aFollowerId, aFollowingId) {
+  },
+
+  deleteRelationship:
+  function sbSoundCloudDBService_deleteRelationship(aFollowerId, aFollowingId) {
   }
 };
 
@@ -402,8 +430,9 @@ function sbSoundCloudService() {
   this._user = new sbSoundCloudUser();
   this._listeners = [];
 
-  this._searchService = new sbSoundCloudSearchService();
-  this._searchService.createTable();
+  this._dbs = new sbSoundCloudDBService();
+  this._dbs.createSearchTable();
+  this._dbs.createUsersTable();
 
   this._prefs = Cc["@mozilla.org/preferences-service;1"]
                   .getService(Ci.nsIPrefService)
@@ -541,6 +570,7 @@ function sbSoundCloudService() {
         properties.appendProperty(SB_PROPERTY_USER_PERMALINK, userlink);
         // Setting artistName to user for LastFM scrobbling support. Ideally,
         // should scrape the artist metadata from the stream
+        // XXX - TODO - Use discogs_name for artistName
         properties.appendProperty(SBProperties.artistName, username);
         properties.appendProperty(SB_PROPERTY_PLAYS, playcount);
         properties.appendProperty(SB_PROPERTY_FAVS, favcount);
@@ -573,6 +603,12 @@ function sbSoundCloudService() {
     }
   }
   
+  /**
+   */
+  this._getFollowings =
+  function sbSoundCloudService__getFollowings() {
+  }
+
   /**
    * \brief Creates an HMAC-SHA1 signature for an OAuth request.
    *
@@ -638,8 +674,9 @@ function sbSoundCloudService() {
     message.parameters.push(["oauth_nonce", OAuth.nonce(11)]);
     message.parameters.push(["oauth_signature_method", SIG_METHOD]);
     message.parameters.push(["oauth_timestamp", OAuth.timestamp()]);
-    if (this._oauth_token)
+    if (this._oauth_token) {
       message.parameters.push(["oauth_token", this._oauth_token]);
+    }
     message.parameters.push(["oauth_version", "1.0"]);
 
     message.parameters.push(["oauth_signature", this._sign(message)]);
@@ -867,16 +904,18 @@ function sbSoundCloudService() {
     let favLib = (this._favorites) ? this._favorites : null;
     return favLib;
   });
+  this.__defineGetter__("followings", function() {
+  });
   this.__defineGetter__("downloads", function() { return this._downloads; });
 
   this.__defineGetter__("lastSearch", function() {
-      if (!this._searchService)
+      if (!this._dbs)
         return;
 
       let term = "";
 
       try {
-        term = unescape(this._searchService.getLastSearch());
+        term = unescape(this._dbs.getLastSearch());
       } catch(ex) {
         Cu.reportError(ex);
       }
@@ -1168,9 +1207,9 @@ sbSoundCloudService.prototype = {
         this._track_xhr.abort();
 
       if (!aQuery && aUser) {
-        this._searchService.insertSearch(url + "?" + aFlags, aUser);
+        this._dbs.insertSearch(url + "?" + aFlags, aUser);
       } else {
-        this._searchService.insertSearch(url + "?" + aFlags, aQuery);
+        this._dbs.insertSearch(url + "?" + aFlags, aQuery);
       }
 
       this.notifyListeners("onSearchTriggered");
