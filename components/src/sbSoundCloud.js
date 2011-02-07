@@ -162,8 +162,8 @@ function sbSoundCloudDBService() {
   this.getLastSearch =
     function sbSoundCloudDBService_getLastSearch() {
       this._initQuery("search-history@soundcloud.com");
-      this._dbq.addQuery("SELECT * FROM search_history "
-                         + "ORDER BY id DESC LIMIT 1");
+      this._dbq.addQuery("SELECT * FROM search_history"
+                         + " ORDER BY id DESC LIMIT 1");
       this._dbq.execute();
       this._dbq.waitForCompletion();
       var rs = this._dbq.getResultObject();
@@ -174,8 +174,8 @@ function sbSoundCloudDBService() {
     function sbSoundCloudDBService_createUsersTable() {
       this._initQuery("users@soundcloud.com");
       this._dbq.addQuery("CREATE TABLE IF NOT EXISTS users"
-                         + "(id INTEGER PRIMARY KEY, permalink TEXT,"
-                         + " username TEXT, uri TEXT,"
+                         + "(id INTEGER UNIQUE PRIMARY KEY, permalink TEXT,"
+                         + " username TEXT UNIQUE, uri TEXT,"
                          + " permalink_url TEXT, avatar_url TEXT,"
                          + " country TEXT, full_name TEXT,"
                          + " city TEXT, description TEXT,"
@@ -188,6 +188,52 @@ function sbSoundCloudDBService() {
       this._dbq.execute();
       this._dbq.resetQuery();
     }
+
+  this.insertUser =
+    function sbSoundCloudDBService_insertUser(aJSON) {
+      this._initQuery("users@soundcloud.com");
+      var id = aJSON.id;
+      var username = aJSON.username;
+      if (!id || !username)
+        return;
+      var online = (aJSON.online) ? 1 : 0;
+      /* XXX - Need to escape query
+      this._dbq.addQuery("INSERT OR REPLACE INTO users VALUES "
+                         + "(" + id + ", '" + aJSON.permalink + "',"
+                         + " '" + username + "', '" + aJSON.uri + "',"
+                         + " '" + aJSON.permalink_url + "',"
+                         + " '" + aJSON.avatar_url + "',"
+                         + " '" + aJSON.country + "',"
+                         + " '" + aJSON.full_name + "',"
+                         + " '" + aJSON.city + "',"
+                         + " '" + aJSON.description + "',"
+                         + " '" + aJSON.discogs_name + "',"
+                         + " '" + aJSON.myspace_name + "',"
+                         + " '" + aJSON.website + "',"
+                         + " '" + aJSON.website_title + "',"
+                         + " " + online + ","
+                         + " " + aJSON.track_count + ","
+                         + " " + aJSON.followers_count + ","
+                         + " " + aJSON.followings_count + ","
+                         + " " + aJSON.public_favorites_count + ")");*/
+      this._dbq.execute();
+      this._dbq.resetQuery();
+    }
+
+  this.createRelationshipsTable =
+    function sbSoundCloudDBService_createRelationshipsTable() {
+      this._initQuery("users@soundcloud.com");
+      this._dbq.addQuery("CREATE TABLE IF NOT EXISTS relationships"
+                         + "(follower_id INTEGER PRIMARY KEY,"
+                         + " following_id INTEGER)");
+      this._dbq.execute();
+      this._dbq.resetQuery();
+    }
+
+  this.insertRelationship =
+    function sbSoundCloudDBService_insertRelationship(aFollowerId,
+                                                      aFollowingId) {
+  }
 
   this._initQuery =
     function sbSoundCloudDBService__initQuery(aGuid) {
