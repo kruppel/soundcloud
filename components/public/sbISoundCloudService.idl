@@ -103,7 +103,8 @@ interface sbISoundCloudService : nsISupports
 
   void followUser(in PRint32 aUserId);
 
-  void getFollowings([optional] in PRint32 aUserId);
+  void getFollowings([optional] in AString aUserPermalink,
+                     [optional] in PRint32 aOffset);
 
   void addListener(in sbISoundCloudListener aListener);
 
