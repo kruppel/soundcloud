@@ -77,12 +77,12 @@
                  persist="column-list column-widths"
                  hidecolumnpicker="true"
                  editable="false"/>
-    <hbox id="dir-top-layer" flex="1" align="center" hidden="true">
+    <hbox id="dir-top-layer" flex="1" align="center" hidden="false">
       <vbox flex="1" align="center">
         <spacer flex="4" />
         <deck id="idle-deck" selectedIndex="0">
           <box id="soundcloud-intro">
-            <description>Experience SoundCloud in Songbird.</description>
+            <description><!--Experience SoundCloud in Songbird.--></description>
           </box>
           <box id="soundcloud-loading"/>
           <box id="soundcloud-none-found">

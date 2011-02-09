@@ -106,15 +106,24 @@ treecol[bind="http://songbirdnest.com/data/1.0#user"] > label,
 #soundcloud-intro,
 #soundcloud-none-found {
   background-color: rgb(36,34,46); /* feather */
+  border: 2px solid rgb(133,133,133);
   line-height: 16px;
   padding: 10px;
   -moz-border-radius: 6px;
   -moz-box-align: center;
   -moz-box-pack: center;
   -moz-box-flex: 1;
+  margin: 30px;
 }
 
-#soundcloud-intro > description,
+#soundcloud-intro > description {
+  color: black; /* feather */
+  height: 250px;
+  width: 400px;
+  min-width: 240px;
+  -moz-box-flex: 1;
+}
+
 #soundcloud-none-found > description {
   color: white; /* feather */
   height: 50px;

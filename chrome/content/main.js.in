@@ -159,6 +159,9 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
   };
 
   this._service.addListener(this.listener);
+  if (this._service.loggedIn) {
+    this.listener.onProfileUpdated();
+  }
 
   this._domEventListenerSet = new DOMEventListenerSet();
 

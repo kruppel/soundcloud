@@ -659,9 +659,12 @@ function sbSoundCloudService() {
         onProgress: function(aIndex) {},
         onComplete: function(aMediaItems, aResult) {
           self.notifyListeners("onTracksAdded", [aLibrary]);
+          if (aLibrary == self.dashboard) {
+            self.updateDashboardCount();
+          }
         }
-      };
-  
+      }
+
       aLibrary.batchCreateMediaItemsAsync(batchListener,
                                           itemArray,
                                           propertiesArray,
@@ -1389,37 +1392,6 @@ sbSoundCloudService.prototype = {
       } else {
         self._dash_xhr = null;
       }
-
-      // Update Dashboard SPS node badge
-      let enumListener = {
-        onEnumerationBegin: function(list) {
-          self._incomingCount = 0;
-        },
-        onEnumeratedItem: function(list, item) {
-          let creation_date =
-            item.getProperty(SB_PROPERTY_CREATION_DATE);
-          let now = new Date().getTime();
-          let limit = now - (1000 * 60 * 60 * 24 * DASH_LIMIT);
-          if (creation_date > limit)
-            self._incomingCount += 1;
-        },
-        onEnumerationEnd: function(list, status) {
-          if (self._incomingCount > 0) {
-            self._dash_counted =
-              parseInt(dashBadge.label) === self._incomingCount;
-            dashBadge.remove();
-            dashBadge.label = self._incomingCount;
-            dashBadge.visible = true;
-          } else if (!self._dash_xhr) {
-            dashBadge.remove();
-            dashBadge.visible = false;
-          }
-        }
-      }
-
-      if (!self._dash_counted) {
-        self._dashboard.enumerateAllItems(enumListener);
-      }
     }
 
     var failure = function(xhr) {
@@ -1437,6 +1409,47 @@ sbSoundCloudService.prototype = {
 
     this._dash_xhr = GET(url, params, success, failure, true);
     return this._dash_xhr;
+  },
+
+  updateDashboardCount:
+  function sbSoundCloudService_updateDashboardCount() {
+    var self = this;
+    var dashNode = this._servicePaneService
+                       .getNode("urn:socldashboard");
+    var dashBadge = ServicePaneHelper.getBadge(dashNode,
+                                               "socldashboard");
+    var enumListener = {
+      onEnumerationBegin: function(list) {
+        self._incomingCount = 0;
+      },
+      onEnumeratedItem: function(list, item) {
+        let creation_date =
+          item.getProperty(SB_PROPERTY_CREATION_DATE);
+        let now = new Date().getTime();
+        let limit = now - (1000 * 60 * 60 * 24 * DASH_LIMIT);
+        if (creation_date > limit)
+          self._incomingCount += 1;
+      },
+      onEnumerationEnd: function(list, status) {
+        if (self._incomingCount > 0) {
+          if (dashBadge.label) {
+            self._dash_counted =
+              parseInt(dashBadge.label) === self._incomingCount;
+          }
+          dashBadge.remove();
+          dashBadge.label = self._incomingCount;
+          dashBadge.visible = true;
+        } else if (!self._dash_xhr) {
+          self._dash_counted = true;
+          dashBadge.remove();
+          dashBadge.visible = false;
+        }
+      }
+    }
+
+    if (!self._dash_counted) {
+      self._dashboard.enumerateAllItems(enumListener);
+    }
   },
 
   getFavorites: function sbSoundCloudService_getFavorites() {
