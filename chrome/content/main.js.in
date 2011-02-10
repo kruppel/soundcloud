@@ -452,7 +452,7 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
                                               plCmd_IsSelectionFollowable);
   this.m_mgr.publish("soundcloud-follow@sb.com", this.m_cmd_Follow);
   // Unfollow playlist command
-  /*this.m_cmd_Unfollow = new PlaylistCommandsBuilder("unfollow-soundcloud-cmd");
+  this.m_cmd_Unfollow = new PlaylistCommandsBuilder("unfollow-soundcloud-cmd");
   this.m_cmd_Unfollow.appendAction(null,
                                    "soundcloud_cmd_unfollow",
                                    this._strings.getString("command.soundcloud_unfollow"),
@@ -467,7 +467,7 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
   this.m_cmd_Unfollow.setCommandVisibleCallback(null,
                                                 "soundcloud_cmd_unfollow",
                                                 plCmd_IsSelectionUnfollowable);
-  this.m_mgr.publish("soundcloud-unfollow@sb.com", this.m_cmd_Unfollow);*/
+  this.m_mgr.publish("soundcloud-unfollow@sb.com", this.m_cmd_Unfollow);
   // Search playlist commands
   this.m_searchCommands = new PlaylistCommandsBuilder("search-soundcloud-cmds");
   this.m_searchCommands.appendSubmenu(null,
@@ -512,9 +512,9 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
   this.m_soundcloudCommands.appendPlaylistCommands(null,
                                                    "soundcloud_cmd_follow",
                                                    this.m_cmd_Follow);
-  //this.m_soundcloudCommands.appendPlaylistCommands(null,
-  //                                                 "soundcloud_cmd_unfollow",
-  //                                                 this.m_cmd_Unfollow);
+  this.m_soundcloudCommands.appendPlaylistCommands(null,
+                                                   "soundcloud_cmd_unfollow",
+                                                   this.m_cmd_Unfollow);
   this.m_soundcloudCommands.appendSeparator(null, "soundcloud_cmds_separator_1");
   this.m_soundcloudCommands.appendPlaylistCommands(null,
                                                    "soundcloud_cmd_copylink",
@@ -686,9 +686,21 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
     var itemEnum = unwrap(aContext.playlist).mediaListView
                                             .selection
                                             .selectedMediaItems;
+    try {
+      if (itemEnum.hasMoreElements()) {
+        var item = itemEnum.getNext().QueryInterface(Ci.sbIMediaItem);
+        var followingId = item.getProperty(SB_PROPERTY_USER_ID);
+        var hasRelationship = self._user.hasRelationship(self._user.userid,
+                                                         followingId);
+        return !hasRelationship;
+      }
+    } catch (ex) {
+      Cu.reportError(ex);
+    }
+
     return true;
   }
-/*
+
   function plCmd_Unfollow_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
     var playlist = unwrap(aContext.playlist);
     var selectedEnum = playlist.mediaListView.selection.selectedMediaItems;
@@ -702,6 +714,7 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
     }
   }
 
+  // XXX - Boiler plate code... need to refactor & consolidate
   function plCmd_IsSelectionUnfollowable(aContext, aSubMenuId, aCommandId, aHost) {
     if (!self._service.loggedIn ||
         !plCmd_IsAnyTrackSelected(aContext, aSubMenuId, aCommandId, aHost))
@@ -710,9 +723,21 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
     var itemEnum = unwrap(aContext.playlist).mediaListView
                                             .selection
                                             .selectedMediaItems;
+    try {
+      if (itemEnum.hasMoreElements()) {
+        var item = itemEnum.getNext().QueryInterface(Ci.sbIMediaItem);
+        var followingId = item.getProperty(SB_PROPERTY_USER_ID);
+        var hasRelationship = self._user.hasRelationship(self._user.userid,
+                                                       followingId);
+        return hasRelationship;
+      }
+    } catch (ex) {
+      Cu.reportError(ex);
+    }
+
     return false;
   }
-*/
+
   function plCmd_CopyLink_TriggerCallback(aContext, aSubMenuId, aCommandId, aHost) {
     if (!plCmd_IsAnyTrackSelected(aContext, aSubMenuId, aCommandId, aHost))
       return false;
@@ -780,6 +805,9 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
 SoundCloud.shutdownCommands = function SoundCloud_shutdownCommands() {
   this.m_mgr.withdraw("soundcloud-download@sb.com", this.m_cmd_Download);
   this.m_mgr.withdraw("soundcloud-favorite@sb.com", this.m_cmd_Favorite);
+  this.m_mgr.withdraw("soundcloud-unfavorite@sb.com", this.m_cmd_Unfavorite);
+  this.m_mgr.withdraw("soundcloud-follow@sb.com", this.m_cmd_Follow);
+  this.m_mgr.withdraw("soundcloud-unfollow@sb.com", this.m_cmd_Unfollow);
   this.m_mgr.withdraw("soundcloud-search@sb.com", this.m_searchCommands);
   this.m_mgr.withdraw("soundcloud-copylink@sb.com", this.m_cmd_CopyLink);
   this.m_mgr.withdraw("soundcloud-searchuser@sb.com", this.m_cmd_SearchUser);
@@ -787,6 +815,9 @@ SoundCloud.shutdownCommands = function SoundCloud_shutdownCommands() {
 
   this.m_cmd_Download.shutdown();
   this.m_cmd_Favorite.shutdown();
+  this.m_cmd_Unfavorite.shutdown();
+  this.m_cmd_Follow.shutdown();
+  this.m_cmd_Unfollow.shutdown();
   this.m_cmd_CopyLink.shutdown();
   this.m_searchCommands.shutdown();
   this.m_cmd_SearchUser.shutdown();

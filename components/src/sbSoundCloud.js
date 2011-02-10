@@ -167,8 +167,10 @@ function sbSoundCloudDBService() {
       this._dbq.execute();
       this._dbq.waitForCompletion();
       var rs = this._dbq.getResultObject();
-      return rs.getRowCell(0, 3);
-  }
+      var lastSearch = rs.getRowCell(0, 3);
+      this._dbq.resetQuery();
+      return lastSearch;
+    }
 
   this.createUsersTable =
     function sbSoundCloudDBService_createUsersTable() {
@@ -240,6 +242,25 @@ function sbSoundCloudDBService() {
                          + "(" + aFollowerId + ", " +  aFollowingId + ")");
       this._dbq.execute();
       this._dbq.resetQuery();
+    }
+
+  this.selectRelationship =
+    function sbSoundCloudDBService_selectRelationship(aFollowerId,
+                                                      aFollowingId) {
+      this._initQuery("users@soundcloud.com");
+      this._dbq.addQuery("SELECT COUNT(1) FROM relationships"
+                         + " WHERE follower_id=" + aFollowerId
+                         + " AND following_id=" + aFollowingId);
+      Cu.reportError("FOLLOWER: " + aFollowerId);
+      Cu.reportError("FOLLOWING: " + aFollowingId);
+      this._dbq.execute();
+      this._dbq.waitForCompletion();
+      var rs = this._dbq.getResultObject();
+      var count = rs.getRowCell(0, 0);
+      this._dbq.resetQuery();
+
+      var hasRelationship = (parseInt(count) > 0) ? true : false;
+      return hasRelationship;
     }
 
   this.deleteRelationship =
@@ -403,7 +424,9 @@ function DELETE_(url, params, onload, onerror) {
 /**
  *
  */
-function sbSoundCloudUser() {}
+function sbSoundCloudUser() {
+  this._dbs = new sbSoundCloudDBService();
+}
 
 sbSoundCloudUser.prototype = {
   classDescription: "Songbird SoundCloud User",
@@ -468,15 +491,18 @@ sbSoundCloudUser.prototype = {
   },
 
   createRelationship:
-  function sbSoundCloudDBService_createRelationship(aFollowerId, aFollowingId) {
+  function sbSoundCloudUser_createRelationship(aFollowerId, aFollowingId) {
+    this._dbs.insertRelationship(aFollowerId, aFollowingId);
   },
 
   hasRelationship:
-  function sbSoundCloudDBService_hasRelationship(aFollowerId, aFollowingId) {
+  function sbSoundCloudUser_hasRelationship(aFollowerId, aFollowingId) {
+    return this._dbs.selectRelationship(aFollowerId, aFollowingId);
   },
 
   deleteRelationship:
-  function sbSoundCloudDBService_deleteRelationship(aFollowerId, aFollowingId) {
+  function sbSoundCloudUser_deleteRelationship(aFollowerId, aFollowingId) {
+    this._dbs.deleteRelationship(aFollowerId, aFollowingId);
   }
 };
 
