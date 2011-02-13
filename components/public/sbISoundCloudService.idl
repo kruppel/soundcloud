@@ -16,6 +16,8 @@ interface sbISoundCloudUser : nsISupports
 {
   readonly attribute AString userid;
 
+  readonly attribute AString permalink;
+
   readonly attribute AString realname;
 
   readonly attribute AString avatar;
@@ -31,6 +33,12 @@ interface sbISoundCloudUser : nsISupports
   readonly attribute AString country;
 
   readonly attribute AString profileurl;
+
+  void createRelationship(in PRint32 aFollowerId, in PRint32 aFollowingId);
+
+  boolean hasRelationship(in PRint32 aFollowerId, in PRint32 aFollowingId);
+
+  void deleteRelationship(in PRint32 aFollowerId, in PRint32 aFollowingId);
 };
 
 /*
@@ -93,19 +101,23 @@ interface sbISoundCloudService : nsISupports
                  in AString aFlags,
                  in PRint32 aOffset);
 
-  void getDashboard([optional] in AString aCursor);
+  nsISupports getDashboard([optional] in AString aCursor);
 
   void getFavorites();
 
-  void favoriteTrack(in PRint32 aTrackId);
+  void favoriteTrack(in PRint32 aTrackId, in boolean aFavorite);
 
   void followUser(in PRint32 aUserId);
+
+  void getFollowings([optional] in AString aUserPermalink,
+                     [optional] in PRint32 aOffset);
 
   void addListener(in sbISoundCloudListener aListener);
 
   void removeListener(in sbISoundCloudListener aListener);
 
-  void notifyListeners(in AString aEventTrigger);
+  void notifyListeners(in AString aEventTrigger,
+                       [optional] in nsISupports aArgs);
 
   void shutdown();
 };
@@ -119,6 +131,8 @@ interface sbISoundCloudListener : nsISupports
 {
   void onLoginBegins();
 
+  void onLogout();
+
   void onAutoLoginChanged();
 
   void onLoggedInStateChanged();
@@ -129,5 +143,5 @@ interface sbISoundCloudListener : nsISupports
 
   void onSearchCompleted();
 
-  void onTracksAdded();
+  void onTracksAdded(in sbILibrary aLibrary);
 };

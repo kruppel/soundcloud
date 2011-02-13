@@ -53,6 +53,7 @@ const SB_PROPERTY_USER_ID = SB_NS + "userID";
 const SB_PROPERTY_USER_PERMALINK = SB_NS + "userPermalink";
 const SB_PROPERTY_PLAYS = SB_NS + "playcount";
 const SB_PROPERTY_FAVS = SB_NS + "favcount";
+const SB_PROPERTY_PERMALINK = SB_NS + "permalinkURL";
 const SB_PROPERTY_WAVEFORM = SB_NS + "waveformURL";
 const SB_PROPERTY_DOWNLOAD_IMAGE = SB_NS + "downloadImage";
 const SB_PROPERTY_DOWNLOAD_URL = SB_NS + "downloadURL";
@@ -64,9 +65,9 @@ const CONSUMER_SECRET = "YqGENlIGpWPnjQDJ2XCLAur2La9cTLdMYcFfWVIsnvw";
 const CONSUMER_KEY = "eJ2Mqrpr2P4TdO62XXJ3A";
 const SIG_METHOD = "HMAC-SHA1";
 
-const DASH_LIMIT = 3;
+const DASH_LIMIT = 7;
 const MAX_RETRIES = 5;
-const REFRESH_TIME = 2;
+const REFRESH_TIME = 10;
 
 /*
  * SoundCloud library objects.
@@ -136,25 +137,21 @@ var Logins = {
   }
 }
 
-function sbSoundCloudSearchService() {
-  this.createTable =
-    function sbSoundCloudSearchService_createTable() {
-      if (!this._dbq)
-        this._initQuery();
-
+function sbSoundCloudDBService() {
+  this.createSearchTable =
+    function sbSoundCloudDBService_createSearchTable() {
+      this._initQuery("search-history@soundcloud.com");
       this._dbq.addQuery("CREATE TABLE IF NOT EXISTS search_history"
                          + "(id INTEGER PRIMARY KEY,"
-                         + "timestamp INTEGER, url TEXT,"
-                         + "terms TEXT)");
+                         + " timestamp INTEGER, url TEXT,"
+                         + " terms TEXT)");
       this._dbq.execute();
       this._dbq.resetQuery();
     }
 
   this.insertSearch =
-    function sbSoundCloudSearchService_insertSearch(aUrl, aTerms) {
-      if (!this._dbq)
-        this._initQuery();
-
+    function sbSoundCloudDBService_insertSearch(aUrl, aTerms) {
+      this._initQuery("search-history@soundcloud.com");
       this._dbq.addQuery("INSERT INTO search_history VALUES (NULL, "
                          + Date.now() + ", '" + aUrl + "', '" + escape(aTerms)
                          + "')");
@@ -163,36 +160,141 @@ function sbSoundCloudSearchService() {
     }
 
   this.getLastSearch =
-    function sbSoundCloudSearchService_getLastSearch() {
-      if (!this._dbq)
-        this._initQuery();
-
-      this._dbq.addQuery("SELECT * FROM search_history "
-                         + "ORDER BY id DESC LIMIT 1");
+    function sbSoundCloudDBService_getLastSearch() {
+      this._initQuery("search-history@soundcloud.com");
+      this._dbq.addQuery("SELECT * FROM search_history"
+                         + " ORDER BY id DESC LIMIT 1");
       this._dbq.execute();
       this._dbq.waitForCompletion();
       var rs = this._dbq.getResultObject();
-      return rs.getRowCell(0, 3);
-  }
+      var lastSearch = rs.getRowCell(0, 3);
+      this._dbq.resetQuery();
+      return lastSearch;
+    }
+
+  this.createUsersTable =
+    function sbSoundCloudDBService_createUsersTable() {
+      this._initQuery("users@soundcloud.com");
+      this._dbq.addQuery("CREATE TABLE IF NOT EXISTS users"
+                         + "(id INTEGER UNIQUE PRIMARY KEY, permalink TEXT,"
+                         + " username TEXT UNIQUE, uri TEXT,"
+                         + " permalink_url TEXT, avatar_url TEXT,"
+                         + " country TEXT, full_name TEXT,"
+                         + " city TEXT, description TEXT,"
+                         + " discogs_name TEXT, myspace_name TEXT,"
+                         + " website TEXT, website_title TEXT,"
+                         + " online INTEGER, track_count INTEGER,"
+                         + " followers_count INTEGER, followings_count INTEGER,"
+                         + " public_favorites_count INTEGER,"
+                         + " updated INTEGER)");
+      this._dbq.execute();
+      this._dbq.resetQuery();
+    }
+
+  this.insertUser =
+    function sbSoundCloudDBService_insertUser(aJSON) {
+      this._initQuery("users@soundcloud.com");
+      if (!aJSON.id || !aJSON.username)
+        return;
+      var id = aJSON.id;
+      var permalink = "'" + escape(aJSON.permalink) + "'";
+      var username = "'" + escape(aJSON.username) + "'";
+      var attrs = ["uri", "permalink_url", "avatar_url",
+                   "country", "city", "description", "discogs_name",
+                   "myspace_name", "website", "website_title", "online"]
+      var query = "INSERT OR REPLACE INTO users VALUES "
+                  + "(" + id + ", " + permalink + ", " + username + ", ";
+      for each (var attr in attrs) {
+        if (aJSON[attr]) {
+          query += "'" + escape(aJSON[attr]) + "', ";
+        } else {
+          query += "NULL, ";
+        }
+      }
+
+      var online = (aJSON.online) ? 1 : 0;
+      this._dbq.addQuery(query + online + ","
+                         + " " + aJSON.track_count + ","
+                         + " " + aJSON.followers_count + ","
+                         + " " + aJSON.followings_count + ","
+                         + " " + aJSON.public_favorites_count + ","
+                         + " " + Date.now() + ")"); 
+      this._dbq.execute();
+      this._dbq.resetQuery();
+    }
+
+  this.createRelationshipsTable =
+    function sbSoundCloudDBService_createRelationshipsTable() {
+      this._initQuery("users@soundcloud.com");
+      this._dbq.addQuery("CREATE TABLE IF NOT EXISTS relationships "
+                         + "(follower_id INTEGER, following_id INTEGER,"
+                         + " UNIQUE(follower_id, following_id)"
+                         + " ON CONFLICT REPLACE)");
+      this._dbq.execute();
+      this._dbq.resetQuery();
+    }
+
+  this.insertRelationship =
+    function sbSoundCloudDBService_insertRelationship(aFollowerId,
+                                                      aFollowingId) {
+      this._initQuery("users@soundcloud.com");
+      this._dbq.addQuery("INSERT INTO relationships VALUES "
+                         + "(" + aFollowerId + ", " +  aFollowingId + ")");
+      this._dbq.execute();
+      this._dbq.resetQuery();
+    }
+
+  this.selectRelationship =
+    function sbSoundCloudDBService_selectRelationship(aFollowerId,
+                                                      aFollowingId) {
+      this._initQuery("users@soundcloud.com");
+      this._dbq.addQuery("SELECT COUNT(1) FROM relationships"
+                         + " WHERE follower_id=" + aFollowerId
+                         + " AND following_id=" + aFollowingId);
+      Cu.reportError("FOLLOWER: " + aFollowerId);
+      Cu.reportError("FOLLOWING: " + aFollowingId);
+      this._dbq.execute();
+      this._dbq.waitForCompletion();
+      var rs = this._dbq.getResultObject();
+      var count = rs.getRowCell(0, 0);
+      this._dbq.resetQuery();
+
+      var hasRelationship = (parseInt(count) > 0) ? true : false;
+      return hasRelationship;
+    }
+
+  this.deleteRelationship =
+    function sbSoundCloudDBService_insertRelationship(aFollowerId,
+                                                      aFollowingId) {
+      this._initQuery("users@soundcloud.com");
+      this._dbq.addQuery("DELETE FROM relationships WHERE"
+                         + " follower_id = " + aFollowerId + " AND"
+                         + " following_id = " +  aFollowingId + ")");
+      this._dbq.execute();
+      this._dbq.resetQuery();
+    }
 
   this._initQuery =
-    function sbSoundCloudSearchService__initQuery() {
+    function sbSoundCloudDBService__initQuery(aGuid) {
       try {
-        var ios = Cc["@mozilla.org/network/io-service;1"]
-                    .createInstance(Ci.nsIIOService);
-        var dir = Cc["@mozilla.org/file/directory_service;1"]
-                    .getService(Ci.nsIProperties)
-                    .get("ProfD", Ci.nsIFile);
-        dir.append("db");
-        dir.append("soundcloud");
-        if (!dir.exists()) {
-          dir.create(Ci.nsIFile.DIRECTORY_TYPE, 0755);
+        if (!this._dbq) {
+          var ios = Cc["@mozilla.org/network/io-service;1"]
+                      .createInstance(Ci.nsIIOService);
+          var dir = Cc["@mozilla.org/file/directory_service;1"]
+                      .getService(Ci.nsIProperties)
+                      .get("ProfD", Ci.nsIFile);
+          dir.append("db");
+          dir.append("soundcloud");
+          if (!dir.exists()) {
+            dir.create(Ci.nsIFile.DIRECTORY_TYPE, 0755);
+          }
+          var uri = ios.newFileURI(dir);
+          this._dbq = Cc["@songbirdnest.com/Songbird/DatabaseQuery;1"]
+                        .createInstance(Ci.sbIDatabaseQuery);
+          this._dbq.databaseLocation = uri;
         }
-        var uri = ios.newFileURI(dir);
-        this._dbq = Cc["@songbirdnest.com/Songbird/DatabaseQuery;1"]
-                      .createInstance(Ci.sbIDatabaseQuery);
-        this._dbq.databaseLocation = uri;
-        this._dbq.setDatabaseGUID("search-history@soundcloud.com");
+
+        this._dbq.setDatabaseGUID(aGuid);
         this._dbq.setAsyncQuery(false);
         this._dbq.resetQuery();
       } catch(e) {
@@ -219,8 +321,8 @@ function urlencode(obj) {
 }
 
 function md5(str) {
-var converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-                  .createInstance(Ci.nsIScriptableUnicodeConverter);
+  var converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+                    .createInstance(Ci.nsIScriptableUnicodeConverter);
 
   converter.charset = "UTF-8";
   // result is an out parameter,
@@ -309,11 +411,8 @@ function DELETE_(url, params, onload, onerror) {
     xhr.mozBackgroundRequest = true;
     xhr.onload = function(event) { onload(xhr); }
     xhr.onerror = function(event) { onerror(xhr); }
-    xhr.open("DELETE", url, true);
-    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-    xhr.setRequestHeader("Content-length", params.length);
-    xhr.setRequestHeader("Connection", "close");
-    xhr.send(params);
+    xhr.open("DELETE", url + "?" + params, true);
+    xhr.send();
   } catch(e) {
     Cu.reportError(e);
     onerror(xhr);
@@ -324,7 +423,9 @@ function DELETE_(url, params, onload, onerror) {
 /**
  *
  */
-function sbSoundCloudUser() {}
+function sbSoundCloudUser() {
+  this._dbs = new sbSoundCloudDBService();
+}
 
 sbSoundCloudUser.prototype = {
   classDescription: "Songbird SoundCloud User",
@@ -334,6 +435,7 @@ sbSoundCloudUser.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.sbISoundCloudUser]),
 
   _userid: null,
+  _permalink: null,
   _realname: null,
   _avatar: null,
   _followingCount: null,
@@ -345,6 +447,10 @@ sbSoundCloudUser.prototype = {
 
   get userid() {
     return this._userid;
+  },
+
+  get permalink() {
+    return this._permalink;
   },
 
   get realname() {
@@ -381,6 +487,21 @@ sbSoundCloudUser.prototype = {
 
   get profileurl() {
     return this._profileurl;
+  },
+
+  createRelationship:
+  function sbSoundCloudUser_createRelationship(aFollowerId, aFollowingId) {
+    this._dbs.insertRelationship(aFollowerId, aFollowingId);
+  },
+
+  hasRelationship:
+  function sbSoundCloudUser_hasRelationship(aFollowerId, aFollowingId) {
+    return this._dbs.selectRelationship(aFollowerId, aFollowingId);
+  },
+
+  deleteRelationship:
+  function sbSoundCloudUser_deleteRelationship(aFollowerId, aFollowingId) {
+    this._dbs.deleteRelationship(aFollowerId, aFollowingId);
   }
 };
 
@@ -398,8 +519,11 @@ function sbSoundCloudService() {
   this._user = new sbSoundCloudUser();
   this._listeners = [];
 
-  this._searchService = new sbSoundCloudSearchService();
-  this._searchService.createTable();
+  // XXX - setup model
+  this._dbs = new sbSoundCloudDBService();
+  this._dbs.createSearchTable();
+  this._dbs.createUsersTable();
+  this._dbs.createRelationshipsTable();
 
   this._prefs = Cc["@mozilla.org/preferences-service;1"]
                   .getService(Ci.nsIPrefService)
@@ -408,7 +532,10 @@ function sbSoundCloudService() {
   this._refreshTimer = Cc["@mozilla.org/timer;1"]
                          .createInstance(Ci.nsITimer);
   var interval = REFRESH_TIME * 60000;
-  var timerCallback = function() { self.getDashboard(); };
+  var timerCallback = function() {
+                        //self.notifyListeners("onDashboardRefresh");
+                        self.getDashboard();
+                      };
   this._refreshTimer.initWithCallback(timerCallback,
                                       interval,
                                       Ci.nsITimer.TYPE_REPEATING_SLACK);
@@ -507,6 +634,7 @@ function sbSoundCloudService() {
         var playcount = item.playback_count;
         var favcount = item.favoritings_count;
         var uri = item.uri;
+        var permalinkURL = item.permalink_url;
         var waveformURL = item.waveform_url;
         var downloadURL = item.download_url || "";
         var streamURL = item.stream_url;
@@ -533,9 +661,11 @@ function sbSoundCloudService() {
         properties.appendProperty(SB_PROPERTY_USER_PERMALINK, userlink);
         // Setting artistName to user for LastFM scrobbling support. Ideally,
         // should scrape the artist metadata from the stream
+        // XXX - TODO - Use discogs_name for artistName
         properties.appendProperty(SBProperties.artistName, username);
         properties.appendProperty(SB_PROPERTY_PLAYS, playcount);
         properties.appendProperty(SB_PROPERTY_FAVS, favcount);
+        properties.appendProperty(SB_PROPERTY_PERMALINK, permalinkURL);
         properties.appendProperty(SB_PROPERTY_WAVEFORM, waveformURL);
         if (downloadURL) {
           properties.appendProperty(SB_PROPERTY_DOWNLOAD_IMAGE,
@@ -553,14 +683,32 @@ function sbSoundCloudService() {
       var batchListener = {
         onProgress: function(aIndex) {},
         onComplete: function(aMediaItems, aResult) {
-          self.notifyListeners("onTracksAdded");
+          self.notifyListeners("onTracksAdded", [aLibrary]);
+          if (aLibrary == self.dashboard) {
+            self.updateDashboardCount();
+          }
         }
-      };
-  
+      }
+
       aLibrary.batchCreateMediaItemsAsync(batchListener,
                                           itemArray,
                                           propertiesArray,
                                           false);
+    }
+  }
+  
+  /**
+   * \brief
+   *
+   * \param
+   *
+   * \return
+   */
+  this._addFollowings =
+  function sbSoundCloudService__addFollowings(aFollowerId, aJSON) {
+    for (var i = 0; i < aJSON.length; i++) {
+      this._dbs.insertUser(aJSON[i]);
+      this._dbs.insertRelationship(aFollowerId, aJSON[i].id);
     }
   }
   
@@ -629,8 +777,9 @@ function sbSoundCloudService() {
     message.parameters.push(["oauth_nonce", OAuth.nonce(11)]);
     message.parameters.push(["oauth_signature_method", SIG_METHOD]);
     message.parameters.push(["oauth_timestamp", OAuth.timestamp()]);
-    if (this._oauth_token)
+    if (this._oauth_token) {
       message.parameters.push(["oauth_token", this._oauth_token]);
+    }
     message.parameters.push(["oauth_version", "1.0"]);
 
     message.parameters.push(["oauth_signature", this._sign(message)]);
@@ -858,16 +1007,18 @@ function sbSoundCloudService() {
     let favLib = (this._favorites) ? this._favorites : null;
     return favLib;
   });
+  this.__defineGetter__("followings", function() {
+  });
   this.__defineGetter__("downloads", function() { return this._downloads; });
 
   this.__defineGetter__("lastSearch", function() {
-      if (!this._searchService)
+      if (!this._dbs)
         return;
 
       let term = "";
 
       try {
-        term = unescape(this._searchService.getLastSearch());
+        term = unescape(this._dbs.getLastSearch());
       } catch(ex) {
         Cu.reportError(ex);
       }
@@ -997,6 +1148,8 @@ sbSoundCloudService.prototype = {
       while (soclNode.firstChild) {
         soclNode.removeChild(soclNode.firstChild);
       }
+
+      this.notifyListeners("onLogout");
     }
 
     // XXX - Need to switch the active node if it's any of the above
@@ -1099,7 +1252,9 @@ sbSoundCloudService.prototype = {
       } else {
         self._info_retries = null;
 
+        self._dbs.insertUser(jsObject);
         self.user._userid = jsObject.id;
+        self.user._permalink = jsObject.permalink;
         self.user._realname = jsObject.username;
         self.user._avatar = jsObject.avatar_url;
         self.user._followingCount = jsObject.followings_count;
@@ -1113,6 +1268,7 @@ sbSoundCloudService.prototype = {
         self.loggedIn = true;
         self.updateServicePaneNodes();
         self.getDashboard();
+        self.getFollowings(self.user.userid, 0);
       }
     }
 
@@ -1152,13 +1308,14 @@ sbSoundCloudService.prototype = {
       if (this._track_xhr)
         this._track_xhr.abort();
 
-      this._library.clear();
-
       if (!aQuery && aUser) {
-        this._searchService.insertSearch(url + "?" + aFlags, aUser);
+        this._dbs.insertSearch(url + "?" + aFlags, aUser);
       } else {
-        this._searchService.insertSearch(url + "?" + aFlags, aQuery);
+        this._dbs.insertSearch(url + "?" + aFlags, aQuery);
       }
+
+      this.notifyListeners("onSearchTriggered");
+      this._library.clear();
     }
 
     var success = function(xhr) {
@@ -1258,37 +1415,6 @@ sbSoundCloudService.prototype = {
       } else {
         self._dash_xhr = null;
       }
-
-      // Update Dashboard SPS node badge
-      let enumListener = {
-        onEnumerationBegin: function(list) {
-          self._incomingCount = 0;
-        },
-        onEnumeratedItem: function(list, item) {
-          let creation_date =
-            item.getProperty(SB_PROPERTY_CREATION_DATE);
-          let now = new Date().getTime();
-          let limit = now - (1000 * 60 * 60 * 24 * DASH_LIMIT);
-          if (creation_date > limit)
-            self._incomingCount += 1;
-        },
-        onEnumerationEnd: function(list, status) {
-          if (self._incomingCount > 0) {
-            self._dash_counted =
-              parseInt(dashBadge.label) == self._incomingCount;
-            dashBadge.remove();
-            dashBadge.label = self._incomingCount;
-            dashBadge.visible = true;
-          }
-        }
-      }
-
-      if (!self._dash_counted) {
-        self._dashboard.enumerateAllItems(enumListener);
-      } else if (self._incomingCount === 0) {
-        dashBadge.remove();
-        dashBadge.visible = false;
-      }
     }
 
     var failure = function(xhr) {
@@ -1305,6 +1431,48 @@ sbSoundCloudService.prototype = {
     var params = this._getParameters(url, "GET", flags);
 
     this._dash_xhr = GET(url, params, success, failure, true);
+    return this._dash_xhr;
+  },
+
+  updateDashboardCount:
+  function sbSoundCloudService_updateDashboardCount() {
+    var self = this;
+    var dashNode = this._servicePaneService
+                       .getNode("urn:socldashboard");
+    var dashBadge = ServicePaneHelper.getBadge(dashNode,
+                                               "socldashboard");
+    var enumListener = {
+      onEnumerationBegin: function(list) {
+        self._incomingCount = 0;
+      },
+      onEnumeratedItem: function(list, item) {
+        let creation_date =
+          item.getProperty(SB_PROPERTY_CREATION_DATE);
+        let now = new Date().getTime();
+        let limit = now - (1000 * 60 * 60 * 24 * DASH_LIMIT);
+        if (creation_date > limit)
+          self._incomingCount += 1;
+      },
+      onEnumerationEnd: function(list, status) {
+        if (self._incomingCount > 0) {
+          if (dashBadge.label) {
+            self._dash_counted =
+              parseInt(dashBadge.label) === self._incomingCount;
+          }
+          dashBadge.remove();
+          dashBadge.label = self._incomingCount;
+          dashBadge.visible = true;
+        } else if (!self._dash_xhr) {
+          self._dash_counted = true;
+          dashBadge.remove();
+          dashBadge.visible = false;
+        }
+      }
+    }
+
+    if (!self._dash_counted) {
+      self._dashboard.enumerateAllItems(enumListener);
+    }
   },
 
   getFavorites: function sbSoundCloudService_getFavorites() {
@@ -1355,14 +1523,19 @@ sbSoundCloudService.prototype = {
   },
 
   favoriteTrack:
-  function sbSoundCloudService_favoriteTrack(aTrackId) {
+  function sbSoundCloudService_favoriteTrack(aTrackId, aFavorite) {
+    var self = this;
+
     if (!this.loggedIn)
       return;
 
-    var self = this;
+    if (!this._favaction_retries) {
+      this._favaction_retries = 0;
+    }
+
     var url = SOCL_URL + "/me/favorites/" + aTrackId;
     var success = function(xhr) {
-      self._favput_retries += 1;
+      self._favaction_retries += 1;
       // Check for an error status
       var nsResolver = xhr.responseXML.createNSResolver(
                                 xhr.responseXML.ownerDocument == null ?
@@ -1373,11 +1546,15 @@ sbSoundCloudService.prototype = {
                                             nsResolver,
                                             2,  //XPathResult.STRING_TYPE,
                                             null);
-      if (result.stringValue.indexOf("200")) {
-        self._favput_retries = 0;
+      if (result.stringValue.indexOf("200") != -1) {
+        self._favaction_retries = 0;
         self.getFavorites();
 
-        self.user.favCount += 1;
+        if (aFavorite) {
+          self.user._favCount += 1;
+        } else {
+          self.user._favCount -= 1;
+        }
         var favNode = self._servicePaneService
                           .getNode("urn:soclfavorites");
         var favBadge = ServicePaneHelper.getBadge(favNode, "soclfavcount");
@@ -1385,9 +1562,9 @@ sbSoundCloudService.prototype = {
         favBadge.label = self.user.favCount;
         favBadge.visible = true;
       } else {
-        if (self._favput_retries < MAX_RETRIES) {
-          self._favput_retries += 1;
-          return self.favoriteTrack(aTrackId);
+        if (self._favaction_retries < MAX_RETRIES) {
+          self._favaction_retries += 1;
+          return self.favoriteTrack(aTrackId, aFavorite);
         }
 
         if (result.stringValue == "") {
@@ -1409,12 +1586,19 @@ sbSoundCloudService.prototype = {
       return false;
     }
 
-    var params = this._getParameters(url, "PUT", null);
-    PUT(url, params, success, failure);
+    var params;
+    if (aFavorite) {
+      params = this._getParameters(url, "PUT", null);
+      PUT(url, params, success, failure);
+    } else {
+      params = this._getParameters(url, "DELETE", null);
+      DELETE_(url, params, success, failure);
+    }
   },
 
   /* Doesn't do much right now */
-  getFollowings: function sbSoundCloudService_getFollowings(aUserId) {
+  getFollowings:
+  function sbSoundCloudService_getFollowings(aUserId, aOffset) {
     var self = this;
 
     if (this._foll_xhr)
@@ -1425,23 +1609,27 @@ sbSoundCloudService.prototype = {
       this._foll_retries = 0;
     }
 
-    var url = SOCL_URL;
+    var url = SOCL_URL + "/users/";
     if (aUserId) {
-      url += "/users/" + aUserId
+      // XXX - Need to update to user object
+      url += aUserId;
     } else {
-      if (!self._user.userid)
+      if (!self._user.permalink)
         return;
 
-      url += self._user.userid + "/followings.json";
+      url += self._user.permalink;
     }
+
+    url += "/followings.json";
 
     var success = function(xhr) {
       let json = xhr.responseText;
+      dump(json);
       let followings = JSON.parse(json);
       if (followings.error) {
         if (self._foll_retries < MAX_RETRIES) {
           self._foll_retries++;
-          return self.getFollowings(aUserId);
+          return self.getFollowings(aUserId, aOffset);
         } else {
           Cu.reportError("Unable to retrieve followings: " + followings.error);
           self._foll_xhr = null;
@@ -1451,10 +1639,15 @@ sbSoundCloudService.prototype = {
       }
 
       self.user._follCount = followings.length;
-      //self._addUsers(followings, self._followings);
+      self._addFollowings(self._user.userid, followings);
       dump("\n" + json + "\n");
       self._foll_retries = null;
-      self._foll_xhr = null;
+
+      if (followings.length < 50) {
+        self._foll_xhr = null;
+      } else {
+        self._foll_xhr = self.getFollowings(aUserId, aOffset + followings.length);
+      }
     }
 
     var failure = function(xhr) {
@@ -1465,8 +1658,9 @@ sbSoundCloudService.prototype = {
       return false;
     }
 
-    var params = "consumer_key=" + CONSUMER_KEY;
-    this._foll_xhr = GET(url, params, success, failure, true);
+    var params = "offset=" + aOffset + "&consumer_key=" + CONSUMER_KEY;
+    this._foll_xhr = GET(url, params, success, failure, false);
+    return this._foll_xhr;
   },
 
   followUser:
@@ -1532,12 +1726,12 @@ sbSoundCloudService.prototype = {
   },
 
   notifyListeners:
-  function sbSoundCloudService_notifyListeners(aEventTrigger) {
+  function sbSoundCloudService_notifyListeners(aEventTrigger, aArgs) {
     for (var i=0; i < this._listeners.length; i++) {
       var listener = this._listeners[i]
                          .QueryInterface(Ci.sbISoundCloudListener);
       try {
-        listener[aEventTrigger]();
+        listener[aEventTrigger].apply(this, aArgs);
       } catch(e) {
         Cu.reportError("Could not signal " + aEventTrigger +
         " to sbSoundCloudListener. Failed with error: " + e.description);

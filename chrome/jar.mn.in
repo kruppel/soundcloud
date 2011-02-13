@@ -1,7 +1,9 @@
+#filter substitution
 soundcloud.jar:
-% content soundcloud %content/
+% content soundcloud %content/    contentaccessible=yes
 % locale soundcloud en-US %locale/en-US/
 % skin soundcloud classic/1.0 %skin/
 % resource soundcloud jsmodules/
-% overlay chrome://songbird/content/xul/layoutBaseOverlay.xul chrome://soundcloud/content/browser-overlay.xul
+% overlay chrome://songbird/content/xul/layoutWithBrowserOverlay.xul chrome://soundcloud/content/browser-overlay.xul
+  content/main.js    (@SONGBIRD_PP_RELATIVE_PATH@/main.js)
 @include_all_to

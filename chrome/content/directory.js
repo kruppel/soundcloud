@@ -126,7 +126,8 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
   var params = {};
   URLUtils.extractQuery(uri, params);
   if (params.type) {
-    switch(params.type) {
+    this._page = params.type;
+    switch(this._page) {
       case "dashboard":
         this._library = this._service.dashboard;
         search.hidden = true
@@ -139,8 +140,10 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
         this._library = this._service.library;
     }
   } else {
+    this._page = "main";
     this._library = this._service.library;
   }
+
 
   var node = gServicePane.activeNode;
   document.title = node.displayName;
@@ -172,26 +175,20 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
 
   var itemCount = this._library.getItemCountByProperty(SBProperties.hidden,
                                                        "0");
-  var firstrun = Application.prefs.getValue(SOUNDCLOUD_FIRST_RUN, false);
-  if (itemCount == 0) {
-    this._directory.setAttribute("disabled", true);
-    this._topLayer.hidden = false;
-    if (firstrun) {
-      this._idleDeck.selectedIndex = 0;
-    } else {
-      this._idleDeck.selectedIndex = 2;
-    }
-  }
-
   this.listener = {
     onLoginBegins: function listener_onLoginBegins() { },
+    onLogout: function listener_onLogout() { },
     onAutoLoginChanged: function listener_onAutoLoginChanged() { },
     onLoggedInStateChanged: function listener_onLoggedInStateChanged() { },
     onProfileUpdated: function listener_onProfileUpdated() { },
     onSearchTriggered: function listener_onSearchTriggered() {
+      self._searchBox.value = decodeURIComponent(self._service.lastSearch);
       self._directory.setAttribute("disabled", true);
       self._topLayer.hidden = false;
       self._idleDeck.selectedIndex = 1;
+      if (firstrun) {
+        Application.prefs.setValue(SOUNDCLOUD_FIRST_RUN, false);
+      }
     },
     onSearchCompleted: function listener_onSearchCompleted() {
       var count = self._library
@@ -202,8 +199,8 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
         self._idleDeck.selectedIndex = 2;
       }
     },
-    onTracksAdded: function listener_onTracksAdded() {
-      if (!self._library)
+    onTracksAdded: function listener_onTracksAdded(aLibrary) {
+      if (!self._library || self._library != aLibrary)
         return;
 
       var count = self._library
@@ -232,11 +229,26 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
       }
       statusOverrideType.stringValue = "report" 
     },
+    //onNowFollowing: function listener_onNowFollowing(aUser) { },
     QueryInterface: XPCOMUtils.generateQI([Ci.sbISoundCloudListener])
   }
 
   this._service.addListener(this.listener);
-  this.listener.onTracksAdded();
+
+  var firstrun = Application.prefs.getValue(SOUNDCLOUD_FIRST_RUN, false);
+  if (itemCount == 0) {
+    this._directory.setAttribute("disabled", true);
+    this._topLayer.hidden = false;
+    if (firstrun) {
+      this._idleDeck.selectedIndex = 0;
+    } else {
+      this._idleDeck.selectedIndex = 2;
+      this.listener.onTracksAdded(self._library);
+    }
+  } else {
+    this.listener.onTracksAdded(self._library);
+  }
+
 
   // Add listener for playlist "Download" clicks
   this._directory.addEventListener("PlaylistCellClick", function(e) {

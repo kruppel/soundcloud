@@ -82,7 +82,7 @@
         <spacer flex="4" />
         <deck id="idle-deck" selectedIndex="0">
           <box id="soundcloud-intro">
-            <description>Experience SoundCloud in Songbird.</description>
+            <description><!--Experience SoundCloud in Songbird.--></description>
           </box>
           <box id="soundcloud-loading"/>
           <box id="soundcloud-none-found">
