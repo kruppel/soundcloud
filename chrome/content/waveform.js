@@ -49,6 +49,7 @@ function SoundClouWaveform_onLoad() {
   var self = this;
   gMM.addListener(this);
 
+  this._tracking = 0;
   this._idle = document.getElementById("socl-idle");
   this._wfdisplay = document.getElementById("socl-wf-display");
   this._cursor = document.getElementById("wf-cursor");
@@ -76,7 +77,36 @@ function SoundClouWaveform_onLoad() {
   this.onPositionChanged();
 
   this._domEventListenerSet = new DOMEventListenerSet();
-  var onWaveformClicked = function(event) {
+  var onCursorMove = function(event) {
+    var boxObject = event.target.parentNode.getBoundingClientRect();
+    var percent = event.clientX / boxObject.width * 100;
+    self._cursor.style.width = percent + "%";
+  }
+  var onCursorDown = function(event) {
+    self._tracking = 1;
+    self.remote_position.unbind();
+    self.remote_length.unbind();
+    var boxObject = event.target.parentNode.getBoundingClientRect();
+    var percent = event.clientX / boxObject.width * 100;
+    self._cursor.style.width = percent + "%";
+    self._mouseMoveListenerId = self._domEventListenerSet.add(self._wfdisplay,
+                                                              "mousemove",
+                                                              onCursorMove,
+                                                              false,
+                                                              false);
+  }
+  this._domEventListenerSet.add(this._wfdisplay,
+                                "mousedown",
+                                onCursorDown,
+                                false,
+                                false);
+  var onCursorRelease = function(event) {
+    self._tracking = 0;
+    self._domEventListenerSet.remove(self._mouseMoveListenerId);
+    self.remote_position = SBNewDataRemote("metadata.position", null);
+    self.remote_position.bindObserver(dataRemoteListener, true);
+    self.remote_length = SBNewDataRemote("metadata.length", null);
+    self.remote_length.bindObserver(dataRemoteListener, true);
     var boxObject = event.target.parentNode.getBoundingClientRect();
     var rel_pos = event.clientX / boxObject.width;
     try {
@@ -85,10 +115,9 @@ function SoundClouWaveform_onLoad() {
       Cu.reportError(e);
     }
   }
-
   this._domEventListenerSet.add(this._wfdisplay,
-                                "click",
-                                onWaveformClicked,
+                                "mouseup",
+                                onCursorRelease,
                                 false,
                                 false);
 }
@@ -130,6 +159,9 @@ function SoundCloudWaveform_onMediacoreEvent(aEvent) {
 SoundCloudWaveform.onUnload =
 function SoundCloudWaveform_onUnload(aEvent) {
   gMM.removeListener(this);
+
+  this.remote_position.unbind();
+  this.remote_length.unbind();
 
   if (this._domEventListenerSet) {
     this._domEventListenerSet.removeAll();
