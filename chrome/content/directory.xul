@@ -85,8 +85,10 @@
             <description><!--Experience SoundCloud in Songbird.--></description>
           </box>
           <box id="soundcloud-loading"/>
-          <box id="soundcloud-none-found">
-            <description>No tracks found.</description>
+          <box id="soundcloud-none-container">
+            <hbox id="soundcloud-none-found">
+              <description>No tracks found.</description>
+            </hbox>
           </box>
         </deck>
         <spacer flex="6" />

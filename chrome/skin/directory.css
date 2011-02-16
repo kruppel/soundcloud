@@ -112,7 +112,9 @@ treecol[bind="http://songbirdnest.com/data/1.0#user"] > label,
   -moz-border-radius: 6px;
   -moz-box-align: center;
   -moz-box-pack: center;
-  -moz-box-flex: 1;
+}
+
+#soundcloud-intro {
   margin: 30px;
 }
 
@@ -124,12 +126,12 @@ treecol[bind="http://songbirdnest.com/data/1.0#user"] > label,
   -moz-box-flex: 1;
 }
 
-#soundcloud-none-found > description {
+#soundcloud-none-found {
+  text-align: center;
   color: white; /* feather */
-  height: 50px;
-  width: 150px;
-  min-width: 240px;
-  -moz-box-flex: 1;
+  max-height: 25px;
+  width: 200px;
+  margin: 160px;
 }
 
 #soundcloud-loading {
