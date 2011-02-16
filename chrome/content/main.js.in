@@ -112,8 +112,11 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
     onLogout: function listener_onLogout() {
       var sps = Cc["@songbirdnest.com/servicepane/service;1"]
                   .getService(Ci.sbIServicePaneService);
-      var search = sps.getNode("SB:RadioStations:SoundCloud");
-      if (gServicePane.activeNode !== search) {
+      if (!sps || !gServicePane) { return; }
+      var faves = sps.getNode("urn:soclfavorites");
+      var dash = sps.getNode("urn:socldashboard");
+      if (gServicePane.activeNode === faves ||
+          gServicePane.activeNode === dash) {
         gServicePane.activateAndLoadNode(search, null, null);
       }
     },

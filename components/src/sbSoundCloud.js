@@ -251,8 +251,6 @@ function sbSoundCloudDBService() {
       this._dbq.addQuery("SELECT COUNT(1) FROM relationships"
                          + " WHERE follower_id=" + aFollowerId
                          + " AND following_id=" + aFollowingId);
-      Cu.reportError("FOLLOWER: " + aFollowerId);
-      Cu.reportError("FOLLOWING: " + aFollowingId);
       this._dbq.execute();
       this._dbq.waitForCompletion();
       var rs = this._dbq.getResultObject();
