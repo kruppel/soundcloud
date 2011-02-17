@@ -488,18 +488,18 @@ sbSoundCloudUser.prototype = {
   },
 
   createRelationship:
-  function sbSoundCloudUser_createRelationship(aFollowerId, aFollowingId) {
-    this._dbs.insertRelationship(aFollowerId, aFollowingId);
+  function sbSoundCloudUser_createRelationship(aFollowingId) {
+    this._dbs.insertRelationship(this._userid, aFollowingId);
   },
 
   hasRelationship:
-  function sbSoundCloudUser_hasRelationship(aFollowerId, aFollowingId) {
-    return this._dbs.selectRelationship(aFollowerId, aFollowingId);
+  function sbSoundCloudUser_hasRelationship(aFollowingId) {
+    return this._dbs.selectRelationship(this._userid, aFollowingId);
   },
 
   deleteRelationship:
-  function sbSoundCloudUser_deleteRelationship(aFollowerId, aFollowingId) {
-    this._dbs.deleteRelationship(aFollowerId, aFollowingId);
+  function sbSoundCloudUser_deleteRelationship(aFollowingId) {
+    this._dbs.deleteRelationship(this._userid, aFollowingId);
   }
 };
 
@@ -1146,8 +1146,6 @@ sbSoundCloudService.prototype = {
       while (soclNode.firstChild) {
         soclNode.removeChild(soclNode.firstChild);
       }
-
-      this.notifyListeners("onLogout");
     }
 
     // XXX - Need to switch the active node if it's any of the above
@@ -1196,6 +1194,7 @@ sbSoundCloudService.prototype = {
   },
 
   logout: function sbSoundCloudService_logout() {
+    this.notifyListeners("onLogout");
     this.userLoggedOut = true;
     this.loggedIn = false;
     this._token_secret = null;
@@ -1682,6 +1681,8 @@ sbSoundCloudService.prototype = {
                                             null);
       if (result.stringValue.indexOf("200")) {
         self._follput_retries = 0;
+        self._user.createRelationship(aUserId);
+        self.getFollowings(self._user.userid, 0);
       } else {
         if (self._favput_retries < MAX_RETRIES) {
           self._favput_retries += 1;

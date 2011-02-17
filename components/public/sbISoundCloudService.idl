@@ -34,11 +34,11 @@ interface sbISoundCloudUser : nsISupports
 
   readonly attribute AString profileurl;
 
-  void createRelationship(in PRint32 aFollowerId, in PRint32 aFollowingId);
+  void createRelationship(in PRint32 aFollowingId);
 
-  boolean hasRelationship(in PRint32 aFollowerId, in PRint32 aFollowingId);
+  boolean hasRelationship(in PRint32 aFollowingId);
 
-  void deleteRelationship(in PRint32 aFollowerId, in PRint32 aFollowingId);
+  void deleteRelationship(in PRint32 aFollowingId);
 };
 
 /*

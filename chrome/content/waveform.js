@@ -58,10 +58,11 @@ function SoundClouWaveform_onLoad() {
   this._currentItem = gMM.sequencer.currentItem;
   if (this._currentItem) {
     var img = this._currentItem.getProperty(SB_PROPERTY_WAVEFORM);
-    if (img != null)
+    if (img != null) {
       this._waveform.src = img;
       this._idle.style.visibility = "hidden";
       this._wfdisplay.style.visibility = "visible";
+    }
   }
 
   var dataRemoteListener = {

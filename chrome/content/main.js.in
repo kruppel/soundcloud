@@ -113,10 +113,11 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
       var sps = Cc["@songbirdnest.com/servicepane/service;1"]
                   .getService(Ci.sbIServicePaneService);
       if (!sps || !gServicePane) { return; }
+      var search = sps.getNode("SB:RadioStations:SoundCloud");
       var faves = sps.getNode("urn:soclfavorites");
       var dash = sps.getNode("urn:socldashboard");
-      if (gServicePane.activeNode === faves ||
-          gServicePane.activeNode === dash) {
+      if (gServicePane.activeNode == faves ||
+          gServicePane.activeNode == dash) {
         gServicePane.activateAndLoadNode(search, null, null);
       }
     },
