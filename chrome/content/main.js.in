@@ -292,7 +292,7 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
   var sbWindow = Cc["@mozilla.org/appshell/window-mediator;1"]
                    .getService(Ci.nsIWindowMediator)
                    .getMostRecentWindow("Songbird:Main").window;
-  sbWindow.addEventListener("ShowCurrentTrack", this.curTrackListener, true);
+  sbWindow.addEventListener("ShowCurrentTrack", this.onShowCurrentTrack, true);
 
   // Create our properties if they don"t exist
   var pMgr = Cc["@songbirdnest.com/Songbird/Properties/PropertyManager;1"].
@@ -850,12 +850,15 @@ function SoundCloud__handlUIEvents(aEvent) {
       this._service.login(this._username.value,
                           this._password.value,
                           false);
+      this.setLoginError(null);
       break;
     case "cancel-button-clicked":
       this._service.cancelLogin();
+      this.setLoginError(null);
       break;
     case "logout-button-clicked":
       this._service.logout();
+      this.setLoginError(null);
       break;
     default:
       break;
@@ -888,9 +891,45 @@ SoundCloud.setLoginError = function SoundCloud_setLoginError(aText) {
   }
 }
 
-SoundCloud.curTrackListener =
-function SoundCloud_curTrackListener(aEvent) {
+SoundCloud.onShowCurrentTrack =
+function SoundCloud_onShowCurrentTrack(aEvent) {
+  var mediacoreManager = Cc["@songbirdnest.com/Songbird/Mediacore/Manager;1"]
+                           .getService(Ci.sbIMediacoreManager);
+  var item = mediacoreManager.sequencer.currentItem;
+  var streamSrc = SoundCloud._service.soundcloudURL;
+  Cu.reportError(item.contentSrc.spec);
+  Cu.reportError(streamSrc);
+  // This could potentially problematic if we have a SoundCloud streaming item
+  // outside of the addon context... meh don't care.
+  if (item.contentSrc.spec.indexOf(streamSrc) != -1) {
+    var node;
+    var sps = Cc["@songbirdnest.com/servicepane/service;1"]
+                .getService(Ci.sbIServicePaneService);
 
+    if (SoundCloud._service.library.contains(item)) {
+      node = sps.getNode("SB:RadioStations:SoundCloud");
+    } else if (SoundCloud._service.dashboard &&
+               SoundCloud._service.dashboard.contains(item)) {
+      node = sps.getNode("urn:socldashboard");
+    } else if (SoundCloud._service.favorites &&
+               SoundCloud._service.favorites.contains(item)) {
+      node = sps.getNode("urn:soclfavorites");
+    }
+
+    if (node) {
+      if (node != gServicePane.activeNode) {
+        gServicePane.activateAndLoadNode(node);
+      }
+      var view = mediacoreManager.sequencer.view;
+      var row = mediacoreManager.sequencer.viewPosition;
+      view.selection.selectOnly(row);
+      view.treeView.selection.tree.ensureRowIsVisible(row);
+    }
+
+    // It's a SoundCloud stream so don't bubble
+    aEvent.preventDefault();
+    aEvent.stopPropogation();
+  }
 }
 
 SoundCloud.uninstallCleanup =
@@ -935,6 +974,13 @@ function SoundCloud_observe(aSubject, aTopic, aData) {
         this._domEventListenerSet.removeAll();
         this._domEventListenerSet = null;
       }
+
+      var sbWindow = Cc["@mozilla.org/appshell/window-mediator;1"]
+                 .getService(Ci.nsIWindowMediator)
+                 .getMostRecentWindow("Songbird:Main").window;
+      sbWindow.removeEventListener("ShowCurrentTrack",
+                                   this.onShowCurrentTrack,
+                                   true);
 
       this._service.removeListener(this);
       this._service.shutdown();

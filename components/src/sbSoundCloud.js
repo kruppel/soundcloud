@@ -629,8 +629,11 @@ function sbSoundCloudService() {
         var username = item.user.username;
         var userid = item.user.id;
         var userlink = item.user.permalink;
+        var labelid = item.label_id;
+        var bpm = item.bpm; /* null */
         var playcount = item.playback_count;
         var favcount = item.favoritings_count;
+        var commentcount = item.comment_count;
         var uri = item.uri;
         var permalinkURL = item.permalink_url;
         var waveformURL = item.waveform_url;
