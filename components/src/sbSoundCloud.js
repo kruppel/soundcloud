@@ -1291,8 +1291,9 @@ sbSoundCloudService.prototype = {
   function sbSoundCloudService_getTracks(aUser, aQuery, aFlags, aOffset) {
     var self = this;
 
-    if (!this._track_retries)
+    if (this._track_retries == null) {
       this._track_retries = 0;
+    }
 
     var url = SOCL_URL;
 
@@ -1317,7 +1318,6 @@ sbSoundCloudService.prototype = {
 
     var success = function(xhr) {
       let json = xhr.responseText;
-      dump(json);
       let tracks = JSON.parse(json);
       if (tracks.error) {
         if (self._track_retries < MAX_RETRIES) {
@@ -1334,7 +1334,7 @@ sbSoundCloudService.prototype = {
       self._addItemsToLibrary(tracks, self._library);
 
       if (tracks.length > 40) {
-        self._track_retries = null;
+        self._track_retries = 0;
         aOffset += tracks.length
         self.getTracks(aUser, aQuery, aFlags, aOffset);
       } else {
@@ -1472,27 +1472,38 @@ sbSoundCloudService.prototype = {
     }
   },
 
-  getFavorites: function sbSoundCloudService_getFavorites() {
+  getFavorites: function sbSoundCloudService_getFavorites(aUserId, aOffset) {
     var self = this;
-    if (!this.loggedIn)
-      return;
+    var offset = aOffset || 0;
 
-    if (this._fav_xhr)
+    if (this._fav_xhr) {
       this._fav_xhr.abort();
+    }
 
-    if (!this._fav_retries) {
+    if (this._fav_retries == null) {
       this._favorites.clear();
       this._fav_retries = 0;
     }
 
-    var url = SOCL_URL + "/me/favorites.json";
+    var url = SOCL_URL + "/users/";
+    if (aUserId) {
+      // XXX - Need to update to user object
+      url += aUserId;
+    } else {
+      if (!this._user.userid || !this.loggedIn) { return; }
+
+      url += this._user.userid;
+    }
+
+    url += "/favorites.json";
+
     var success = function(xhr) {
       let json = xhr.responseText;
       let favorites = JSON.parse(json);
       if (favorites.error) {
         if (self._fav_retries < MAX_RETRIES) {
           self._fav_retries++;
-          return self.getFavorites();
+          return self.getFavorites(aUserId, offset);
         } else {
           Cu.reportError("Unable to retrieve favorites: " + favorites.error);
           self._fav_xhr = null;
@@ -1501,10 +1512,15 @@ sbSoundCloudService.prototype = {
         }
       }
 
-      self.user._favCount = favorites.length;
       self._addItemsToLibrary(favorites, self._favorites);
-      self._fav_retries = null;
-      self._fav_xhr = null;
+
+      if (favorites.length < 50) {
+        self._fav_xhr = null;
+        self._fav_retries = null;
+      } else {
+        self._fav_retries = 0;
+        self._fav_xhr = self.getFavorites(aUserId, offset + favorites.length);
+      }
     }
 
     var failure = function(xhr) {
@@ -1515,8 +1531,11 @@ sbSoundCloudService.prototype = {
       return false;
     }
 
-    var params = this._getParameters(url, "GET", null);
-    this._fav_xhr = GET(url, params, success, failure, true);
+    var params = "offset=" + offset
+                 + "&order=favorited_at"
+                 + "&consumer_key=" + CONSUMER_KEY;
+    this._fav_xhr = GET(url, params, success, failure, false);
+    return this._fav_xhr;
   },
 
   favoriteTrack:
@@ -1597,13 +1616,15 @@ sbSoundCloudService.prototype = {
   getFollowings:
   function sbSoundCloudService_getFollowings(aUserId, aOffset) {
     var self = this;
+    var offset = aOffset || 0;
 
-    if (this._foll_xhr)
+    if (this._foll_xhr) {
       this._foll_xhr.abort();
+    }
 
-    if (!this._foll_retries) {
-      //this._followings.clear();
+    if (this._foll_retries == null) {
       this._foll_retries = 0;
+      this.user._follCount = 0;
     }
 
     var url = SOCL_URL + "/users/";
@@ -1611,22 +1632,20 @@ sbSoundCloudService.prototype = {
       // XXX - Need to update to user object
       url += aUserId;
     } else {
-      if (!self._user.permalink)
-        return;
+      if (!this._user.userid || !this.loggedIn) { return; }
 
-      url += self._user.permalink;
+      url += this._user.userid;
     }
 
     url += "/followings.json";
 
     var success = function(xhr) {
       let json = xhr.responseText;
-      dump(json);
       let followings = JSON.parse(json);
       if (followings.error) {
         if (self._foll_retries < MAX_RETRIES) {
           self._foll_retries++;
-          return self.getFollowings(aUserId, aOffset);
+          return self.getFollowings(aUserId, offset);
         } else {
           Cu.reportError("Unable to retrieve followings: " + followings.error);
           self._foll_xhr = null;
@@ -1635,15 +1654,15 @@ sbSoundCloudService.prototype = {
         }
       }
 
-      self.user._follCount = followings.length;
+      self.user._follCount += followings.length;
       self._addFollowings(self._user.userid, followings);
-      dump("\n" + json + "\n");
-      self._foll_retries = null;
 
       if (followings.length < 50) {
         self._foll_xhr = null;
+        self._foll_retries = null;
       } else {
-        self._foll_xhr = self.getFollowings(aUserId, aOffset + followings.length);
+        self._foll_retries = 0;
+        self._foll_xhr = self.getFollowings(aUserId, offset + followings.length);
       }
     }
 
@@ -1655,7 +1674,7 @@ sbSoundCloudService.prototype = {
       return false;
     }
 
-    var params = "offset=" + aOffset + "&consumer_key=" + CONSUMER_KEY;
+    var params = "offset=" + offset + "&consumer_key=" + CONSUMER_KEY;
     this._foll_xhr = GET(url, params, success, failure, false);
     return this._foll_xhr;
   },
@@ -1682,7 +1701,7 @@ sbSoundCloudService.prototype = {
       if (result.stringValue.indexOf("200")) {
         self._follput_retries = 0;
         self._user.createRelationship(aUserId);
-        self.getFollowings(self._user.userid, 0);
+        self.getFollowings();
       } else {
         if (self._favput_retries < MAX_RETRIES) {
           self._favput_retries += 1;

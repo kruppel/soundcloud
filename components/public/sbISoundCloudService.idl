@@ -103,14 +103,15 @@ interface sbISoundCloudService : nsISupports
 
   nsISupports getDashboard([optional] in AString aCursor);
 
-  void getFavorites();
+  nsISupports getFavorites([optional] in PRint32 aUserId,
+                           [optional] in PRint32 aOffset);
 
   void favoriteTrack(in PRint32 aTrackId, in boolean aFavorite);
 
   void followUser(in PRint32 aUserId);
 
-  void getFollowings([optional] in AString aUserPermalink,
-                     [optional] in PRint32 aOffset);
+  nsISupports getFollowings([optional] in PRint32 aUserId,
+                            [optional] in PRint32 aOffset);
 
   void addListener(in sbISoundCloudListener aListener);
 
