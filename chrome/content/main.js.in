@@ -707,8 +707,7 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
       if (itemEnum.hasMoreElements()) {
         var item = itemEnum.getNext().QueryInterface(Ci.sbIMediaItem);
         var followingId = item.getProperty(SB_PROPERTY_USER_ID);
-        var hasRelationship = self._user.hasRelationship(self._user.userid,
-                                                         followingId);
+        var hasRelationship = self._user.hasRelationship(followingId);
         return !hasRelationship;
       }
     } catch (ex) {
@@ -744,8 +743,7 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
       if (itemEnum.hasMoreElements()) {
         var item = itemEnum.getNext().QueryInterface(Ci.sbIMediaItem);
         var followingId = item.getProperty(SB_PROPERTY_USER_ID);
-        var hasRelationship = self._user.hasRelationship(self._user.userid,
-                                                       followingId);
+        var hasRelationship = self._user.hasRelationship(followingId);
         return hasRelationship;
       }
     } catch (ex) {
