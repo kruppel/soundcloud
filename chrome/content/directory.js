@@ -306,7 +306,9 @@ CloudDirectory.onUnload = function CloudDirectory_onUnload() {
     this._directory = null;
   }
 
-  this._service.removeListener(this.listener);
+  if (this._service) {
+    this._service.removeListener(this.listener);
+  }
 
   if (this._domEventListenerSet) {
     this._domEventListenerSet.removeAll();

@@ -897,8 +897,6 @@ function SoundCloud_onShowCurrentTrack(aEvent) {
                            .getService(Ci.sbIMediacoreManager);
   var item = mediacoreManager.sequencer.currentItem;
   var streamSrc = SoundCloud._service.soundcloudURL;
-  Cu.reportError(item.contentSrc.spec);
-  Cu.reportError(streamSrc);
   // This could potentially problematic if we have a SoundCloud streaming item
   // outside of the addon context... meh don't care.
   if (item.contentSrc.spec.indexOf(streamSrc) != -1) {
@@ -920,9 +918,10 @@ function SoundCloud_onShowCurrentTrack(aEvent) {
       if (node != gServicePane.activeNode) {
         gServicePane.activateAndLoadNode(node);
       }
+
       var view = mediacoreManager.sequencer.view;
       var row = mediacoreManager.sequencer.viewPosition;
-      view.selection.selectOnly(row);
+      view.treeView.selection.select(row);
       view.treeView.selection.tree.ensureRowIsVisible(row);
     }
 
@@ -956,9 +955,6 @@ function SoundCloud_observe(aSubject, aTopic, aData) {
     case "em-action-requested":
       // Extension flagged for uninstall
       aSubject.QueryInterface(Ci.nsIUpdateItem);
-      Cu.reportError(aSubject.id);
-      Cu.reportError("@EXTENSION_UUID@");
-      Cu.reportError(data);
 
       if (aSubject.id == "@EXTENSION_UUID@") {
         if (data == "item-uninstalled") {

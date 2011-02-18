@@ -587,10 +587,11 @@ function sbSoundCloudService() {
    *
    * \param aItems                JSON object of items to add.
    * \param aLibrary              Target library for added items.
+   * \param aComplete             Boolean to dispatch search completed event.
    *
    */
   this._addItemsToLibrary =
-  function sbSoundCloudService__addItemsToLibrary(aItems, aLibrary) {
+  function sbSoundCloudService__addItemsToLibrary(aItems, aLibrary, aComplete) {
     var self = this;
     if (aItems != null) {
       var itemArray = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
@@ -687,6 +688,9 @@ function sbSoundCloudService() {
       var batchListener = {
         onProgress: function(aIndex) {},
         onComplete: function(aMediaItems, aResult) {
+          if (aComplete) {
+            self.notifyListeners("onSearchCompleted");
+          }
           self.notifyListeners("onTracksAdded", [aLibrary]);
           if (aLibrary == self.dashboard) {
             self.updateDashboardCount();
@@ -1337,7 +1341,7 @@ sbSoundCloudService.prototype = {
         }
       }
 
-      self._addItemsToLibrary(tracks, self._library);
+      var completed = false;
 
       if (tracks.length > 40) {
         self._track_retries = 0;
@@ -1345,8 +1349,10 @@ sbSoundCloudService.prototype = {
         self.getTracks(aUser, aQuery, aFlags, aOffset);
       } else {
         self._track_xhr = null;
-        self.notifyListeners("onSearchCompleted");
+        completed = true;
       }
+
+      self._addItemsToLibrary(tracks, self._library, completed);
     }
 
     var failure = function(xhr) {
@@ -1405,9 +1411,8 @@ sbSoundCloudService.prototype = {
         }
       }
 
-      self._addItemsToLibrary(activities.collection, self._dashboard);
-
-      let next_href = activities.next_href;
+      var next_href = activities.next_href;
+      var completed = (next_href == null);
       self._dash_retries = null;
 
       if (next_href) {
@@ -1418,6 +1423,10 @@ sbSoundCloudService.prototype = {
       } else {
         self._dash_xhr = null;
       }
+
+      self._addItemsToLibrary(activities.collection,
+                              self._dashboard,
+                              completed);
     }
 
     var failure = function(xhr) {
@@ -1518,15 +1527,18 @@ sbSoundCloudService.prototype = {
         }
       }
 
-      self._addItemsToLibrary(favorites, self._favorites);
+      var completed = false;
 
       if (favorites.length < 50) {
         self._fav_xhr = null;
         self._fav_retries = null;
+        completed = true;
       } else {
         self._fav_retries = 0;
         self._fav_xhr = self.getFavorites(aUserId, offset + favorites.length);
       }
+
+      self._addItemsToLibrary(favorites, self._favorites, completed);
     }
 
     var failure = function(xhr) {
