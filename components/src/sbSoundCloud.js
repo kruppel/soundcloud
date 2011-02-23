@@ -45,18 +45,18 @@ const SB_NS = "http://songbirdnest.com/data/1.0#";
 const SP_NS = "http://songbirdnest.com/rdf/servicepane#";
 
 // SoundCloud property constants
-const SB_PROPERTY_TRACK_ID = SB_NS + "trackID";
-const SB_PROPERTY_CREATION_DATE = SB_NS + "creationDate";
-const SB_PROPERTY_COMMENTABLE = SB_NS + "commentable";
-const SB_PROPERTY_USER = SB_NS + "user";
-const SB_PROPERTY_USER_ID = SB_NS + "userID";
-const SB_PROPERTY_USER_PERMALINK = SB_NS + "userPermalink";
-const SB_PROPERTY_PLAYS = SB_NS + "playcount";
-const SB_PROPERTY_FAVS = SB_NS + "favcount";
-const SB_PROPERTY_PERMALINK = SB_NS + "permalinkURL";
-const SB_PROPERTY_WAVEFORM = SB_NS + "waveformURL";
-const SB_PROPERTY_DOWNLOAD_IMAGE = SB_NS + "downloadImage";
-const SB_PROPERTY_DOWNLOAD_URL = SB_NS + "downloadURL";
+const SB_PROPERTY_TRACK_ID = NS + "trackID";
+const SB_PROPERTY_CREATION_DATE = NS + "creationDate";
+const SB_PROPERTY_COMMENTABLE = NS + "commentable";
+const SB_PROPERTY_USER = NS + "user";
+const SB_PROPERTY_USER_ID = NS + "userID";
+const SB_PROPERTY_USER_PERMALINK = NS + "userPermalink";
+const SB_PROPERTY_PLAYS = NS + "playcount";
+const SB_PROPERTY_FAVS = NS + "favcount";
+const SB_PROPERTY_PERMALINK = NS + "permalinkURL";
+const SB_PROPERTY_WAVEFORM = NS + "waveformURL";
+const SB_PROPERTY_DOWNLOAD_IMAGE = NS + "downloadImage";
+const SB_PROPERTY_DOWNLOAD_URL = NS + "downloadURL";
 
 const SOCL_URL = "https://api.soundcloud.com";
 const AUTH_PAGE = "chrome://soundcloud/content/soundcloudAuthorize.xul";
@@ -688,8 +688,10 @@ function sbSoundCloudService() {
       var batchListener = {
         onProgress: function(aIndex) {},
         onComplete: function(aMediaItems, aResult) {
-          if (aComplete) {
-            self.notifyListeners("onSearchCompleted");
+          if (!aMediaItems) { return; }
+
+          if (aComplete && aMediaItems.length == itemArray.length) {
+            self.notifyListeners("onSearchCompleted", [aLibrary]);
           }
           self.notifyListeners("onTracksAdded", [aLibrary]);
           if (aLibrary == self.dashboard) {
@@ -1322,7 +1324,6 @@ sbSoundCloudService.prototype = {
         this._dbs.insertSearch(url + "?" + aFlags, aQuery);
       }
 
-      this.notifyListeners("onSearchTriggered");
       this._library.clear();
     }
 
