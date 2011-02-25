@@ -45,18 +45,18 @@ const SB_NS = "http://songbirdnest.com/data/1.0#";
 const SP_NS = "http://songbirdnest.com/rdf/servicepane#";
 
 // SoundCloud property constants
-const SB_PROPERTY_TRACK_ID = SB_NS + "trackID";
-const SB_PROPERTY_CREATION_DATE = SB_NS + "creationDate";
-const SB_PROPERTY_COMMENTABLE = SB_NS + "commentable";
-const SB_PROPERTY_USER = SB_NS + "user";
-const SB_PROPERTY_USER_ID = SB_NS + "userID";
-const SB_PROPERTY_USER_PERMALINK = SB_NS + "userPermalink";
-const SB_PROPERTY_PLAYS = SB_NS + "playcount";
-const SB_PROPERTY_FAVS = SB_NS + "favcount";
-const SB_PROPERTY_PERMALINK = SB_NS + "permalinkURL";
-const SB_PROPERTY_WAVEFORM = SB_NS + "waveformURL";
-const SB_PROPERTY_DOWNLOAD_IMAGE = SB_NS + "downloadImage";
-const SB_PROPERTY_DOWNLOAD_URL = SB_NS + "downloadURL";
+const SB_PROPERTY_TRACK_ID = NS + "trackID";
+const SB_PROPERTY_CREATION_DATE = NS + "creationDate";
+const SB_PROPERTY_COMMENTABLE = NS + "commentable";
+const SB_PROPERTY_USER = NS + "user";
+const SB_PROPERTY_USER_ID = NS + "userID";
+const SB_PROPERTY_USER_PERMALINK = NS + "userPermalink";
+const SB_PROPERTY_PLAYS = NS + "playcount";
+const SB_PROPERTY_FAVS = NS + "favcount";
+const SB_PROPERTY_PERMALINK = NS + "permalinkURL";
+const SB_PROPERTY_WAVEFORM = NS + "waveformURL";
+const SB_PROPERTY_DOWNLOAD_IMAGE = NS + "downloadImage";
+const SB_PROPERTY_DOWNLOAD_URL = NS + "downloadURL";
 
 const SOCL_URL = "https://api.soundcloud.com";
 const AUTH_PAGE = "chrome://soundcloud/content/soundcloudAuthorize.xul";
@@ -587,10 +587,11 @@ function sbSoundCloudService() {
    *
    * \param aItems                JSON object of items to add.
    * \param aLibrary              Target library for added items.
+   * \param aComplete             Boolean to dispatch search completed event.
    *
    */
   this._addItemsToLibrary =
-  function sbSoundCloudService__addItemsToLibrary(aItems, aLibrary) {
+  function sbSoundCloudService__addItemsToLibrary(aItems, aLibrary, aComplete) {
     var self = this;
     if (aItems != null) {
       var itemArray = Cc["@songbirdnest.com/moz/xpcom/threadsafe-array;1"]
@@ -687,6 +688,11 @@ function sbSoundCloudService() {
       var batchListener = {
         onProgress: function(aIndex) {},
         onComplete: function(aMediaItems, aResult) {
+          if (!aMediaItems) { return; }
+
+          if (aComplete && aMediaItems.length == itemArray.length) {
+            self.notifyListeners("onSearchCompleted", [aLibrary]);
+          }
           self.notifyListeners("onTracksAdded", [aLibrary]);
           if (aLibrary == self.dashboard) {
             self.updateDashboardCount();
@@ -1318,7 +1324,6 @@ sbSoundCloudService.prototype = {
         this._dbs.insertSearch(url + "?" + aFlags, aQuery);
       }
 
-      this.notifyListeners("onSearchTriggered");
       this._library.clear();
     }
 
@@ -1337,7 +1342,7 @@ sbSoundCloudService.prototype = {
         }
       }
 
-      self._addItemsToLibrary(tracks, self._library);
+      var completed = false;
 
       if (tracks.length > 40) {
         self._track_retries = 0;
@@ -1345,8 +1350,10 @@ sbSoundCloudService.prototype = {
         self.getTracks(aUser, aQuery, aFlags, aOffset);
       } else {
         self._track_xhr = null;
-        self.notifyListeners("onSearchCompleted");
+        completed = true;
       }
+
+      self._addItemsToLibrary(tracks, self._library, completed);
     }
 
     var failure = function(xhr) {
@@ -1405,9 +1412,8 @@ sbSoundCloudService.prototype = {
         }
       }
 
-      self._addItemsToLibrary(activities.collection, self._dashboard);
-
-      let next_href = activities.next_href;
+      var next_href = activities.next_href;
+      var completed = (next_href == null);
       self._dash_retries = null;
 
       if (next_href) {
@@ -1418,6 +1424,10 @@ sbSoundCloudService.prototype = {
       } else {
         self._dash_xhr = null;
       }
+
+      self._addItemsToLibrary(activities.collection,
+                              self._dashboard,
+                              completed);
     }
 
     var failure = function(xhr) {
@@ -1518,15 +1528,18 @@ sbSoundCloudService.prototype = {
         }
       }
 
-      self._addItemsToLibrary(favorites, self._favorites);
+      var completed = false;
 
       if (favorites.length < 50) {
         self._fav_xhr = null;
         self._fav_retries = null;
+        completed = true;
       } else {
         self._fav_retries = 0;
         self._fav_xhr = self.getFavorites(aUserId, offset + favorites.length);
       }
+
+      self._addItemsToLibrary(favorites, self._favorites, completed);
     }
 
     var failure = function(xhr) {

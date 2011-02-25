@@ -144,7 +144,6 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
     this._library = this._service.library;
   }
 
-
   var node = gServicePane.activeNode;
   document.title = node.displayName;
 
@@ -190,7 +189,10 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
         Application.prefs.setValue(SOUNDCLOUD_FIRST_RUN, false);
       }
     },
-    onSearchCompleted: function listener_onSearchCompleted() {
+    onSearchCompleted: function listener_onSearchCompleted(aLibrary) {
+      if (!self._library || self._library != aLibrary)
+        return;
+
       var count = self._library
                       .getItemCountByProperty(SBProperties.hidden,
                                               "0");
@@ -306,7 +308,9 @@ CloudDirectory.onUnload = function CloudDirectory_onUnload() {
     this._directory = null;
   }
 
-  this._service.removeListener(this.listener);
+  if (this._service) {
+    this._service.removeListener(this.listener);
+  }
 
   if (this._domEventListenerSet) {
     this._domEventListenerSet.removeAll();

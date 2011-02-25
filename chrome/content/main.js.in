@@ -156,21 +156,23 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
                                       self._user.country;
     },
     onSearchTriggered: function listener_onSearchTriggered() {
+      self._searchTriggered = true;
     },
-    onSearchCompleted: function listener_onSearchCompleted() {
-      self._searchComplete = true;
-    },
-    onTracksAdded: function listener_onTracksAdded(aLibrary) {
-      if (self._searchComplete) {
+    onSearchCompleted: function listener_onSearchCompleted(aLibrary) {
+      if (self._searchTriggered) {
+        self._searchTriggered = false;
         var sps = Cc["@songbirdnest.com/servicepane/service;1"]
                     .getService(Ci.sbIServicePaneService);
         var searchNode = sps.getNode("SB:RadioStations:SoundCloud");
         if (gServicePane.activeNode != searchNode) {
-          gServicePane.activateAndLoadNode(searchNode, null, null);
+          // XXX - Don't want to do this, but for now, going with it
+          window.setTimeout(function() {
+              gServicePane.activateAndLoadNode(searchNode, null, null);
+            }, 0);
         }
       }
-
-      self._searchComplete = false;
+    },
+    onTracksAdded: function listener_onTracksAdded(aLibrary) {
     },
     QueryInterface: XPCOMUtils.generateQI([Ci.sbISoundCloudListener])
   };
@@ -897,8 +899,8 @@ function SoundCloud_onShowCurrentTrack(aEvent) {
                            .getService(Ci.sbIMediacoreManager);
   var item = mediacoreManager.sequencer.currentItem;
   var streamSrc = SoundCloud._service.soundcloudURL;
-  // This could potentially problematic if we have a SoundCloud streaming item
-  // outside of the addon context... meh don't care.
+  // This could potentially be problematic if we have a SoundCloud streaming
+  // item outside of the addon context... meh don't care.
   if (item.contentSrc.spec.indexOf(streamSrc) != -1) {
     var node;
     var sps = Cc["@songbirdnest.com/servicepane/service;1"]
@@ -918,10 +920,11 @@ function SoundCloud_onShowCurrentTrack(aEvent) {
       if (node != gServicePane.activeNode) {
         gServicePane.activateAndLoadNode(node);
       }
+
+      // Disables the onSearchCompleted node switch
+      self._searchTriggered = false;
       var view = mediacoreManager.sequencer.view;
       var row = mediacoreManager.sequencer.viewPosition;
-      view.selection.selectOnly(row);
-      view.treeView.selection.tree.ensureRowIsVisible(row);
     }
 
     // It's a SoundCloud stream so don't bubble

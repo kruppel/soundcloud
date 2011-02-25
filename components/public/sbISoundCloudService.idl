@@ -50,6 +50,8 @@ interface sbISoundCloudService : nsISupports
 {
   attribute AString nowPlayingURL;
 
+  attribute sbILibrary activeLibrary;
+
   readonly attribute AString soundcloudURL;
 
   readonly attribute sbISoundCloudUser user;
@@ -127,7 +129,7 @@ interface sbISoundCloudService : nsISupports
  * \interface sbISoundCloudListener
  * \brief
  */
-[scriptable, uuid(88657d7e-1dd2-11b2-a624-e043dcf791bb)]
+[scriptable, uuid(d8dbe513-453d-4487-9c42-da73039d2faf)]
 interface sbISoundCloudListener : nsISupports 
 {
   void onLoginBegins();
@@ -142,7 +144,7 @@ interface sbISoundCloudListener : nsISupports
 
   void onSearchTriggered();
 
-  void onSearchCompleted();
+  void onSearchCompleted(in sbILibrary aLibrary);
 
   void onTracksAdded(in sbILibrary aLibrary);
 };
