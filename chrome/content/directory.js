@@ -116,10 +116,11 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
   this._directory = document.getElementById("soundcloud-directory");
   var search = document.getElementById("soundcloud-box");
 
-  this._topLayer = document.getElementById("dir-top-layer");
+  this._intro = document.getElementById("soundcloud-intro");
+  this._idleLayer = document.getElementById("soundcloud-idle");
   this._idleDeck = document.getElementById("idle-deck");
-  var loading = document.getElementById("soundcloud-loading");
-  var noneFound = document.getElementById("soundcloud-none-found");
+
+  var firstrun = Application.prefs.getValue(SOUNDCLOUD_FIRST_RUN, false);
 
   // Setup library
   var uri = gBrowser.currentURI.spec;
@@ -183,9 +184,10 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
     onSearchTriggered: function listener_onSearchTriggered() {
       self._searchBox.value = decodeURIComponent(self._service.lastSearch);
       self._directory.setAttribute("disabled", true);
-      self._topLayer.hidden = false;
-      self._idleDeck.selectedIndex = 1;
+      self._idleLayer.hidden = false;
+      self._idleDeck.selectedIndex = 0;
       if (firstrun) {
+        self._intro.hidden = true;
         Application.prefs.setValue(SOUNDCLOUD_FIRST_RUN, false);
       }
     },
@@ -198,7 +200,7 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
                                               "0");
 
       if (count == 0) {
-        self._idleDeck.selectedIndex = 2;
+        self._idleDeck.selectedIndex = 1;
       }
     },
     onTracksAdded: function listener_onTracksAdded(aLibrary) {
@@ -211,7 +213,7 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
 
       if (self._directory.getAttribute("disabled") && count > 0) {
         self._directory.removeAttribute("disabled");
-        self._topLayer.hidden = true;
+        self._idleLayer.hidden = true;
       }
 
       var SB_NewDataRemote =
@@ -237,14 +239,13 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
 
   this._service.addListener(this.listener);
 
-  var firstrun = Application.prefs.getValue(SOUNDCLOUD_FIRST_RUN, false);
   if (itemCount == 0) {
     this._directory.setAttribute("disabled", true);
-    this._topLayer.hidden = false;
     if (firstrun) {
-      this._idleDeck.selectedIndex = 0;
+      this._intro.hidden = false;
     } else {
-      this._idleDeck.selectedIndex = 2;
+      this._idleLayer.hidden = false;
+      this._idleDeck.selectedIndex = 1;
       this.listener.onTracksAdded(self._library);
     }
   } else {
@@ -272,8 +273,8 @@ CloudDirectory.triggerSearch = function CloudDirectory_triggerSearch(aEvent) {
     params += flag + "=" + flags[flag] + "&";
   }
 
-  this._service.notifyListeners("onSearchTriggered");
   this._service.getTracks(null, query, params, 0);
+  this._service.notifyListeners("onSearchTriggered");
 }
 
 CloudDirectory.onDownloadClick = function CloudDirectory_onDownloadClick(aEvent) {

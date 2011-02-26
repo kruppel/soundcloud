@@ -92,7 +92,7 @@ treecol[bind="http://songbirdnest.com/soundcloud#user"] > label,
 }
 
 #soundcloud-search-btn:active {
-  background-color: #bbb;
+  background-color: #BBB;
   background-image:none;
 }
 
@@ -103,7 +103,14 @@ treecol[bind="http://songbirdnest.com/soundcloud#user"] > label,
   text-shadow: white 0px 1px 0px;
 }
 
-#soundcloud-intro,
+#soundcloud-intro {
+  background-color: rgb(200,0,0); /* feather */
+  margin-top: 20px;
+  height: 100%;
+  width: 100%;
+  opacity: 0.2;
+}
+
 #soundcloud-none-found {
   background-color: rgb(36,34,46); /* feather */
   border: 2px solid rgb(133,133,133);
@@ -112,18 +119,6 @@ treecol[bind="http://songbirdnest.com/soundcloud#user"] > label,
   -moz-border-radius: 6px;
   -moz-box-align: center;
   -moz-box-pack: center;
-}
-
-#soundcloud-intro {
-  margin: 30px;
-}
-
-#soundcloud-intro > description {
-  color: black; /* feather */
-  height: 250px;
-  width: 400px;
-  min-width: 240px;
-  -moz-box-flex: 1;
 }
 
 #soundcloud-none-found {

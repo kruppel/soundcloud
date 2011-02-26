@@ -77,23 +77,22 @@
                  persist="column-list column-widths"
                  hidecolumnpicker="true"
                  editable="false"/>
-    <hbox id="dir-top-layer" flex="1" align="center" hidden="true">
-      <vbox flex="1" align="center">
-        <spacer flex="4" />
-        <deck id="idle-deck" selectedIndex="0">
-          <box id="soundcloud-intro">
-            <description><!--Experience SoundCloud in Songbird.--></description>
-          </box>
-          <box id="soundcloud-loading"/>
-          <box id="soundcloud-none-container">
-            <hbox id="soundcloud-none-found">
-              <description>No tracks found.</description>
-            </hbox>
-          </box>
-        </deck>
-        <spacer flex="6" />
-      </vbox>
-    </hbox>
+    <vbox id="soundcloud-idle" hidden="true">
+      <spacer flex="1" />
+      <deck id="idle-deck" selectedIndex="0">
+        <box id="soundcloud-loading"/>
+        <box id="soundcloud-none-container">
+          <spacer flex="1" />
+          <hbox id="soundcloud-none-found">
+            <description>No tracks found.</description>
+          </hbox>
+          <spacer flex="1" />
+        </box>
+      </deck>
+      <spacer flex="1" />
+    </vbox>
+    <vbox id="soundcloud-intro" hidden="true">
+    </vbox>
   </stack>
   <script type="application/javascript" 
           src="chrome://songbird/content/scripts/windowUtils.js"/>
