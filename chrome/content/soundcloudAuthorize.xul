@@ -37,7 +37,7 @@
         onload="SoundCloudAuthorize._open();"
         onunload="SoundCloudAuthorize._close();"
         minwidth="420"
-        minheight="670"
+        minheight="700"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 
   <deck id="soundcloud_auth_deck" flex="1">
