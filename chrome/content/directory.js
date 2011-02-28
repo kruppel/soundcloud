@@ -36,6 +36,7 @@ Cu.import("resource://app/jsmodules/sbLibraryUtils.jsm");
 Cu.import("resource://app/jsmodules/sbProperties.jsm");
 Cu.import("resource://app/jsmodules/StringUtils.jsm");
 Cu.import("resource://app/jsmodules/URLUtils.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 const SOUNDCLOUD_FIRST_RUN = "extensions.soundcloud.firstrun";
 
@@ -131,7 +132,7 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
     switch(this._page) {
       case "dashboard":
         this._library = this._service.dashboard;
-        search.hidden = true
+        search.hidden = true;
         break;
       case "favorites":
         this._library = this._service.favorites;
@@ -258,6 +259,7 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
 
   if (itemCount == 0) {
     this._directory.setAttribute("disabled", true);
+    this._idleLayer.hidden = true;
     if (firstrun) {
       this._intro.hidden = false;
     } else {
