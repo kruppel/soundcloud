@@ -3,7 +3,7 @@
 #
 # This file is part of the Songbird web player.
 #
-# Copyright(c) 2010 POTI, Inc.
+# Copyright(c) 2011 POTI, Inc.
 # http://www.songbirdnest.com
 #
 # This file may be licensed under the terms of of the
@@ -26,6 +26,6 @@ EXTENSION_NAME = soundcloud
 EXTENSION_UUID = $(EXTENSION_NAME)@songbirdnest.com
 EXTENSION_NO_BINARY_COMPONENTS = 1
 
-EXTENSION_VER = 0.1.1
+EXTENSION_VER = 1.0.0
 EXTENSION_MIN_VER = $(SB_JSONLY_EXTENSION_MIN_VER)
 EXTENSION_MAX_VER = $(SB_JSONLY_EXTENSION_MAX_VER)
