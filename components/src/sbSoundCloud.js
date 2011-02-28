@@ -1,4 +1,4 @@
-/* *=BEGIN SONGBIRD GPL
+/*
  *
  * This file is part of the Songbird web player.
  *
@@ -58,16 +58,14 @@ const SB_PROPERTY_WAVEFORM = NS + "waveformURL";
 const SB_PROPERTY_DOWNLOAD_IMAGE = NS + "downloadImage";
 const SB_PROPERTY_DOWNLOAD_URL = NS + "downloadURL";
 
-const SOCL_URL = "https://api.soundcloud.com";
+const SOCL_URL = "https://api.sandbox-soundcloud.com";
 const AUTH_PAGE = "chrome://soundcloud/content/soundcloudAuthorize.xul";
 const DEFAULT_AVATAR = "chrome://soundcloud/skin/default-avatar.png";
-const CONSUMER_SECRET = "YqGENlIGpWPnjQDJ2XCLAur2La9cTLdMYcFfWVIsnvw";
-const CONSUMER_KEY = "eJ2Mqrpr2P4TdO62XXJ3A";
+const CONSUMER_SECRET = "wyptkfjC6jnY6Trm3XLTU6zrGcc6wT5eufuYqCp5xY";
+const CONSUMER_KEY = "PvM7UwxkoLr8KBgHlYQjcg";
 const SIG_METHOD = "HMAC-SHA1";
 
-const DASH_LIMIT = 7;
 const MAX_RETRIES = 5;
-const REFRESH_TIME = 10;
 
 /*
  * SoundCloud library objects.
@@ -262,12 +260,12 @@ function sbSoundCloudDBService() {
     }
 
   this.deleteRelationship =
-    function sbSoundCloudDBService_insertRelationship(aFollowerId,
+    function sbSoundCloudDBService_deleteRelationship(aFollowerId,
                                                       aFollowingId) {
       this._initQuery("users@soundcloud.com");
       this._dbq.addQuery("DELETE FROM relationships WHERE"
                          + " follower_id = " + aFollowerId + " AND"
-                         + " following_id = " +  aFollowingId + ")");
+                         + " following_id = " +  aFollowingId);
       this._dbq.execute();
       this._dbq.resetQuery();
     }
@@ -527,9 +525,12 @@ function sbSoundCloudService() {
                   .getService(Ci.nsIPrefService)
                   .getBranch("extensions.soundcloud.");
 
+  this._dashLimit = this._prefs.getIntPref("dashboard.days");
+  this._refreshTime = this._prefs.getIntPref("dashboard.refresh.mins");
+
   this._refreshTimer = Cc["@mozilla.org/timer;1"]
                          .createInstance(Ci.nsITimer);
-  var interval = REFRESH_TIME * 60000;
+  var interval = this._refreshTime * 60000;
   var timerCallback = function() {
                         //self.notifyListeners("onDashboardRefresh");
                         self.getDashboard();
@@ -1386,6 +1387,11 @@ sbSoundCloudService.prototype = {
       if (this._dash_xhr)
         this._dash_xhr.abort();
 
+      this.notifyListeners("onDashboardRefresh");
+      this._dashLimit = this._prefs.getIntPref("dashboard.days");
+      //this._refreshTime = this._prefs.getIntPref("dashboard.refresh.mins");
+      //this._refreshTimer.delay = this._refreshTimer * 60000;
+
       this._dashboard.clear();
       dashBadge.remove();
       dashBadge.image = "chrome://songbird/skin/service-pane/icon-busy.png";
@@ -1462,7 +1468,7 @@ sbSoundCloudService.prototype = {
         let creation_date =
           item.getProperty(SB_PROPERTY_CREATION_DATE);
         let now = new Date().getTime();
-        let limit = now - (1000 * 60 * 60 * 24 * DASH_LIMIT);
+        let limit = now - (1000 * 60 * 60 * 24 * self._dashLimit);
         if (creation_date > limit)
           self._incomingCount += 1;
       },
@@ -1558,7 +1564,7 @@ sbSoundCloudService.prototype = {
   },
 
   favoriteTrack:
-  function sbSoundCloudService_favoriteTrack(aTrackId, aFavorite) {
+  function sbSoundCloudService_favoriteTrack(aTrack, aFavorite) {
     var self = this;
 
     if (!this.loggedIn)
@@ -1568,7 +1574,8 @@ sbSoundCloudService.prototype = {
       this._favaction_retries = 0;
     }
 
-    var url = SOCL_URL + "/me/favorites/" + aTrackId;
+    var trackId = aTrack.getProperty(SB_PROPERTY_TRACK_ID);
+    var url = SOCL_URL + "/me/favorites/" + trackId;
     var success = function(xhr) {
       self._favaction_retries += 1;
       // Check for an error status
@@ -1587,8 +1594,10 @@ sbSoundCloudService.prototype = {
 
         if (aFavorite) {
           self.user._favCount += 1;
+          self.notifyListeners("onFavorite", [aTrack]);
         } else {
           self.user._favCount -= 1;
+          self.notifyListeners("onUnfavorite", [aTrack]);
         }
         var favNode = self._servicePaneService
                           .getNode("urn:soclfavorites");
@@ -1596,10 +1605,11 @@ sbSoundCloudService.prototype = {
         favBadge.remove();
         favBadge.label = self.user.favCount;
         favBadge.visible = true;
+
       } else {
         if (self._favaction_retries < MAX_RETRIES) {
           self._favaction_retries += 1;
-          return self.favoriteTrack(aTrackId, aFavorite);
+          return self.favoriteTrack(aTrack, aFavorite);
         }
 
         if (result.stringValue == "") {
@@ -1699,9 +1709,13 @@ sbSoundCloudService.prototype = {
   },
 
   followUser:
-  function sbSoundCloudService_followUser(aUserId) {
+  function sbSoundCloudService_followUser(aUserId, aUsername, aFollowing) {
     if (!this.loggedIn)
       return;
+
+    if (this._follput_retries == null) {
+      this._follput_retries = 0;
+    }
 
     var self = this;
     var url = SOCL_URL + "/me/followings/" + aUserId;
@@ -1717,14 +1731,22 @@ sbSoundCloudService.prototype = {
                                             nsResolver,
                                             2,  //XPathResult.STRING_TYPE,
                                             null);
-      if (result.stringValue.indexOf("200")) {
+      if (result.stringValue.indexOf("200") != -1) {
         self._follput_retries = 0;
-        self._user.createRelationship(aUserId);
+
+        if (aFollowing) {
+          self._user.createRelationship(aUserId);
+          self.notifyListeners("onFollowing", [aUsername]);
+        } else {
+          self._user.deleteRelationship(aUserId);
+          self.notifyListeners("onUnfollowing", [aUsername]);
+        }
+
         self.getFollowings();
       } else {
-        if (self._favput_retries < MAX_RETRIES) {
-          self._favput_retries += 1;
-          return self.followUser(aUserId);
+        if (self._follput_retries < MAX_RETRIES) {
+          self._follput_retries += 1;
+          return self.followUser(aUserId, aUsername, aFollowing);
         }
 
         if (result.stringValue == "") {

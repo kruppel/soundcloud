@@ -182,7 +182,10 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
     onLoggedInStateChanged: function listener_onLoggedInStateChanged() { },
     onProfileUpdated: function listener_onProfileUpdated() { },
     onSearchTriggered: function listener_onSearchTriggered() {
-      self._searchBox.value = decodeURIComponent(self._service.lastSearch);
+      // XXX - Need to fix; short-term hack
+      songbirdMainWindow.setTimeout(function() {
+          self._searchBox.value = decodeURIComponent(self._service.lastSearch);
+        }, 500);
       self._directory.setAttribute("disabled", true);
       self._idleLayer.hidden = false;
       self._idleDeck.selectedIndex = 0;
@@ -231,9 +234,23 @@ CloudDirectory.onLoad = function CloudDirectory_onLoad() {
       } else {
         statusOverrideText.stringValue = count + " tracks";
       }
-      statusOverrideType.stringValue = "report" 
+      statusOverrideType.stringValue = "report";
     },
-    //onNowFollowing: function listener_onNowFollowing(aUser) { },
+    onDashboardRefresh: function listener_onDashboardRefresh() {
+      if (self._library == self._service.dashboard) {
+        self._directory.setAttribute("disabled", true);
+        self._idleLayer.hidden = false;
+        self._idleDeck.selectedIndex = 0;
+      }
+    },
+    onFavorite: function listener_onFavorite(aFavorite) {
+    },
+    onUnfavorite: function listener_onUnfavorite(aFavorite) {
+    },
+    onFollowing: function listener_onFollowing(aFollowing) {
+    },
+    onUnfollowing: function listener_onUnfollowing(aFollowing) {
+    },
     QueryInterface: XPCOMUtils.generateQI([Ci.sbISoundCloudListener])
   }
 

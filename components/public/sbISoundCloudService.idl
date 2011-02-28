@@ -4,6 +4,7 @@
 #include "nsISupports.idl"
 
 interface sbILibrary;
+interface sbIMediaItem;
 interface sbISoundCloudUser;
 interface sbISoundCloudListener;
 
@@ -108,9 +109,11 @@ interface sbISoundCloudService : nsISupports
   nsISupports getFavorites([optional] in PRint32 aUserId,
                            [optional] in PRint32 aOffset);
 
-  void favoriteTrack(in PRint32 aTrackId, in boolean aFavorite);
+  void favoriteTrack(in sbIMediaItem aTrack, in boolean aFavorite);
 
-  void followUser(in PRint32 aUserId);
+  void followUser(in PRint32 aUserId,
+                  in AString aUsername,
+                  in boolean aFollowing);
 
   nsISupports getFollowings([optional] in PRint32 aUserId,
                             [optional] in PRint32 aOffset);
@@ -129,7 +132,7 @@ interface sbISoundCloudService : nsISupports
  * \interface sbISoundCloudListener
  * \brief
  */
-[scriptable, uuid(d8dbe513-453d-4487-9c42-da73039d2faf)]
+[scriptable, uuid(2e2cffaf-6b36-4e69-ba4d-732dfe8d8d88)]
 interface sbISoundCloudListener : nsISupports 
 {
   void onLoginBegins();
@@ -147,4 +150,14 @@ interface sbISoundCloudListener : nsISupports
   void onSearchCompleted(in sbILibrary aLibrary);
 
   void onTracksAdded(in sbILibrary aLibrary);
+
+  void onDashboardRefresh();
+
+  void onFavorite(in sbIMediaItem aFavorite);
+
+  void onUnavorite(in sbIMediaItem aFavorite);
+
+  void onFollowing(in AString aFollowing);
+
+  void onUnfollowing(in AString aFollowing);
 };

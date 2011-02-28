@@ -159,7 +159,7 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
       self._searchTriggered = true;
     },
     onSearchCompleted: function listener_onSearchCompleted(aLibrary) {
-      if (self._searchTriggered) {
+      if (self._searchTriggered && aLibrary == self._service.library) {
         self._searchTriggered = false;
         var sps = Cc["@songbirdnest.com/servicepane/service;1"]
                     .getService(Ci.sbIServicePaneService);
@@ -173,6 +173,22 @@ SoundCloud.onLoad = function SoundCloud_onLoad() {
       }
     },
     onTracksAdded: function listener_onTracksAdded(aLibrary) {
+    },
+    onDashboardRefresh: function listener_onDashboardRefresh() {
+    },
+    onFavorite: function listener_onFavorite(aFavorite) {
+      var trackName = aFavorite.getProperty(SBProperties.trackName);
+      self.setStatusMsg("You favorited " + trackName);
+    },
+    onUnfavorite: function listener_onUnfavorite(aFavorite) {
+      var trackName = aFavorite.getProperty(SBProperties.trackName);
+      self.setStatusMsg("You unfavorited " + trackName);
+    },
+    onFollowing: function listener_onFollowing(aFollowing) {
+      self.setStatusMsg("You are now following " + aFollowing);
+    },
+    onUnfollowing: function listener_onUnfollowing(aFollowing) {
+      self.setStatusMsg("You unfollowed " + aFollowing);
     },
     QueryInterface: XPCOMUtils.generateQI([Ci.sbISoundCloudListener])
   };
@@ -624,7 +640,7 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
     if (curItem) {
       var trackId = curItem.getProperty(SB_PROPERTY_TRACK_ID);
       if (trackId)
-        self._service.favoriteTrack(trackId, true);
+        self._service.favoriteTrack(curItem, true);
     }
   }
 
@@ -658,7 +674,7 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
     if (curItem) {
       var trackId = curItem.getProperty(SB_PROPERTY_TRACK_ID);
       if (trackId) {
-        self._service.favoriteTrack(trackId, false);
+        self._service.favoriteTrack(curItem, false);
       }
     }
   }
@@ -692,8 +708,10 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
                               .QueryInterface(Ci.sbIMediaItem);
     if (curItem) {
       var userId = curItem.getProperty(SB_PROPERTY_USER_ID);
-      if (userId)
-        self._service.followUser(userId);
+      if (userId) {
+        var username = curItem.getProperty(SB_PROPERTY_USER);
+        self._service.followUser(userId, username, true);
+      }
     }
   }
 
@@ -727,8 +745,10 @@ SoundCloud._initCommands = function SoundCloud__initCommands() {
                               .QueryInterface(Ci.sbIMediaItem)
     if (curItem) {
       var userId = curItem.getProperty(SB_PROPERTY_USER_ID);
-      //if (userId)
-        //self._service.unfollowUser(userId);
+      if (userId) {
+        var username = curItem.getProperty(SB_PROPERTY_USER);
+        self._service.followUser(userId, username, false);
+      }
     }
   }
 
@@ -891,6 +911,21 @@ SoundCloud.setLoginError = function SoundCloud_setLoginError(aText) {
     this._loginError.textContent = "";
     this._loginError.style.visibility = "collapse";
   }
+}
+
+SoundCloud.setStatusMsg = function SoundCloud_setStatusMsg(aMsg) {
+  var SB_NewDataRemote =
+    Components.Constructor("@songbirdnest.com/Songbird/DataRemote;1",
+                             "sbIDataRemote",
+                             "init");
+  var statusOverrideText =
+    SB_NewDataRemote("faceplate.status.override.text");
+  var statusOverrideType =
+    SB_NewDataRemote("faceplate.status.override.type");
+ 
+  statusOverrideText.stringValue = "";
+  statusOverrideText.stringValue = aMsg;
+  statusOverrideType.stringValue = "report";
 }
 
 SoundCloud.onShowCurrentTrack =
