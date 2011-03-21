@@ -1055,12 +1055,13 @@ function sbSoundCloudService() {
     radioFolder = this._servicePaneService.createNode();
     radioFolder.id = "SB:RadioStations";
     radioFolder.className = "folder radio";
-    radioFolder.name = this._strings.GetStringFromName("radio.label");
+    radioFolder.name = this._strings.GetStringFromName("radioFolderLabel");
     radioFolder.setAttributeNS(SB_NS, "radioFolder", 1); // for backward-compat
     radioFolder.setAttributeNS(SP_NS, "Weight", 2);
     this._servicePaneService.root.appendChild(radioFolder);
   }
   radioFolder.editable = false;
+  radioFolder.hidden = false;
 
   var soclRadio = this._servicePaneService.getNode("SB:RadioStations:SoundCloud");
   if (!soclRadio) {
