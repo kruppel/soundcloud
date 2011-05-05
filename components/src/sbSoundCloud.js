@@ -845,7 +845,7 @@ function sbSoundCloudService() {
     var reqTokenFailure = function reqTokenFailure(xhr) {
       self._oauth_retries = null;
       aFailure(xhr);
-      dump("\nStatus: " + xhr.status + "\n" + xhr.getAllResponseHeaders());
+      Cu.reportError("Status: " + xhr.status);
     }
 
     this._reqtoken_xhr = POST(url,

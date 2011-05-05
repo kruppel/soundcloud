@@ -50,7 +50,7 @@
     <em:version>@EXTENSION_VER@</em:version>
     <em:name>SoundCloud</em:name>
     <em:creator>Kurt Ruppel (kurt@songbirdnest.com)</em:creator>
-    <em:description>Listen to SoundCloud.</em:description>
+    <em:description>Songbird + SoundCloud integration.</em:description>
 
     <em:iconURL>chrome://soundcloud/skin/em-icon.png</em:iconURL>
 

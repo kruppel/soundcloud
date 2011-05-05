@@ -73,7 +73,8 @@ var SoundCloudAuthorize = {
     }
 
     var state = doc.getElementsByTagName("h1")[0].innerHTML;
-    if (state == "You're now connected") {
+    if (state == "You're now connected" ||
+        state.indexOf("successfully authorized") != -1) {
       this._service.authorized = true;
       window.close();
     } else if (state == "Access Denied") {
